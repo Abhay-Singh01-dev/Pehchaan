@@ -1,0 +1,33 @@
+# Dependencies and build output
+node_modules
+dist
+dev-dist
+build
+coverage
+.turbo
+.vite
+*.tsbuildinfo
+
+# Test output
+test-results
+playwright-report
+blob-report
+apps/*/test-results
+.artifacts
+
+# Environment and secrets (infra/vm/env.example and apps/*/.env.example are the committed templates)
+.env
+.env.*
+!.env.example
+!**/.env.example
+*.pem
+*.key
+age-key.txt
+
+# Local tooling
+.venv
+.DS_Store
+Thumbs.db
+*.log
+.claude/.gate-blocks
+.claude/settings.local.json

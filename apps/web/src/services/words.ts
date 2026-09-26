@@ -1,0 +1,63 @@
+// Safety words and confirmation words.
+//
+// - Safety words (4): derived from SHA-256 of the public key. Both phones show the same
+//   four words when adding each other in person, which proves the scanned card is the
+//   phone in front of you (spec B3, SimKey; Part E, RealKey).
+// - Confirmation words (2): derived from SHA-256 of the signed answer, so the asker's
+//   verdict screen (E7) and the answerer's "sent" screen (F3) show the same two words.
+//
+// The list has exactly 256 short, concrete, easy-to-say words: one word per hash byte.
+import type { SafetyWordsT, SignedAnswer } from "./types";
+import { sha256 } from "./crypto";
+
+export const WORDS: readonly string[] = [
+  "ANCHOR", "APPLE", "ARROW", "ATLAS", "BADGE", "BALLOON", "BAMBOO", "BANANA",
+  "BANYAN", "BASKET", "BEACH", "BEAR", "BELL", "BERRY", "BISON", "BOAT",
+  "BOOK", "BOTTLE", "BRASS", "BREAD", "BRICK", "BRIDGE", "BROOM", "BRUSH",
+  "BUCKET", "BUFFALO", "BUTTER", "CABIN", "CACTUS", "CAMEL", "CAMERA", "CANAL",
+  "CANDLE", "CANVAS", "CARPET", "CARROT", "CASTLE", "CEDAR", "CHAIR", "CHALK",
+  "CHARIOT", "CHERRY", "CHESS", "CIRCLE", "CLOCK", "CLOUD", "COBRA", "COFFEE",
+  "COMET", "COMPASS", "COPPER", "CORAL", "COTTON", "CRANE", "CRAYON", "CRICKET",
+  "CROWN", "CRYSTAL", "CUMIN", "CURTAIN", "CYPRESS", "DAISY", "DELTA", "DESERT",
+  "DIAMOND", "DOLPHIN", "DONKEY", "DRAGON", "DRUM", "EAGLE", "ELEPHANT", "EMBER",
+  "EMERALD", "FALCON", "FEATHER", "FERN", "FIG", "FIREFLY", "FLAME", "FLUTE",
+  "FOREST", "FOSSIL", "FOUNTAIN", "FROST", "GARDEN", "GARLIC", "GAZELLE", "GINGER",
+  "GLACIER", "GLOBE", "GOAT", "GOLD", "GRAPE", "GUAVA", "GUITAR", "HAMMER",
+  "HARBOR", "HARP", "HAWK", "HELMET", "HERON", "HILL", "HONEY", "HORSE",
+  "ICEBERG", "IRIS", "ISLAND", "IVORY", "JACKET", "JADE", "JASMINE", "JELLY",
+  "JEWEL", "JUNGLE", "KETTLE", "KEY", "KITE", "KIWI", "KOALA", "LADDER",
+  "LAGOON", "LAMP", "LANTERN", "LEAF", "LEMON", "LENTIL", "LILY", "LION",
+  "LIZARD", "LOCKET", "LOTUS", "MANGO", "MAPLE", "MARBLE", "MEADOW", "MELON",
+  "MINT", "MIRROR", "MONSOON", "MOON", "MOSS", "MOUNTAIN", "NEEDLE", "NEST",
+  "NUTMEG", "OAK", "OCEAN", "OLIVE", "ONION", "ORANGE", "ORBIT", "OTTER",
+  "OWL", "PADDLE", "PALACE", "PALM", "PANDA", "PAPAYA", "PAPER", "PARROT",
+  "PEACH", "PEACOCK", "PEARL", "PEBBLE", "PENCIL", "PEPPER", "PILLOW", "PINE",
+  "PLANET", "PLUM", "POCKET", "POND", "POPPY", "PUMPKIN", "PUPPET", "QUARTZ",
+  "QUILL", "RABBIT", "RADIO", "RAIN", "RAINBOW", "RAVEN", "RIBBON", "RICE",
+  "RIVER", "ROBIN", "ROCKET", "ROSE", "RUBY", "SADDLE", "SAFFRON", "SAGE",
+  "SAIL", "SALT", "SAND", "SAPPHIRE", "SATURN", "SCARF", "SEED", "SHELL",
+  "SILK", "SILVER", "SPARROW", "SPICE", "SPONGE", "SPOON", "SPRING", "STAR",
+  "STONE", "STORM", "SUGAR", "SUMMER", "SUNSET", "SWAN", "TABLE", "TEA",
+  "TEAPOT", "TEMPLE", "THUNDER", "TIGER", "TOMATO", "TORCH", "TOWER", "TRAIN",
+  "TULIP", "TURTLE", "UMBRELLA", "VALLEY", "VELVET", "VINE", "VIOLIN", "VOLCANO",
+  "WAGON", "WALNUT", "WALRUS", "WATER", "WAVE", "WHALE", "WHEAT", "WHISTLE",
+  "WILLOW", "WINDOW", "WINTER", "WOLF", "YAK", "ZEBRA", "CINNAMON", "CARDAMOM",
+  "CLOVER", "MARIGOLD", "NECTAR", "HAZEL", "TIMBER", "PRISM", "CANYON", "BEACON",
+];
+
+// Indexing is modulo the list length, so a word can never be undefined (a unit test also
+// asserts the list has exactly 256 unique words).
+const word = (byte: number) => WORDS[byte % WORDS.length]!;
+
+export async function safetyWordsFor(publicKey: string): Promise<SafetyWordsT> {
+  const h = await sha256(publicKey);
+  return [word(h[0]!), word(h[1]!), word(h[2]!), word(h[3]!)];
+}
+
+export async function confirmationWordsFor(ans: Pick<SignedAnswer, "signature" | "nonce">): Promise<[string, string]> {
+  const h = await sha256(`${ans.signature}|${ans.nonce}|confirm`);
+  const a = word(h[0]!);
+  let b = word(h[1]!);
+  if (b === a) b = word(h[1]! + 1);
+  return [a, b];
+}

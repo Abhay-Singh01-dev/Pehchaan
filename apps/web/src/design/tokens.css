@@ -1,0 +1,124 @@
+/*
+ * Pehchaan design tokens: "Neel and brass" (spec B5.2).
+ * Components use these variables only; never hard-code colours in components.
+ * The theme is resolved in src/app/theme.ts and written to <html data-theme="light|dark">.
+ */
+
+:root {
+  color-scheme: light;
+
+  --bg: #f5f6fb; /* porcelain */
+  --bg-glow: radial-gradient(120% 60% at 50% -10%, rgba(58, 69, 214, 0.1), transparent 60%);
+  --surface: #ffffff;
+  --surface-2: #eef0f8;
+  --ink: #0f1430;
+  --ink-2: #454b6b;
+  --muted: #62688b; /* spec #6B7194 darkened a touch: 4.5:1 on --surface-2 too */
+  --line: #dde1ef;
+  --brand: #3a45d6; /* neel indigo */
+  --brand-strong: #2a33b0;
+  --brand-soft: #e6e8ff;
+  --on-brand: #ffffff;
+  --brand-ink: #2a33b0; /* brand-coloured text on --brand-soft (AA) */
+  --brass: #b8904a;
+  --brass-soft: #f3ead8;
+  --brass-ink: #7d5f26; /* brass-coloured text (AA on light surfaces) */
+  --focus: #3a45d6;
+
+  --shadow-1: 0 1px 2px rgba(15, 20, 48, 0.06), 0 4px 14px rgba(15, 20, 48, 0.06);
+  --shadow-2: 0 18px 40px rgba(15, 20, 48, 0.14);
+  --inner-border: rgba(15, 20, 48, 0);
+  --scrim: rgba(10, 14, 31, 0.45);
+  --noise-opacity: 0.028;
+  /* 2–3% noise baked into a tile (B5.4): grey grain with alpha ≈ 0.03 */
+  --noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.06 0 0 0 0 0.08 0 0 0 0 0.19 0 0 0 0.09 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+
+  /* Verdict colours: identical in both themes (B5.2). */
+  --ok-from: #12a35c;
+  --ok-to: #065c34;
+  --ok: #087a45;
+  --no-from: #e5463a;
+  --no-to: #8e1b12;
+  --no: #c4291c;
+  --fake-from: #8e1b12;
+  --fake-to: #4a0c07;
+  --fake: #8e1b12;
+  --amber-from: #fdb022;
+  --amber-to: #e07a0b;
+  --amber: #f79009;
+  --on-amber: #1f1300;
+  --wait-from: #3a45d6;
+  --wait-to: #1e2380;
+  --wait: #2a33b0;
+
+  /* Small verdict chips: base colour at 14% for the background; text tuned for AA. */
+  --chip-ok: #066b3c;
+  --chip-no: #b42318;
+  --chip-fake: #8e1b12;
+  --chip-amber: #9a4d00;
+  --chip-wait: #2a33b0;
+
+  /* Reachable dot */
+  --reachable: #12a35c;
+
+  /* Avatar colours (B5.2) */
+  --av-indigo: #3a45d6;
+  --av-teal: #0e7c86;
+  --av-saffron: #c9651f; /* spec #E07B39, deepened so white initials pass 3:1 at small sizes */
+  --av-rose: #d1437a;
+  --av-plum: #7a4fc4;
+  --av-slate: #52607a;
+
+  /* Type scaling: Large ×1.1, Extra large ×1.22 (B5.3). Hindi gets ~8% more line height. */
+  --ts: 1;
+  --lh: 1;
+
+  /* Height of the app's screen: the whole viewport on phones, the phone card on wider screens
+     (set on .phone-frame). Screens use min-h-app / h-app, never raw viewport units. */
+  --app-h: 100dvh;
+}
+
+[data-text-size="large"] {
+  --ts: 1.1;
+}
+[data-text-size="xlarge"] {
+  --ts: 1.22;
+}
+:lang(hi) {
+  --lh: 1.08;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --bg: #0a0e1f; /* midnight ink */
+  --bg-glow: radial-gradient(120% 60% at 50% -10%, rgba(140, 149, 255, 0.16), transparent 60%);
+  --surface: #121834;
+  --surface-2: #1a2146;
+  --ink: #eef0ff;
+  --ink-2: #c3c8e8;
+  --muted: #959cc4;
+  --line: #262e5a;
+  --brand: #8c95ff;
+  --brand-strong: #b3b9ff;
+  --brand-soft: #1f2660;
+  --on-brand: #0a0e1f;
+  --brand-ink: #b3b9ff;
+  --brass: #d9b874;
+  --brass-soft: #2a2414;
+  --brass-ink: #d9b874;
+  --focus: #b3b9ff;
+
+  --shadow-1: none;
+  --shadow-2: none;
+  --inner-border: rgba(255, 255, 255, 0.06);
+  --noise-opacity: 0.035;
+  --noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.9 0 0 0 0 0.92 0 0 0 0 1 0 0 0 0.075 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+
+  /* In dark mode chip text is a lighter tint of the base (B5.2). */
+  --chip-ok: #4cd08e;
+  --chip-no: #ff8a80;
+  --chip-fake: #ff9c94;
+  --chip-amber: #fdb022;
+  --chip-wait: #b3b9ff;
+}

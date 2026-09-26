@@ -1,0 +1,46 @@
+<!doctype html>
+<!-- translate="no": Pehchaan has its own English/Hindi switch. Browser machine translation
+     (Chrome, Edge, Safari) must never rewrite its copy — it garbles Hindi and safety wording. -->
+<html lang="en" data-theme="dark" translate="no" class="notranslate">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="google" content="notranslate" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Pehchaan · पहचान</title>
+    <meta name="description" content="Check it's really them. During a suspicious call, one tap asks your family member's own phone." />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#0A0E1F" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Pehchaan" />
+    <meta name="format-detection" content="telephone=no" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <!-- Preload the first screen's fonts (spec B15): Mukta 400 and 700, Anek Latin 600. -->
+    <link rel="preload" href="/fonts/mukta-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/mukta-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/anek-latin-latin-600-normal.woff2" as="font" type="font/woff2" crossorigin />
+    <script>
+      // Flash-free first paint: apply the last display preferences before CSS paints.
+      (function () {
+        try {
+          var d = JSON.parse(localStorage.getItem("pehchaan:display:last") || "null");
+          var r = document.documentElement;
+          var pref = (d && d.theme) || "system";
+          var dark = pref === "dark" || (pref === "system" && matchMedia("(prefers-color-scheme: dark)").matches);
+          r.dataset.theme = dark ? "dark" : "light";
+          if (d) {
+            r.dataset.textSize = d.textSize || "normal";
+            r.lang = d.lang || "en";
+          }
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body>
+    <noscript>Pehchaan needs JavaScript to run.</noscript>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

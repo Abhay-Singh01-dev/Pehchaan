@@ -1,0 +1,11 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      { "matcher": "Edit|MultiEdit|Write",
+        "hooks": [{ "type": "command", "command": "node scripts/claude/test-related.mjs", "timeout": 300 }] }
+    ],
+    "Stop": [
+      { "hooks": [{ "type": "command", "command": "node scripts/claude/gate.mjs", "timeout": 900 }] }
+    ]
+  }
+}
