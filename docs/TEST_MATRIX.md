@@ -47,41 +47,41 @@ Paths: `crypto` = `packages/crypto/test`, `protocol` = `packages/protocol/test`,
 
 | ID | Spec § | Rule | Test | Type | Phase | Status |
 |---|---|---|---|---|---|---|
-| REL-01 | 7.1, 16.2 | Bad Origin 403; wrong subprotocol 426; binary 1003; 16–64 KiB `too_large`; >64 KiB 1009; 3 bad frames/min 4400; conn rate 4429; >1 MiB buffered 1008; no compression; MAX_SOCKETS → /readyz 503 + upgrade 503 | relay/upgrade.int.test.ts | integration | 3 | ⏳ |
-| REL-02 | 7.3 | hello fields; valid auth.ok; bad sig 4401; reused nonce fails; 10 s → 4408; retired/blocked 4403; old client 4426; pre-auth `unauthenticated` | relay/login.int.test.ts | integration | 3 | ⏳ |
-| REL-03 | 7.1 | Ping every 25 s; 2 missed pongs → terminated; app ping → pong | relay/heartbeat.int.test.ts | integration | 3 | ⏳ |
-| REL-04 | 7.1 | ≤3 sockets per device; 4th closes oldest 4409; deliveries reach all; first ack counts | relay/sockets.int.test.ts | integration | 3 | ⏳ |
-| REL-05 | 8.2, 15.4 | Same-gateway and cross-gateway routing; dead gateway cleaned lazily; routes rebuilt after Valkey restart | relay/routing.int.test.ts | integration | 3 | ⏳ |
-| REL-06 | 8.3, 8.5 | Offline → queued; drained soonest-expiry first; ack removes; expired dropped; 50 cap; ttlMs rewritten | relay/inbox.int.test.ts | integration | 3 | ⏳ |
+| REL-01 | 7.1, 16.2 | Bad Origin 403; wrong subprotocol 426; binary 1003; 16–64 KiB `too_large`; >64 KiB 1009; 3 bad frames/min 4400; conn rate 4429; >1 MiB buffered 1008; no compression; MAX_SOCKETS → /readyz 503 + upgrade 503 | relay/upgrade.int.test.ts › REL-01 · accepting a WebSocket, MAX_SOCKETS | integration | 3 | ✅ |
+| REL-02 | 7.3 | hello fields; valid auth.ok; bad sig 4401; reused nonce fails; 10 s → 4408; retired/blocked 4403; old client 4426; pre-auth `unauthenticated` | relay/login.int.test.ts › REL-02 · login | integration | 3 | ✅ |
+| REL-03 | 7.1 | Ping every 25 s; 2 missed pongs → terminated; app ping → pong | relay/sockets.int.test.ts › REL-03 · heartbeats | integration | 3 | ✅ |
+| REL-04 | 7.1 | ≤3 sockets per device; 4th closes oldest 4409; deliveries reach all; first ack counts | relay/sockets.int.test.ts › REL-04 · up to 3 sockets per device | integration | 3 | ✅ |
+| REL-05 | 8.2, 15.4 | Same-gateway and cross-gateway routing; dead gateway cleaned lazily; routes rebuilt after Valkey restart | relay/delivery.int.test.ts › REL-05 · routing | integration | 3 | ✅ |
+| REL-06 | 8.3, 8.5 | Offline → queued; drained soonest-expiry first; ack removes; expired dropped; 50 cap; ttlMs rewritten | relay/delivery.int.test.ts › REL-06 · the inbox | integration | 3 | ✅ |
 | REL-07 | 8.4 | Every receipt state in its situation (pushed/failed: Phase 6) | relay/receipts.int.test.ts | integration | 3, 6 | ⏳ |
-| REL-08 | 8.4 | Same message id re-sent → routed once, same receipt | relay/dedupe.int.test.ts | integration | 3 | ⏳ |
-| REL-09 | 8.1 | Record created; duplicate_request; deadline on relay clock clamped 10–60 s; record TTL | relay/requests.int.test.ts | integration | 3 | ⏳ |
-| REL-10 | 8.6, 8.8 | Answer authorisation; not_allowed/already_answered/cancelled/expired; ok_late with late:true; 50-way race → one ok | relay/answers.int.test.ts | integration | 3 | ⏳ |
-| REL-11 | 8.6 | Cancel only by asker; targets get verify.cancel; state cancelled | relay/cancel.int.test.ts | integration | 3 | ⏳ |
+| REL-08 | 8.4 | Same message id re-sent → routed once, same receipt | relay/delivery.int.test.ts › REL-08 · the same message id re-sent | integration | 3 | ✅ |
+| REL-09 | 8.1 | Record created; duplicate_request; deadline on relay clock clamped 10–60 s; record TTL | relay/requests.int.test.ts › REL-09 · request records | integration | 3 | ✅ |
+| REL-10 | 8.6, 8.8 | Answer authorisation; not_allowed/already_answered/cancelled/expired; ok_late with late:true; 50-way race → one ok | relay/requests.int.test.ts › REL-10 · answers (incl. the 50-way race) | integration | 3 | ✅ |
+| REL-11 | 8.6 | Cancel only by asker; targets get verify.cancel; state cancelled | relay/requests.int.test.ts › REL-11 · cancel | integration | 3 | ✅ |
 | REL-12 | 8.3 | No ack in 1.5 s → push, only for kinds that allow it | relay/push-fallback.int.test.ts | integration | 6 | ⏳ |
-| REL-13 | 18.9 | Drain: /readyz 503 → 6 s → spread reconnect → 1012; zero envelopes lost | relay/drain.int.test.ts | integration | 3 | ⏳ |
+| REL-13 | 18.9 | Drain: /readyz 503 → 6 s → spread reconnect → 1012; zero envelopes lost | relay/drain.int.test.ts › REL-13 · drain | integration | 3 | ✅ |
 | REL-14 | 7.5 | Every error code produced by a test | relay/errors.int.test.ts (+ aggregation) | integration | 3, 7, 8 | ⏳ |
 | REL-15 | 16.3 | One test per authorisation row | relay/authz.int.test.ts | integration | 3, 7, 8 | ⏳ |
-| REL-16 | 16.1 | Every rate-limit row; GCRA burst then steady; CGNAT not blocked | relay/ratelimit.int.test.ts | integration | 3 | ⏳ |
-| REL-17 | 16.1 | 4th open request refused | relay/requests.int.test.ts › open requests | integration | 3 | ⏳ |
+| REL-16 | 16.1 | Every rate-limit row; GCRA burst then steady; CGNAT not blocked | relay/ratelimit.int.test.ts › REL-16 · the 16.1 table, GCRA over time, CGNAT | integration | 3 | ✅ |
+| REL-17 | 16.1 | 4th open request refused | relay/requests.int.test.ts › REL-17 · a 4th open request | integration | 3 | ✅ |
 | REL-18 | 9.5 | E2E_REQUIRED: plain → e2e_required unless both Lab-opted-in | relay/e2e-required.int.test.ts | integration | 8 | ⏳ |
-| REL-19 | 15.5, 23 | Valkey down → unavailable; Postgres down cold → unavailable; warm → works | relay/failclosed.int.test.ts | integration | 3 | ⏳ |
-| REL-20 | 18.7 | Invalid configuration exits with a clear message | relay/config.test.ts | unit | 3 | ⏳ |
-| REL-21 | 16.2 | X-Forwarded-For honoured only from TRUST_PROXY | relay/upgrade.int.test.ts › trust proxy | integration | 3 | ⏳ |
-| REL-22 | 16.7 | Logs during full flows contain no payload, nonce, signature, grant, endpoint, name, label, phone | relay/log-leak.int.test.ts | integration | 3, 9 | ⏳ |
+| REL-19 | 15.5, 23 | Valkey down → unavailable; Postgres down cold → unavailable; warm → works | relay/health.int.test.ts › REL-19 · fail closed + errors.int.test.ts › unavailable | integration | 3 | ✅ |
+| REL-20 | 18.7 | Invalid configuration exits with a clear message | relay/unit/config.test.ts › REL-20 · configuration | unit | 3 | ✅ |
+| REL-21 | 16.2 | X-Forwarded-For honoured only from TRUST_PROXY | relay/upgrade.int.test.ts › REL-21 · X-Forwarded-For only from TRUST_PROXY | integration | 3 | ✅ |
+| REL-22 | 16.7 | Logs during full flows contain no payload, nonce, signature, grant, endpoint, name, label, phone | relay/log-leak.int.test.ts › REL-22 · no personal data or secrets in logs | integration | 3, 9 | ✅ |
 | REL-23 | 19.1 | /metrics exposes every 19.1 metric; no device-ID labels | relay/metrics.int.test.ts | integration | 9 | ⏳ |
-| REL-24 | 18.9 | /healthz vs /readyz (readiness fails when draining or Valkey down) | relay/health.int.test.ts | integration | 3 | ⏳ |
-| C-7.3a | 7.3 | devices row upserted at login, at most one write per device per day | relay/login.int.test.ts › last_seen_on | integration | 3 | ⏳ |
-| C-7.3b | 7.3 | relayHost comes from RELAY_HOST, never the Host header | relay/login.int.test.ts › host from config | integration | 3 | ⏳ |
-| C-7.1a | 7.1 | Unauthenticated sockets ≤20 per IP (see SEC-07) | relay/upgrade.int.test.ts › pending per IP | integration | 3 | ⏳ |
-| C-8.3a | 8.3 | Inbox TTL per kind (request: deadline; answer: +30 s; cancel 60 s; alert 24 h; prompt 2 min) | relay/inbox.int.test.ts › ttl per kind | integration | 3 | ⏳ |
-| C-8.4a | 8.4 | dd:<from>:<id> kept 5 min | relay/dedupe.int.test.ts › ttl | integration | 3 | ⏳ |
-| C-8.6a | 8.6 | Other targets get verify.cancel{answered_elsewhere} | relay/answers.int.test.ts › answered elsewhere | integration | 3 | ⏳ |
+| REL-24 | 18.9 | /healthz vs /readyz (readiness fails when draining or Valkey down) | relay/health.int.test.ts › REL-24 · health and readiness | integration | 3 | ✅ |
+| C-7.3a | 7.3 | devices row upserted at login, at most one write per device per day | relay/login.int.test.ts › C-7.3a · the devices row | integration | 3 | ✅ |
+| C-7.3b | 7.3 | relayHost comes from RELAY_HOST, never the Host header | relay/login.int.test.ts › C-7.3b · a login signed for another relay host fails | integration | 3 | ✅ |
+| C-7.1a | 7.1 | Unauthenticated sockets ≤20 per IP (see SEC-07) | relay/upgrade.int.test.ts › C-7.1a / SEC-07 · caps unauthenticated sockets per IP | integration | 3 | ✅ |
+| C-8.3a | 8.3 | Inbox TTL per kind (request: deadline; answer: +30 s; cancel 60 s; alert 24 h; prompt 2 min) | relay/delivery.int.test.ts › C-8.3a · how long each kind waits | integration | 3 | ✅ |
+| C-8.4a | 8.4 | dd:<from>:<id> kept 5 min | relay/delivery.int.test.ts › REL-08 · re-sends are deduplicated for 5 minutes | integration | 3 | ✅ |
+| C-8.6a | 8.6 | Other targets get verify.cancel{answered_elsewhere} | relay/requests.int.test.ts › C-8.6a · answered_elsewhere | integration | 3 | ✅ |
 | C-15.1a | 15.1 | Keyspace TTLs: gw alive 30 s, rt 24 h, rq deadline+90 s, cfg:lab 12 h, oq 2 min, caches 10 min | relay/keyspace.int.test.ts | integration | 3, 4, 7 | ⏳ |
-| C-15.1b | 15.1 | Multi-key Lua scripts use hash-tagged keys | relay/keyspace.int.test.ts › hash tags | integration | 3 | ⏳ |
-| C-15.1c | 15.1 | Pub/sub behind a bus interface (PUBLISH or SPUBLISH) | relay/bus.int.test.ts | integration | 3 | ⏳ |
-| C-B5a | B5 | Every Lua script in its own file with a header comment, loaded with defineCommand | relay/lua.test.ts | unit | 3 | ⏳ |
-| C-B5b | B5 | Authorisation lives in core/authz.ts, one function per 16.3 row | relay/authz.int.test.ts › module shape | unit | 3 | ⏳ |
+| C-15.1b | 15.1 | Multi-key Lua scripts use hash-tagged keys | relay/keyspace.int.test.ts › C-15.1b · hash tags | integration | 3 | ✅ |
+| C-15.1c | 15.1 | Pub/sub behind a bus interface (PUBLISH or SPUBLISH) | relay/keyspace.int.test.ts › C-15.1c · the bus | integration | 3 | ✅ |
+| C-B5a | B5 | Every Lua script in its own file with a header comment, loaded with defineCommand | relay/unit/lua.test.ts › C-B5a · Lua scripts | unit | 3 | ✅ |
+| C-B5b | B5 | Authorisation lives in core/authz.ts, one function per 16.3 row | relay/errors.int.test.ts › REL-15 / C-B5b · one function per row | unit | 3 | ✅ |
 | C-4b | 4 | The relay never imports crypto/verifier or crypto/e2e (depcruise) | relay/unit/depcruise.test.ts › fails when the relay imports packages/crypto/verifier | static | 1 | ✅ |
 | C-7.6a | 7.6 | Outbound notices: the app ignores unknown fields | web/relay-frames.test.ts › lenient outbound | unit | 5 | ⏳ |
 
@@ -89,9 +89,9 @@ Paths: `crypto` = `packages/crypto/test`, `protocol` = `packages/protocol/test`,
 
 | ID | Spec § | Rule | Test | Type | Phase | Status |
 |---|---|---|---|---|---|---|
-| CON-01 | 6.4 | grant.set stores only the hash; rotate revokes older grants | relay/contacts.int.test.ts › grants | integration | 3 | ⏳ |
-| CON-02 | 6.4 | Valid grant creates binding; invalid or none → not_allowed | relay/contacts.int.test.ts › first contact | integration | 3 | ⏳ |
-| CON-03 | 6.4 | Revoked sender refused even with valid grant; unrevoke works; revoked row survives the blocked device retiring | relay/contacts.int.test.ts › revocation | integration | 3, 4 | ⏳ |
+| CON-01 | 6.4 | grant.set stores only the hash; rotate revokes older grants | relay/contacts.int.test.ts › CON-01 · grants | integration | 3 | ✅ |
+| CON-02 | 6.4 | Valid grant creates binding; invalid or none → not_allowed | relay/contacts.int.test.ts › CON-02 · first contact | integration | 3 | ✅ |
+| CON-03 | 6.4 | Revoked sender refused even with valid grant; unrevoke works; revoked row survives the blocked device retiring | relay/contacts.int.test.ts › CON-03 · revocation | integration | 3, 4 | ✅ |
 | CON-04 | 6.6 | Retire: tombstone; logins 4403; exact deletions; revoked rows kept | relay/retire.int.test.ts | integration | 4 | ⏳ |
 | CON-05 | 6.4 | 50 bindings per target; 20 new per day per target and per sender | relay/contacts.int.test.ts › binding limits | integration | 4 | ⏳ |
 | CON-06 | 12 | Presence online/push/offline; strangers offline; no timestamps | relay/presence.int.test.ts | integration | 4 | ⏳ |
@@ -102,8 +102,8 @@ Paths: `crypto` = `packages/crypto/test`, `protocol` = `packages/protocol/test`,
 | CON-11 | 15.4 | Wipe Valkey → recovers; wipe allowed bindings → rebuilt from the grant | relay/selfheal.int.test.ts | integration | 4 | ⏳ |
 | CON-12 | 16.8 | Admin: block (4403 on every gateway), unblock, retire, stats, lab on/off | relay/admin.int.test.ts | integration | 4 | ⏳ |
 | CON-13 | 15.2, 16.7 | Every audit event kind written with an HMAC subject | relay/audit.int.test.ts | integration | 4 | ⏳ |
-| C-6.4a | 6.4 | A revoked binding can't be recreated with any grant; only contact.unrevoke by the target | relay/contacts.int.test.ts › revoked stays | integration | 3 | ⏳ |
-| C-6.4b | 6.4 | Answers need no binding (authorised by the request record) | relay/answers.int.test.ts › no binding needed | integration | 3 | ⏳ |
+| C-6.4a | 6.4 | A revoked binding can't be recreated with any grant; only contact.unrevoke by the target | relay/contacts.int.test.ts › CON-03 · a revoked sender is refused … unrevoke | integration | 3 | ✅ |
+| C-6.4b | 6.4 | Answers need no binding (authorised by the request record) | relay/requests.int.test.ts › C-6.4b · the answerer needs no binding | integration | 3 | ✅ |
 | C-16.8a | 16.8 | Automatic abuse signals written to audit_events (rate-limit burst, >10 bindings/day) | relay/audit.int.test.ts › signals | integration | 4 | ⏳ |
 
 ## PSH · Web Push (mock push service)
@@ -206,11 +206,11 @@ Paths: `crypto` = `packages/crypto/test`, `protocol` = `packages/protocol/test`,
 | CHAOS-04 | 21.5 | Mock push 5xx → safe outcome | chaos/chaos.test.ts › push 5xx | chaos | 11 | ⏳ |
 | CHAOS-05 | 21.5 | Phone offline 5 s mid-check → recovers | chaos/chaos.test.ts › airplane | chaos | 11 | ⏳ |
 | SEC-01 | 21.7 | Envelope parser fuzzing: no crash, no unhandled rejection | sec/fuzz.test.ts | security | 9 | ⏳ |
-| SEC-02 | 21.7 | A replayed login is refused | sec/attacks.test.ts › replay login | security | 9 | ⏳ |
-| SEC-03 | 21.7 | Answer from a non-target refused | sec/attacks.test.ts › non-target | security | 9 | ⏳ |
-| SEC-04 | 21.7 | Binding bypass (revoked + valid grant; new identity with rotated grant) refused | sec/attacks.test.ts › binding bypass | security | 9 | ⏳ |
+| SEC-02 | 21.7 | A replayed login is refused | relay/login.int.test.ts › SEC-02 · the server nonce is single-use | security | 9 | ✅ |
+| SEC-03 | 21.7 | Answer from a non-target refused | relay/requests.int.test.ts › only the target may answer, and only to the asker (SEC-03) | security | 9 | ✅ |
+| SEC-04 | 21.7 | Binding bypass (revoked + valid grant; new identity with rotated grant) refused | relay/contacts.int.test.ts › SEC-04 + a revoked sender is refused even with a valid grant | security | 9 | ✅ |
 | SEC-05 | 9.5 | Downgrade: relay strips e2e and sends plain → the app refuses | web/envelope.test.ts › downgrade + e2e | security | 8 | ⏳ |
-| SEC-06 | 16.2 | Oversized and binary frames handled | sec/attacks.test.ts › frames | security | 9 | ⏳ |
+| SEC-06 | 16.2 | Oversized and binary frames handled | relay/upgrade.int.test.ts › binary 1003, too_large, 1009 | security | 9 | ✅ |
 | SEC-07 | 16.2 | Never-login sockets close at 10 s; pending unauthenticated per IP capped | sec/attacks.test.ts › slowloris | security | 9 | ⏳ |
 | SEC-08 | 11.3 | SSRF push subscriptions refused | sec/attacks.test.ts › ssrf | security | 9 | ⏳ |
 | SEC-09 | 14.1 | Lab off → lab.* refused; not opted in → not intercepted; password attempts limited | relay/lab.int.test.ts › safety | security | 7 | ⏳ |
@@ -234,7 +234,7 @@ Paths: `crypto` = `packages/crypto/test`, `protocol` = `packages/protocol/test`,
 | F-07 | Maa backgrounded when answer arrives → push to Maa | REL-06 + PSH-02 | 6 | ⏳ |
 | F-08 | Relay container crash / deploy mid-check | J-14, OPS-03 | 10 | ⏳ |
 | F-09 | Whole VM down → Not confirmed yet; restart | OPS-06 | 10 | ⏳ |
-| F-10 | Redis unavailable → fail closed | REL-19 | 3 | ⏳ |
+| F-10 | Redis unavailable → fail closed | REL-19 | relay/health.int.test.ts › REL-19 (Valkey down → unavailable) | ✅ |
 | F-11 | Redis restarted → routes self-heal | REL-05, CON-11 | 4 | ⏳ |
 | F-12 | Postgres unavailable → warm caches keep working | REL-19, CON-08 | 4 | ⏳ |
 | F-13 | Push service outage → failed receipts | PSH-03, CHAOS-04 | 6 | ⏳ |

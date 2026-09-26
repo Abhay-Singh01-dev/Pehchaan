@@ -10,6 +10,7 @@
 //   frontend spec are allowed (lines 833/1155 and 1521).
 //
 // Usage: node scripts/check-banned-words.mjs   (exits 1 and lists every hit)
+import { execSync } from "node:child_process";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { dirname, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -51,6 +52,30 @@ const escape = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 // "Whole word": not preceded or followed by a letter, digit, underscore or hyphen.
 const wordRe = (w) => new RegExp(`(?<![\\p{L}\\p{N}_-])${escape(w)}(?![\\p{L}\\p{N}_-])`, "iu");
 
+/** The repository's files: what git tracks, plus new files it would track (respecting .gitignore and the
+ *  local exclude list, so personal documents in the working folder are never scanned). */
+function repoFiles() {
+  try {
+    const out = execSync("git ls-files -co --exclude-standard", {
+      cwd: root,
+      encoding: "utf8",
+      maxBuffer: 64 * 1024 * 1024,
+    });
+    return out
+      .split("\n")
+      .filter(Boolean)
+      .filter((rel) => {
+        const parts = rel.split("/");
+        const name = parts.at(-1);
+        if (parts.slice(0, -1).some((p) => SKIP_DIRS.has(p))) return false;
+        return (TEXT_EXT.test(name) || name === "Caddyfile" || name.startsWith("Dockerfile")) && !TEST_FILE.test(name);
+      })
+      .map((rel) => join(root, rel));
+  } catch {
+    return listFiles(root);
+  }
+}
+
 function listFiles(dir, out = []) {
   for (const name of readdirSync(dir)) {
     const p = join(dir, name);
@@ -75,7 +100,7 @@ export function checkEverywhere(
 ) {
   const res = words.map((w) => [w, wordRe(w)]);
   const hits = [];
-  for (const file of listFiles(root)) {
+  for (const file of repoFiles()) {
     const rel = relative(root, file).split(sep).join("/");
     if (SKIP_FILES.has(rel)) continue;
     const lines = readFileSync(file, "utf8").split(/\r?\n/);

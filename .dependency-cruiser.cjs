@@ -45,9 +45,10 @@ module.exports = {
     },
     {
       name: "no-circular",
+      comment: "No runtime import cycles. Cycles through `import type` edges vanish at runtime and are allowed.",
       severity: "error",
       from: { path: "^(packages|apps/relay)/" },
-      to: { circular: true },
+      to: { circular: true, viaOnly: { dependencyTypesNot: ["type-only"] } },
     },
   ],
   options: {

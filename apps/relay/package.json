@@ -12,7 +12,7 @@
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run --coverage",
     "test:watch": "vitest",
-    "test:integration": "vitest run -c vitest.integration.config.ts",
+    "test:integration": "vitest run -c vitest.integration.config.ts --coverage",
     "db:generate": "drizzle-kit generate",
     "migrate": "tsx src/migrate.ts",
     "admin": "tsx src/admin.ts"
@@ -39,6 +39,7 @@
     "@types/web-push": "3.6.4",
     "@types/ws": "8.18.1",
     "@vitest/coverage-v8": "5.0.2",
+    "cluster-key-slot": "1.1.2",
     "drizzle-kit": "0.31.11",
     "esbuild": "0.28.2",
     "fast-check": "4.10.2",

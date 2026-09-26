@@ -15,6 +15,14 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       include: ["src/core/**/*.ts", "src/ws/**/*.ts", "src/push/**/*.ts", "src/lab/**/*.ts"],
+      // Measured from the phase that builds them (the gate counts "the code built so far", Part D).
+      exclude: [
+        "src/push/**", // Phase 6
+        "src/lab/**", // Phase 7
+        "src/ws/handlers/push.ts", // Phase 6
+        "src/ws/handlers/lab.ts", // Phase 7
+        "src/core/retire.ts", // Phase 4
+      ],
       reportsDirectory: "coverage/integration",
       thresholds: { lines: 90, branches: 85 },
     },
