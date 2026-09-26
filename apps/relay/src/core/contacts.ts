@@ -31,7 +31,14 @@ export function grantSecretHash(secretB64: string): Buffer {
   return createHash("sha256").update(b64urlDecode(secretB64)).digest();
 }
 
-export function createContacts(o: { redis: RelayRedis; keys: Keys; db: Db; audit: Audit; limiter: RateLimiter }) {
+export function createContacts(o: {
+  redis: RelayRedis;
+  keys: Keys;
+  db: Db;
+  audit: Audit;
+  limiter: RateLimiter;
+  onBindingCreated?: (sender: string) => Promise<void>;
+}) {
   const { redis, keys, db, audit, limiter } = o;
 
   async function allowedSenders(target: string): Promise<Set<string>> {
@@ -117,6 +124,7 @@ export function createContacts(o: { redis: RelayRedis; keys: Keys; db: Db; audit
         .onConflictDoNothing();
       await redis.del(keys.bindingCache(target));
       await audit.record("binding_created", target);
+      await o.onBindingCreated?.(sender).catch(() => {});
     },
 
     /** Presence (12) and similar: does `target` accept messages from `sender` right now? */

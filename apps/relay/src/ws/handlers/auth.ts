@@ -59,7 +59,7 @@ export async function handleAuth(hub: Hub, conn: Connection, f: AuthFrame): Prom
   hub.metrics.wsConnections.inc({ platform: b.client.platform });
 
   const [pushStatus, lab] = await Promise.all([
-    hub.push.status(b.deviceId).catch(() => "missing" as const),
+    hub.subscriptions.status(b.deviceId).catch(() => "missing" as const),
     hub.lab ? hub.lab.optInState(b.deviceId) : Promise.resolve({ optedIn: false }),
   ]);
   conn.send("auth.ok", { serverTime: Date.now(), pushStatus, lab });

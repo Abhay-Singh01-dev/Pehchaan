@@ -22,7 +22,7 @@ export async function handlePresence(hub: Hub, conn: Connection, f: Frame): Prom
     } else if ((await hub.router.aliveGateways(id)).length > 0) {
       states[id] = "online";
     } else {
-      states[id] = (await hub.push.status(id)) === "ok" ? "push" : "offline";
+      states[id] = (await hub.subscriptions.status(id)) === "ok" ? "push" : "offline";
     }
   }
   conn.send("presence", { states });

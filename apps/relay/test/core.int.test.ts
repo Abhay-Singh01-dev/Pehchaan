@@ -123,7 +123,6 @@ describe("core services", () => {
         throw new Error("push service down");
       },
       sendTest: async () => "failed",
-      status: async () => "missing",
       close: async () => {},
     };
     const saved = h.push;

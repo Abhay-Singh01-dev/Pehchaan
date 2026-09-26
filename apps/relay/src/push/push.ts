@@ -10,8 +10,6 @@ export interface Push {
   send(to: string, stored: StoredFrame): Promise<PushOutcome>;
   /** Diagnostics "Send test alert" (11.8): a test notification to the device itself. */
   sendTest(to: string): Promise<PushOutcome>;
-  /** For auth.ok: does the device have a working subscription? */
-  status(deviceId: string): Promise<PushStatus>;
   close(): Promise<void>;
 }
 
@@ -19,6 +17,5 @@ export interface Push {
 export const noPush: Push = {
   send: async () => "queued",
   sendTest: async () => "queued",
-  status: async () => "missing",
   close: async () => {},
 };

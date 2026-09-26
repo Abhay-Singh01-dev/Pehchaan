@@ -64,7 +64,7 @@ export function createRateLimiter(o: {
   keys: Keys;
   profile: keyof typeof PROFILES;
   ipHashKey: string;
-  onLimited?: (scope: Scope) => void;
+  onLimited?: (scope: Scope, key: string) => void;
 }): RateLimiter {
   const limits = PROFILES[o.profile];
   const check = async (scope: Scope, key: string) => {
@@ -77,7 +77,7 @@ export function createRateLimiter(o: {
     async take(scope, key) {
       const wait = await check(scope, key);
       if (wait > 0) {
-        o.onLimited?.(scope);
+        o.onLimited?.(scope, key);
         throw new Refusal("rate_limited", wait);
       }
     },

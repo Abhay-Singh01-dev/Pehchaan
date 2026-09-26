@@ -34,6 +34,7 @@ jobs:
       - run: pnpm turbo run lint typecheck test build # unit tests incl. crypto vectors
       - run: pnpm depcruise # code boundaries (section 4)
       - run: pnpm banned-words
+      - run: pnpm check-migrations # expand-then-contract (15.2)
       - run: pnpm --filter @pehchaan/relay test:integration
       - run: pnpm --filter @pehchaan/tests exec playwright install --with-deps chromium
       - run: pnpm test:e2e # relay + web + virtual authenticator

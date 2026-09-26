@@ -27,6 +27,8 @@ export function createKeys(prefix: string) {
     labHeld: (heldId: string) => `${p}lab:held:${heldId}`,
     labSwitch: () => `${p}cfg:lab`,
     labSince: () => `${p}lab:since`,
+    /** Abuse-signal counters (16.8). */
+    abuse: (kind: string, deviceId: string) => `${p}ab:${kind}:${deviceId}`,
     /** Pub/sub channels. */
     gatewayChannel: (gw: string) => `${p}gw:${gw}`,
     labChannel: () => `${p}lab:events`,

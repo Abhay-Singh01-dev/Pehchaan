@@ -26,6 +26,7 @@
     "format:check": "prettier --check .",
     "banned-words": "node scripts/check-banned-words.mjs",
     "check-matrix": "node scripts/check-test-matrix.mjs",
+    "check-migrations": "node scripts/check-migrations.mjs",
     "db:up": "docker compose -f infra/compose/docker-compose.dev.yml up -d --wait",
     "db:down": "docker compose -f infra/compose/docker-compose.dev.yml down"
   },

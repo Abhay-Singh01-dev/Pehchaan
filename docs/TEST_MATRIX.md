@@ -77,7 +77,7 @@ Paths: `crypto` = `packages/crypto/test`, `protocol` = `packages/protocol/test`,
 | C-8.3a | 8.3 | Inbox TTL per kind (request: deadline; answer: +30 s; cancel 60 s; alert 24 h; prompt 2 min) | relay/delivery.int.test.ts › C-8.3a · how long each kind waits | integration | 3 | ✅ |
 | C-8.4a | 8.4 | dd:<from>:<id> kept 5 min | relay/delivery.int.test.ts › REL-08 · re-sends are deduplicated for 5 minutes | integration | 3 | ✅ |
 | C-8.6a | 8.6 | Other targets get verify.cancel{answered_elsewhere} | relay/requests.int.test.ts › C-8.6a · answered_elsewhere | integration | 3 | ✅ |
-| C-15.1a | 15.1 | Keyspace TTLs: gw alive 30 s, rt 24 h, rq deadline+90 s, cfg:lab 12 h, oq 2 min, caches 10 min | relay/keyspace.int.test.ts | integration | 3, 4, 7 | ⏳ |
+| C-15.1a | 15.1 | Keyspace TTLs: gw alive 30 s, rt 24 h, rq deadline+90 s, cfg:lab 12 h, oq 2 min, caches 10 min | relay/keyspace.int.test.ts › C-15.1a + data.int.test.ts › lab on/off (cfg:lab 12 h) | integration | 3, 4, 7 | ✅ |
 | C-15.1b | 15.1 | Multi-key Lua scripts use hash-tagged keys | relay/keyspace.int.test.ts › C-15.1b · hash tags | integration | 3 | ✅ |
 | C-15.1c | 15.1 | Pub/sub behind a bus interface (PUBLISH or SPUBLISH) | relay/keyspace.int.test.ts › C-15.1c · the bus | integration | 3 | ✅ |
 | C-B5a | B5 | Every Lua script in its own file with a header comment, loaded with defineCommand | relay/unit/lua.test.ts › C-B5a · Lua scripts | unit | 3 | ✅ |
@@ -92,19 +92,19 @@ Paths: `crypto` = `packages/crypto/test`, `protocol` = `packages/protocol/test`,
 | CON-01 | 6.4 | grant.set stores only the hash; rotate revokes older grants | relay/contacts.int.test.ts › CON-01 · grants | integration | 3 | ✅ |
 | CON-02 | 6.4 | Valid grant creates binding; invalid or none → not_allowed | relay/contacts.int.test.ts › CON-02 · first contact | integration | 3 | ✅ |
 | CON-03 | 6.4 | Revoked sender refused even with valid grant; unrevoke works; revoked row survives the blocked device retiring | relay/contacts.int.test.ts › CON-03 · revocation | integration | 3, 4 | ✅ |
-| CON-04 | 6.6 | Retire: tombstone; logins 4403; exact deletions; revoked rows kept | relay/retire.int.test.ts | integration | 4 | ⏳ |
-| CON-05 | 6.4 | 50 bindings per target; 20 new per day per target and per sender | relay/contacts.int.test.ts › binding limits | integration | 4 | ⏳ |
-| CON-06 | 12 | Presence online/push/offline; strangers offline; no timestamps | relay/presence.int.test.ts | integration | 4 | ⏳ |
-| CON-07 | 6.4, 17 | contact.list correct; schema has no name or phone columns | relay/contacts.int.test.ts › list + schema | integration | 4 | ⏳ |
-| CON-08 | 15.5 | Caches invalidated on change; cold-cache DB error fails closed | relay/caches.int.test.ts | integration | 4 | ⏳ |
-| CON-09 | 15.3 | Retention job per 15.3; inactive devices tombstoned after 12 months | relay/retention.int.test.ts | integration | 4 | ⏳ |
-| CON-10 | 15.2 | Migrations apply from empty; destructive migrations rejected unless marked contract | relay/migrations.int.test.ts + scripts/check-migrations | integration | 4 | ⏳ |
-| CON-11 | 15.4 | Wipe Valkey → recovers; wipe allowed bindings → rebuilt from the grant | relay/selfheal.int.test.ts | integration | 4 | ⏳ |
-| CON-12 | 16.8 | Admin: block (4403 on every gateway), unblock, retire, stats, lab on/off | relay/admin.int.test.ts | integration | 4 | ⏳ |
-| CON-13 | 15.2, 16.7 | Every audit event kind written with an HMAC subject | relay/audit.int.test.ts | integration | 4 | ⏳ |
+| CON-04 | 6.6 | Retire: tombstone; logins 4403; exact deletions; revoked rows kept | relay/data.int.test.ts › CON-04 · retire | integration | 4 | ✅ |
+| CON-05 | 6.4 | 50 bindings per target; 20 new per day per target and per sender | relay/data.int.test.ts › CON-05 · binding limits | integration | 4 | ✅ |
+| CON-06 | 12 | Presence online/push/offline; strangers offline; no timestamps | relay/data.int.test.ts › CON-06 / SEC-12 · presence | integration | 4 | ✅ |
+| CON-07 | 6.4, 17 | contact.list correct; schema has no name or phone columns | relay/data.int.test.ts › CON-07 · contact.list, and no personal data in the schema | integration | 4 | ✅ |
+| CON-08 | 15.5 | Caches invalidated on change; cold-cache DB error fails closed | relay/data.int.test.ts › CON-08 · caches + health.int.test.ts › REL-19 | integration | 4 | ✅ |
+| CON-09 | 15.3 | Retention job per 15.3; inactive devices tombstoned after 12 months | relay/data.int.test.ts › CON-09 · retention (time travel) | integration | 4 | ✅ |
+| CON-10 | 15.2 | Migrations apply from empty; destructive migrations rejected unless marked contract | relay/data.int.test.ts › CON-10 · migrations + scripts/check-migrations.mjs (CI) | integration | 4 | ✅ |
+| CON-11 | 15.4 | Wipe Valkey → recovers; wipe allowed bindings → rebuilt from the grant | relay/data.int.test.ts › CON-11 · self-healing + delivery.int.test.ts › REL-05 | integration | 4 | ✅ |
+| CON-12 | 16.8 | Admin: block (4403 on every gateway), unblock, retire, stats, lab on/off | relay/data.int.test.ts › CON-12 · admin CLI | integration | 4 | ✅ |
+| CON-13 | 15.2, 16.7 | Every audit event kind written with an HMAC subject | relay/data.int.test.ts › CON-13 · audit events | integration | 4 | ✅ |
 | C-6.4a | 6.4 | A revoked binding can't be recreated with any grant; only contact.unrevoke by the target | relay/contacts.int.test.ts › CON-03 · a revoked sender is refused … unrevoke | integration | 3 | ✅ |
 | C-6.4b | 6.4 | Answers need no binding (authorised by the request record) | relay/requests.int.test.ts › C-6.4b · the answerer needs no binding | integration | 3 | ✅ |
-| C-16.8a | 16.8 | Automatic abuse signals written to audit_events (rate-limit burst, >10 bindings/day) | relay/audit.int.test.ts › signals | integration | 4 | ⏳ |
+| C-16.8a | 16.8 | Automatic abuse signals written to audit_events (rate-limit burst, >10 bindings/day) | relay/data.int.test.ts › C-16.8a · automatic abuse signals | integration | 4 | ✅ |
 
 ## PSH · Web Push (mock push service)
 
@@ -216,7 +216,7 @@ Paths: `crypto` = `packages/crypto/test`, `protocol` = `packages/protocol/test`,
 | SEC-09 | 14.1 | Lab off → lab.* refused; not opted in → not intercepted; password attempts limited | relay/lab.int.test.ts › safety | security | 7 | ⏳ |
 | SEC-10 | 16.4 | gitleaks: no secrets in the repo or history | sec/gitleaks (CI + local) | security | 9 | ⏳ |
 | SEC-11 | 21.7 | pnpm audit and Trivy: no critical/high | sec/audit (CI) | security | 9 | ⏳ |
-| SEC-12 | 12 | Presence never reveals strangers | sec/attacks.test.ts › presence | security | 9 | ⏳ |
+| SEC-12 | 12 | Presence never reveals strangers | relay/data.int.test.ts › CON-06 / SEC-12 · presence | security | 9 | ✅ |
 | C-14.3a | 14.3 | Held message: 10 s without Lab reply → original forwarded, disarmed, "Lab didn't respond" | relay/lab.int.test.ts › hold timeout | integration | 7 | ⏳ |
 | C-14.1a | 14.1 | cfg:lab expires after 12 h; opt-ins and sessions after 4 h | relay/lab.int.test.ts › ttls | integration | 7 | ⏳ |
 | C-14.4a | 14.4 | Every attack written to lab_attacks; false_green counter stays 0 | relay/lab.int.test.ts › records | integration | 7 | ⏳ |
@@ -235,8 +235,8 @@ Paths: `crypto` = `packages/crypto/test`, `protocol` = `packages/protocol/test`,
 | F-08 | Relay container crash / deploy mid-check | J-14, OPS-03 | 10 | ⏳ |
 | F-09 | Whole VM down → Not confirmed yet; restart | OPS-06 | 10 | ⏳ |
 | F-10 | Redis unavailable → fail closed | REL-19 | relay/health.int.test.ts › REL-19 (Valkey down → unavailable) | ✅ |
-| F-11 | Redis restarted → routes self-heal | REL-05, CON-11 | 4 | ⏳ |
-| F-12 | Postgres unavailable → warm caches keep working | REL-19, CON-08 | 4 | ⏳ |
+| F-11 | Redis restarted → routes self-heal | REL-05, CON-11 | relay/delivery.int.test.ts › REL-05 (Valkey wipe) + data.int.test.ts › CON-11 | ✅ |
+| F-12 | Postgres unavailable → warm caches keep working | REL-19, CON-08 | relay/health.int.test.ts › REL-19 (warm caches keep working) | ✅ |
 | F-13 | Push service outage → failed receipts | PSH-03, CHAOS-04 | 6 | ⏳ |
 | F-14 | Push subscription expired → deleted, re-subscribed | PSH-03 | 6 | ⏳ |
 | F-15 | Wrong phone clock → nothing | APP-09 (F1 skew) | 5 | ⏳ |

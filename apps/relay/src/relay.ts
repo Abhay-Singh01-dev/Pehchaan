@@ -5,6 +5,7 @@ import { randomBytes } from "node:crypto";
 import type { DestinationStream } from "pino";
 import { ulid } from "@pehchaan/protocol";
 import type { Config } from "./config";
+import { createAbuseSignals } from "./core/abuse";
 import { createAudit } from "./core/audit";
 import { createBus } from "./core/bus";
 import { createContacts } from "./core/contacts";
@@ -63,12 +64,16 @@ export async function createRelay(config: Config, opts: RelayOptions = {}): Prom
   const sub = createSubscriberClient(config.REDIS_URL);
   const store = createStore({ url: config.DATABASE_URL, schema: config.PG_SCHEMA });
   const audit = createAudit(store.db, config.AUDIT_KEY);
+  const abuse = createAbuseSignals({ redis, keys, audit });
   const limiter = createRateLimiter({
     redis,
     keys,
     profile: config.RATE_LIMIT_PROFILE,
     ipHashKey: config.IP_HASH_KEY,
-    onLimited: (scope) => metrics.rateLimited.inc({ scope }),
+    onLimited: (scope, key) => {
+      metrics.rateLimited.inc({ scope });
+      abuse.rateLimited(scope, key);
+    },
   });
   const sessions = new Sessions<Connection>();
   const bus = createBus(redis, sub);
@@ -90,7 +95,7 @@ export async function createRelay(config: Config, opts: RelayOptions = {}): Prom
     requests: createRequests(redis, keys),
     inbox,
     devices,
-    contacts: createContacts({ redis, keys, db: store.db, audit, limiter }),
+    contacts: createContacts({ redis, keys, db: store.db, audit, limiter, onBindingCreated: abuse.bindingCreated }),
     audit,
     bus,
     sessions,
