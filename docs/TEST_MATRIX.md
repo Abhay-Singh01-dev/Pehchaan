@@ -13,34 +13,35 @@ Paths: `crypto` = `packages/crypto/test`, `protocol` = `packages/protocol/test`,
 
 | ID | Spec § | Rule | Test | Type | Phase | Status |
 |---|---|---|---|---|---|---|
-| CRY-01 | 10.1 | Canonical JSON: sorted keys (recursive), undefined omitted, no whitespace, non-integers throw, Devanagari raw | crypto/canonical.test.ts › canonical JSON | unit | 2 | ⏳ |
-| CRY-02 | 10.2 | The 10.2 vectors reproduce exactly (both canonicals, 4 challenges, rpIdHash) | crypto/vectors.test.ts › spec 10.2 vectors | unit | 2 | ⏳ |
-| CRY-03 | 10.2 | Property: changing any signed field or the decision changes the challenge | crypto/canonical.test.ts › challenge binds every field | property | 2 | ⏳ |
-| CRY-04 | 5.2 | deviceIdFrom: 22 chars, deterministic, distinct keys → distinct IDs | crypto/device-auth.test.ts › deviceIdFrom | unit | 2 | ⏳ |
-| CRY-05 | 7.3 | Login signature valid; wrong host/nonce/id, bad key length/prefix, id≠key → rejected | crypto/device-auth.test.ts › verifyAuth | unit | 2 | ⏳ |
-| CRY-06 | 10.6 | derToRaw round-trips 1,000 real signatures; rejects short, long, wrong tag, extra bytes, bad 33-byte int, zero length | crypto/der.test.ts › derToRaw | unit | 2 | ⏳ |
-| CRY-07 | 10.5 | Every 10.5 table row + crossOrigin, wrong type, wrong rpIdHash, UP missing, YES at expiresAt / +1 ms, malformed clientDataJSON, short authData, bad base64url, unknown decision | crypto/verifier.table.test.ts (independent agent) + verifier.test.ts | unit | 2 | ⏳ |
-| CRY-08 | 10.5 | Property: the reason is always the highest failed reason in the priority order | crypto/verifier.property.test.ts › reason priority | property | 2 | ⏳ |
-| CRY-09 | 10.5 | Property: 10,000 random mutations of a valid answer never VERIFIED unless nothing changed | crypto/verifier.property.test.ts › mutations | property | 2 | ⏳ |
-| CRY-10 | 9.2–9.3 | E2E round trip; each header field, ct, iv, epk, sig, alg changed → tampered; spoofed sender; saved-key mismatch; relay re-seal forgery; wrong recipient key | crypto/e2e.test.ts | unit | 2 | ⏳ |
-| CRY-11 | 9.5 | psig valid; payload changed; header changed → rejected | crypto/plain-sig.test.ts | unit | 2 | ⏳ |
-| CRY-12 | 6.3 | Safety words deterministic; 4 BIP-39 words; any key change → different words; PBKDF2 600,000; never read from the card | crypto/safety-words.test.ts | unit | 2 | ⏳ |
-| CRY-13 | 10.8 | Confirmation words identical on both sides; (r, n−s) rewrite doesn't change them | crypto/confirm-words.test.ts | unit | 2 | ⏳ |
-| CRY-14 | 6.1, 6.5 | Card v2 encode/decode; each 6.1 validation failure; every 6.5 guard row | crypto/card.test.ts | unit | 2 | ⏳ |
-| C-6.3a | 6.3 | The BIP-39 English list is vendored with its checksum and has 2048 entries | crypto/safety-words.test.ts › wordlist checksum | unit | 2 | ⏳ |
-| C-10.6a | 10.6, B5 | verifier.ts stays under ~150 lines with one comment per check | crypto/verifier.size.test.ts | unit | 2 | ⏳ |
-| C-4a | 4 | packages/crypto uses WebCrypto only and has no dependencies | crypto/package.test.ts › no dependencies | unit | 2 | ⏳ |
+| CRY-01 | 10.1 | Canonical JSON: sorted keys (recursive), undefined omitted, no whitespace, non-integers throw, Devanagari raw | crypto/canonical.test.ts › canonical JSON | unit | 2 | ✅ |
+| CRY-02 | 10.2 | The 10.2 vectors reproduce exactly (both canonicals, 4 challenges, rpIdHash) | crypto/vectors.test.ts › spec 10.2 vectors | unit | 2 | ✅ |
+| CRY-03 | 10.2 | Property: changing any signed field or the decision changes the challenge | crypto/canonical.test.ts › challenge binds every field | property | 2 | ✅ |
+| CRY-04 | 5.2 | deviceIdFrom: 22 chars, deterministic, distinct keys → distinct IDs | crypto/device-auth.test.ts › deviceIdFrom | unit | 2 | ✅ |
+| CRY-05 | 7.3 | Login signature valid; wrong host/nonce/id, bad key length/prefix, id≠key → rejected | crypto/device-auth.test.ts › verifyAuth | unit | 2 | ✅ |
+| CRY-06 | 10.6 | derToRaw round-trips 1,000 real signatures; rejects short, long, wrong tag, extra bytes, bad 33-byte int, zero length | crypto/der.test.ts › derToRaw | unit | 2 | ✅ |
+| CRY-07 | 10.5 | Every 10.5 table row + crossOrigin, wrong type, wrong rpIdHash, UP missing, YES at expiresAt / +1 ms, malformed clientDataJSON, short authData, bad base64url, unknown decision | crypto/verifier.table.test.ts (independent agent) + verifier.test.ts | unit | 2 | ✅ |
+| CRY-08 | 10.5 | Property: the reason is always the highest failed reason in the priority order | crypto/verifier.property.test.ts › reason priority | property | 2 | ✅ |
+| CRY-09 | 10.5 | Property: 10,000 random mutations of a valid answer never VERIFIED unless nothing changed | crypto/verifier.property.test.ts › mutations | property | 2 | ✅ |
+| CRY-10 | 9.2–9.3 | E2E round trip; each header field, ct, iv, epk, sig, alg changed → tampered; spoofed sender; saved-key mismatch; relay re-seal forgery; wrong recipient key | crypto/e2e.test.ts | unit | 2 | ✅ |
+| CRY-11 | 9.5 | psig valid; payload changed; header changed → rejected | crypto/plain-sig.test.ts | unit | 2 | ✅ |
+| CRY-12 | 6.3 | Safety words deterministic; 4 BIP-39 words; any key change → different words; PBKDF2 600,000; never read from the card | crypto/safety-words.test.ts | unit | 2 | ✅ |
+| CRY-13 | 10.8 | Confirmation words identical on both sides; (r, n−s) rewrite doesn't change them | crypto/confirm-words.test.ts | unit | 2 | ✅ |
+| CRY-14 | 6.1, 6.5 | Card v2 encode/decode; each 6.1 validation failure; every 6.5 guard row | crypto/card.test.ts | unit | 2 | ✅ |
+| C-6.3a | 6.3 | The BIP-39 English list is vendored with its checksum and has 2048 entries | crypto/safety-words.test.ts › wordlist checksum | unit | 2 | ✅ |
+| C-10.6a | 10.6, B5 | verifier.ts stays under ~150 lines with one comment per check | crypto/verifier.size.test.ts | unit | 2 | ✅ |
+| C-4a | 4 | packages/crypto uses WebCrypto only and has no dependencies | crypto/package.test.ts › no dependencies | unit | 2 | ✅ |
 
 ## PRO · packages/protocol
 
 | ID | Spec § | Rule | Test | Type | Phase | Status |
 |---|---|---|---|---|---|---|
-| PRO-01 | 7.2–7.4, 14.2, 16.2 | Every message and payload: valid sample passes; unknown fields, oversize strings, bad IDs rejected | protocol/schemas.test.ts | unit | 2 | ⏳ |
-| PRO-02 | 7.2 | Fuzz: random JSON never crashes the parser | protocol/fuzz.test.ts | property | 2 | ⏳ |
-| PRO-03 | 4, B5 | The relay and the app import the same schema module | protocol/single-source.test.ts | unit | 2 | ⏳ |
-| C-7.2a | 7.2 | Unknown `t` values are rejected by the outer envelope | protocol/schemas.test.ts › unknown t | unit | 2 | ⏳ |
-| C-7.5a | 7.5 | Error and close code tables are exported exactly | protocol/codes.test.ts | unit | 2 | ⏳ |
-| C-16.2a | 16.2 | Limits (16 KiB frame, 8 KiB ct, 50 presence IDs, 50 inbox, ID formats) are exported constants | protocol/limits.test.ts | unit | 2 | ⏳ |
+| PRO-01 | 7.2–7.4, 14.2, 16.2 | Every message and payload: valid sample passes; unknown fields, oversize strings, bad IDs rejected | protocol/schemas.test.ts | unit | 2 | ✅ |
+| PRO-02 | 7.2 | Fuzz: random JSON never crashes the parser | protocol/fuzz.test.ts | property | 2 | ✅ |
+| PRO-03 | 4, B5 | The relay and the app import the same schema module | protocol/single-source.test.ts | unit | 2 | ✅ |
+| C-7.2a | 7.2 | Unknown `t` values are rejected by the outer envelope | protocol/schemas.test.ts › unknown t | unit | 2 | ✅ |
+| PRO-02b | 7.2, E5 | Regression (found in Phase 2): a relay frame whose `t` names an Object prototype member ("toString") is ignored, not a crash | protocol/schemas.test.ts › returns null for unknown types, bad bodies and non-JSON | unit | 2 | ✅ |
+| C-7.5a | 7.5 | Error and close code tables are exported exactly | protocol/codes.test.ts | unit | 2 | ✅ |
+| C-16.2a | 16.2 | Limits (16 KiB frame, 8 KiB ct, 50 presence IDs, 50 inbox, ID formats) are exported constants | protocol/limits.test.ts | unit | 2 | ✅ |
 
 ## REL · relay (integration, real Valkey + Postgres, two gateways)
 
@@ -246,7 +247,7 @@ Paths: `crypto` = `packages/crypto/test`, `protocol` = `packages/protocol/test`,
 | F-20 | Arjun cancels the fingerprint prompt → F5 | APP-05 | 5 | ⏳ |
 | F-21 | Passkey deleted from the password manager → F5 then "key is missing" | APP-05 | 5 | ⏳ |
 | F-22 | Storage cleared → fresh start | APP-02 | 5 | ⏳ |
-| F-23 | Phone lost → UV required | CRY-07 (check 5) | 2 | ⏳ |
+| F-23 | Phone lost → UV required | CRY-07 (check 5) | 2 | ✅ |
 | F-24 | Family link leaks → rate limits, Remove, Reset my code | REL-16, J-11 | 5 | ⏳ |
 | F-25 | Scammer's "new phone" link → red warning | J-10 | 5 | ⏳ |
 | F-26 | Relay compromised → never a false green | J-12, CRY-09 | 7 | ⏳ |

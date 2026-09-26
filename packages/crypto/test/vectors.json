@@ -1,0 +1,31 @@
+{
+  "source": "docs/BACKEND_SPEC.md section 10.2. Both the app and CI must reproduce these exactly.",
+  "requestA": {
+    "requestId": "01JB7Y8Q3Z6N4V5W2K9C0D1E2F",
+    "nonce": "q3v0Yb7kP1sR9tXw2Zc5Hn8Ld4Fg6Jm0Ae3Uo7Iy1Qk",
+    "fromDeviceId": "Mx9Qe2Lr7Tb4Nw1Kc6Vh0S",
+    "toDeviceId": "Ar3Jn8Pk2Wq5Ez7Uy1Gd4F",
+    "claimedLabel": "Arjun",
+    "reason": "money",
+    "amountInr": 50000,
+    "createdAt": 1761900000000,
+    "expiresAt": 1761900060000
+  },
+  "canonicalA": "{\"amountInr\":50000,\"claimedLabel\":\"Arjun\",\"createdAt\":1761900000000,\"expiresAt\":1761900060000,\"fromDeviceId\":\"Mx9Qe2Lr7Tb4Nw1Kc6Vh0S\",\"nonce\":\"q3v0Yb7kP1sR9tXw2Zc5Hn8Ld4Fg6Jm0Ae3Uo7Iy1Qk\",\"reason\":\"money\",\"requestId\":\"01JB7Y8Q3Z6N4V5W2K9C0D1E2F\",\"toDeviceId\":\"Ar3Jn8Pk2Wq5Ez7Uy1Gd4F\",\"v\":1}",
+  "challengeA_ME": "AkKq6W7rOUy1nHaSjPrvv6mvzTN5GRnjzFU_PO_me48",
+  "challengeA_NOT_ME": "G1-ucjqOjawjZo4jWCsqh_pcXUU-tBzduGo4HTRtORU",
+  "requestB": {
+    "requestId": "01JB7Y8Q3Z6N4V5W2K9C0D1E2F",
+    "nonce": "q3v0Yb7kP1sR9tXw2Zc5Hn8Ld4Fg6Jm0Ae3Uo7Iy1Qk",
+    "fromDeviceId": "Mx9Qe2Lr7Tb4Nw1Kc6Vh0S",
+    "toDeviceId": "Ar3Jn8Pk2Wq5Ez7Uy1Gd4F",
+    "claimedLabel": "बेटा",
+    "createdAt": 1761900000000,
+    "expiresAt": 1761900060000
+  },
+  "canonicalB": "{\"claimedLabel\":\"बेटा\",\"createdAt\":1761900000000,\"expiresAt\":1761900060000,\"fromDeviceId\":\"Mx9Qe2Lr7Tb4Nw1Kc6Vh0S\",\"nonce\":\"q3v0Yb7kP1sR9tXw2Zc5Hn8Ld4Fg6Jm0Ae3Uo7Iy1Qk\",\"requestId\":\"01JB7Y8Q3Z6N4V5W2K9C0D1E2F\",\"toDeviceId\":\"Ar3Jn8Pk2Wq5Ez7Uy1Gd4F\",\"v\":1}",
+  "challengeB_ME": "PyFYvQ_1wBKrA4UzlF_mWCzD34oXoKpH51dNzrVeXu8",
+  "challengeB_NOT_ME": "6OjlO8SRU1RPEshRJhofgvJsR6bz97XngSQTYLp6dZg",
+  "rpId": "app.yourdomain.in",
+  "rpIdHash": "zL2KHaulGgG03y83xSbj2v_f_X8quk0vYIHkQ0CRCAg"
+}

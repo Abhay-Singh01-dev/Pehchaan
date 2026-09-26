@@ -7,7 +7,16 @@
   "exports": {
     ".": "./src/index.ts",
     "./bytes": "./src/bytes.ts",
-    "./device-auth": "./src/device-auth.ts"
+    "./canonical": "./src/canonical.ts",
+    "./device-auth": "./src/device-auth.ts",
+    "./der": "./src/der.ts",
+    "./e2e": "./src/e2e.ts",
+    "./plain-sig": "./src/plain-sig.ts",
+    "./verifier": "./src/verifier.ts",
+    "./safety-words": "./src/safety-words.ts",
+    "./confirm-words": "./src/confirm-words.ts",
+    "./card": "./src/card.ts",
+    "./soft-authenticator": "./src/soft-authenticator.ts"
   },
   "scripts": {
     "lint": "eslint . --max-warnings 0 && prettier --check . --ignore-path ../../.prettierignore",
