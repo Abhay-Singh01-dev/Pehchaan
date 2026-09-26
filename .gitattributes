@@ -1,0 +1,5 @@
+# LF everywhere: shell scripts, Lua and Dockerfiles run on Linux.
+* text=auto eol=lf
+*.png binary
+*.woff2 binary
+*.ico binary
