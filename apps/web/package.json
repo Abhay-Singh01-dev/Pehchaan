@@ -10,7 +10,7 @@
     "preview": "vite preview",
     "lint": "eslint . --max-warnings 0 && prettier --check . --ignore-path ../../.prettierignore",
     "typecheck": "tsc --noEmit",
-    "test": "node scripts/i18n-check.mjs && node scripts/contrast.mjs && vitest run",
+    "test": "node scripts/i18n-check.mjs && node scripts/contrast.mjs && vitest run --coverage",
     "test:watch": "vitest",
     "e2e": "playwright test",
     "fonts": "node scripts/sync-fonts.mjs",
@@ -35,6 +35,9 @@
     "react-dom": "^19.3.0",
     "react-i18next": "^17.0.15",
     "react-router": "^7.18.4",
+    "workbox-core": "7.4.1",
+    "workbox-precaching": "7.4.1",
+    "workbox-routing": "7.4.1",
     "zustand": "^5.0.15"
   },
   "devDependencies": {
@@ -50,6 +53,7 @@
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.1",
     "fake-indexeddb": "^6.2.5",
+    "fast-check": "4.10.2",
     "opentype.js": "^2.0.0",
     "sharp": "^0.35.4",
     "tailwindcss": "^4.3.3",

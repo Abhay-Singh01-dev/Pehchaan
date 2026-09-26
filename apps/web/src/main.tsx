@@ -10,20 +10,23 @@ import { App } from "./app/App";
 
 // Dev builds only: expose the service layer for debugging and end-to-end tests.
 if (import.meta.env.DEV) {
-  void Promise.all([import("./services"), import("./store/profile"), import("./services/card")]).then(
-    ([{ services, simControls }, { setPrefs, getProfile }, { myCard }]) => {
-      (window as unknown as { __pehchaan: unknown }).__pehchaan = {
-        services,
-        simControls,
-        setPrefs,
-        /** This device's family link (what "Copy link" on My code copies). */
-        myLink: async () => {
-          const p = await getProfile();
-          return p ? services.card.toLink(myCard(p)) : null;
-        },
-      };
-    },
-  );
+  void Promise.all([
+    import("./services"),
+    import("./store/profile"),
+    import("./services/card"),
+    import("./services/identity"),
+  ]).then(([{ services, simControls }, { setPrefs, getProfile }, { myCard }, { ensureIdentity }]) => {
+    (window as unknown as { __pehchaan: unknown }).__pehchaan = {
+      services,
+      simControls,
+      setPrefs,
+      /** This device's family link (what "Copy link" on My code copies). */
+      myLink: async () => {
+        const p = await getProfile();
+        return p ? services.card.toLink(myCard(p, await ensureIdentity())) : null;
+      },
+    };
+  });
 }
 
 // Theme, text size and language before the first frame.

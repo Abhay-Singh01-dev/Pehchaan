@@ -105,7 +105,8 @@ describe("REL-01 · accepting a WebSocket", () => {
     const opened: TestClient[] = [];
     for (let i = 0; i < 20; i++) {
       const c = await TestClient.open(relay());
-      await c.type("hello");
+      // This test process may still be draining the slow-reader test's ~120 MB before the first hello is read.
+      await c.type("hello", () => true, 15_000);
       opened.push(c);
     }
     const extra = await TestClient.open(relay());
@@ -113,7 +114,7 @@ describe("REL-01 · accepting a WebSocket", () => {
     const codes = await Promise.all(opened.map((c) => c.closed));
     expect(codes.every((c) => c.code === CLOSE.LOGIN_TIMEOUT)).toBe(true);
     await resetUpgradeLimit();
-  }, 20_000);
+  }, 40_000);
 });
 
 describe("REL-01 · MAX_SOCKETS", () => {

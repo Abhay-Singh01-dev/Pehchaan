@@ -48,6 +48,16 @@ export function createDevices(o: { redis: RelayRedis; keys: Keys; db: Db; audit:
   return {
     status,
 
+    /** The device's public signing key, for its signed HTTP requests (11.2, 11.4). Null if never seen. */
+    async publicKey(deviceId: string): Promise<Uint8Array | null> {
+      const row = await db
+        .select({ pub: devices.devicePub })
+        .from(devices)
+        .where(eq(devices.deviceId, deviceId))
+        .limit(1);
+      return row[0] ? new Uint8Array(row[0].pub) : null;
+    },
+
     /** A device that can be contacted: seen before, not retired, not blocked. */
     async isReachableTarget(deviceId: string): Promise<boolean> {
       const s = await status(deviceId);

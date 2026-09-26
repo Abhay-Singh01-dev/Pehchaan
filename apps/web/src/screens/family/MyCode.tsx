@@ -1,7 +1,8 @@
 // C3 · My code (spec B12 C3, B6.4 #4). The QR encodes CardService.toLink(myCard): a full
 // https://…/join#c=… link, so any phone camera can open it. "Larger" shows the code full screen
 // on white for scanning from a distance or a laptop screen.
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useLiveQuery } from "dexie-react-hooks";
 import { useNavigate } from "react-router";
 import { createPortal } from "react-dom";
 import { AnimatePresence } from "motion/react";
@@ -9,7 +10,9 @@ import * as m from "motion/react-m";
 import { useTranslation } from "react-i18next";
 import { ArrowsOut, Copy, SunDim, X } from "@phosphor-icons/react";
 import { services } from "@/services";
-import { myCard } from "@/services/card";
+import { myCard, ownSafetyWords } from "@/services/card";
+import type { SafetyWordsT } from "@/services/types";
+import { db } from "@/store/db";
 import { QRCard, QRImage } from "@/components/QRCard";
 import { SafetyWords } from "@/components/SafetyWords";
 import { Button } from "@/components/Button";
@@ -29,9 +32,24 @@ export function MyCode() {
   const profile = useProfile();
   const reduced = useReduced();
   const [large, setLarge] = useState(false);
-  const link = useMemo(() => (profile ? services.card.toLink(myCard(profile)) : ""), [profile]);
+  // Live: "Reset my code" changes the grant, and so the link.
+  const identity = useLiveQuery(() => db.identity.get("me"), []);
+  const link = useMemo(
+    () => (profile && identity ? services.card.toLink(myCard(profile, identity)) : ""),
+    [profile, identity],
+  );
+  // The words family will derive from this card (6.3); the saved ones show at once while they're computed.
+  const [words, setWords] = useState<SafetyWordsT | null>(null);
+  useEffect(() => {
+    if (!profile || !identity) return;
+    let live = true;
+    void ownSafetyWords(profile, identity).then((w) => live && setWords(w));
+    return () => {
+      live = false;
+    };
+  }, [profile, identity]);
 
-  if (!profile) return null;
+  if (!profile || !identity) return null;
   const qrLabel = t("myCode.qrLabel", { name: profile.name });
 
   return (
@@ -47,7 +65,7 @@ export function MyCode() {
         </QRCard>
 
         <div className="mt-5">
-          <SafetyWords words={profile.safetyWords ?? []} delay={reduced ? 0 : 0.5} />
+          <SafetyWords words={words ?? profile.safetyWords ?? []} delay={reduced ? 0 : 0.5} />
           <p className="mt-2 text-center text-body-sm text-ink-2">{t("myCode.caption")}</p>
         </div>
 
@@ -107,7 +125,7 @@ export function MyCode() {
               <div className="mt-6 flex flex-col items-center gap-1 font-mono text-[1.0625rem] font-semibold tracking-[0.08em] text-[#0F1430]">
                 {[0, 2].map((i) => (
                   <p key={i} className="whitespace-nowrap">
-                    {(profile.safetyWords ?? []).slice(i, i + 2).join(" · ")}
+                    {(words ?? profile.safetyWords ?? []).slice(i, i + 2).join(" · ")}
                   </p>
                 ))}
               </div>

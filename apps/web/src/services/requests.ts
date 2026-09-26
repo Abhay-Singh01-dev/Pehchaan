@@ -1,18 +1,25 @@
-// RequestFactory: builds VerifyRequests (fresh requestId, 32-byte nonce, 60 s expiry, spec D2)
-// and derives confirmation words. Shared by the simulated and real service sets.
+// RequestFactory: builds VerifyRequests (a ULID request ID, a 32-byte nonce, a 60 s expiry, frontend spec D2)
+// and derives the confirmation words (backend spec 10.8). Shared by every service set.
+import { confirmationWordsFor } from "@pehchaan/crypto/confirm-words";
+import { b64url } from "@pehchaan/crypto/bytes";
+import { ulid } from "@pehchaan/protocol";
 import type { RequestFactory, VerifyRequest } from "./types";
-import { randomBytes, randomId, toBase64Url } from "./crypto";
-import { confirmationWordsFor } from "./words";
 
 export const REQUEST_TTL_MS = 60_000;
+
+/** A URL-safe random id for local records, e.g. "unk_3fZq…" (12 random bytes). */
+export function randomId(prefix = ""): string {
+  return (prefix ? prefix + "_" : "") + b64url(crypto.getRandomValues(new Uint8Array(12)));
+}
 
 export function createRequestFactory(): RequestFactory {
   return {
     create({ from, member, reason, amountInr }) {
       const createdAt = Date.now();
       const req: VerifyRequest = {
-        requestId: randomId("req"),
-        nonce: toBase64Url(randomBytes(32)),
+        // A ULID: it is also the id of the `send` frame that carries the request (D-009).
+        requestId: ulid(createdAt),
+        nonce: b64url(crypto.getRandomValues(new Uint8Array(32))),
         fromDeviceId: from.deviceId,
         fromLabel: from.name,
         fromName: from.name,

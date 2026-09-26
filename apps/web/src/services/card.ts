@@ -1,152 +1,146 @@
-// CardService: encodes a FamilyCard into a family link (https://<origin>/join#c=<base64url JSON>)
-// and decodes links, raw codes, or pasted text back into a card. This is plain encoding,
-// the same in simulation and real mode.
-//
-// On the wire the JSON uses short keys so the QR code stays small and quick to scan:
-//   { v, d: deviceId, n: name, p?: phone, c: color, b: canBeVerified (0/1), k?: keyId,
-//     pk?: publicKey, w: "WORD.WORD.WORD.WORD" }
-// fromLink() also accepts the long form (a plain FamilyCard JSON).
-import { CardError, type AvatarColor, type CardService, type FamilyCard } from "./types";
-import { base64UrlToUtf8, utf8ToBase64Url } from "./crypto";
+// CardService (backend spec 6.1, 6.3, 6.5, FC-3): family cards v2.
+//   https://<app>/join#c=<base64url(UTF-8 JSON)>  (the fragment is never sent to any server)
+// Validation, the new-phone guard and the safety words are the security core's (@pehchaan/crypto/card,
+// safety-words); this file only maps them to the app's types. Safety words are ALWAYS derived here, never read
+// from a card (a card that claimed its own words could lie).
+import {
+  CardError as CoreCardError,
+  cardLink,
+  decodeCard,
+  guardNewCard,
+  type CardV2,
+  type KnownMember,
+} from "@pehchaan/crypto/card";
+import { safetyWords } from "@pehchaan/crypto/safety-words";
+import { appConfig } from "@/app/config";
+import type { IdentityRow } from "@/store/db";
+import {
+  CardError,
+  type CardGuard,
+  type CardService,
+  type FamilyCard,
+  type FamilyMember,
+  type Profile,
+  type SafetyWordsT,
+} from "./types";
 
-const COLORS: AvatarColor[] = ["indigo", "teal", "saffron", "rose", "plum", "slate"];
-const B64URL = /^[A-Za-z0-9_-]+$/;
-
-interface WireCard {
-  v: 1;
-  d: string;
-  n: string;
-  p?: string;
-  c: AvatarColor;
-  b: 0 | 1;
-  k?: string;
-  pk?: string;
-  w: string;
-}
-
-function toWire(card: FamilyCard): WireCard {
-  const w: WireCard = {
-    v: 1,
-    d: card.deviceId,
-    n: card.name,
-    c: card.color,
-    b: card.canBeVerified ? 1 : 0,
-    w: card.safetyWords.join("."),
-  };
-  if (card.phone) w.p = card.phone;
-  if (card.canBeVerified) {
-    w.k = card.keyId;
-    w.pk = card.publicKey;
-  }
-  return w;
-}
-
-function fromWire(raw: Record<string, unknown>): Record<string, unknown> {
-  if (!("d" in raw)) return raw; // long form
+export function toWire(c: FamilyCard): CardV2 {
   return {
-    v: raw.v,
-    deviceId: raw.d,
-    name: raw.n,
-    phone: raw.p,
-    color: raw.c,
-    canBeVerified: raw.b === 1 || raw.b === true,
-    keyId: raw.k,
-    publicKey: raw.pk,
-    safetyWords: typeof raw.w === "string" ? raw.w.split(".") : raw.w,
+    v: 2,
+    d: c.deviceId,
+    n: c.name,
+    ...(c.phone ? { p: c.phone } : {}),
+    c: c.color,
+    r: c.canBeVerified ? "v" : "c",
+    dk: c.devicePub,
+    ek: c.encPub,
+    ...(c.canBeVerified && c.keyId && c.publicKey ? { kt: "pk" as const, ki: c.keyId, pk: c.publicKey } : {}),
+    g: c.grant,
+    ts: c.createdAt,
   };
 }
 
-function extractCode(input: string): string | null {
-  const text = input.trim();
-  if (!text) return null;
-  // A full family link, or any text containing one: "#c=<code>" or "?c=<code>".
-  const m = text.match(/[#?&]c=([A-Za-z0-9_-]+)/);
-  if (m) return m[1]!;
-  // A bare code (the QR payload without the URL).
-  if (B64URL.test(text) && text.length > 40) return text;
-  return null;
+/** The safety words for a card's keys (6.3): PBKDF2 at 600,000 iterations, so this takes a moment. */
+export function wordsFor(
+  c: Pick<FamilyCard, "deviceId" | "devicePub" | "encPub" | "keyId" | "publicKey" | "canBeVerified">,
+) {
+  const withKey = c.canBeVerified && c.keyId && c.publicKey;
+  return safetyWords({
+    d: c.deviceId,
+    dk: c.devicePub,
+    ek: c.encPub,
+    ...(withKey ? { kt: "pk" as const, ki: c.keyId!, pk: c.publicKey! } : {}),
+  }) as Promise<SafetyWordsT>;
 }
 
-function validate(raw: unknown): FamilyCard {
-  if (!raw || typeof raw !== "object") throw new CardError("corrupt");
-  const c = fromWire(raw as Record<string, unknown>);
-  const words = c.safetyWords;
-  const ok =
-    c.v === 1 &&
-    typeof c.deviceId === "string" &&
-    c.deviceId.length > 0 &&
-    typeof c.name === "string" &&
-    c.name.trim().length > 0 &&
-    typeof c.color === "string" &&
-    COLORS.includes(c.color as AvatarColor) &&
-    typeof c.canBeVerified === "boolean" &&
-    Array.isArray(words) &&
-    words.length === 4 &&
-    words.every((w) => typeof w === "string" && w.length > 0) &&
-    (c.phone === undefined || typeof c.phone === "string") &&
-    (!c.canBeVerified || (typeof c.keyId === "string" && typeof c.publicKey === "string"));
-  if (!ok) throw new CardError("corrupt");
+async function fromWire(w: CardV2): Promise<FamilyCard> {
   const card: FamilyCard = {
-    v: 1,
-    deviceId: c.deviceId as string,
-    name: (c.name as string).trim().slice(0, 30),
-    color: c.color as AvatarColor,
-    canBeVerified: c.canBeVerified as boolean,
-    safetyWords: words as FamilyCard["safetyWords"],
+    v: 2,
+    deviceId: w.d,
+    name: w.n,
+    color: w.c,
+    canBeVerified: w.r === "v",
+    devicePub: w.dk,
+    encPub: w.ek,
+    grant: w.g,
+    createdAt: w.ts,
+    safetyWords: ["", "", "", ""],
   };
-  if (typeof c.phone === "string" && c.phone) card.phone = c.phone;
-  if (card.canBeVerified) {
-    card.keyId = c.keyId as string;
-    card.publicKey = c.publicKey as string;
-  }
+  if (w.p) card.phone = w.p;
+  if (w.r === "v") Object.assign(card, { keyType: "pk" as const, keyId: w.ki!, publicKey: w.pk! });
+  card.safetyWords = await wordsFor(card);
   return card;
 }
+
+const known = (m: FamilyMember): KnownMember & { member: FamilyMember } => ({
+  deviceId: m.deviceId,
+  name: m.name,
+  label: m.label,
+  ...(m.phone ? { phone: m.phone } : {}),
+  devicePub: m.devicePub,
+  encPub: m.encPub,
+  ...(m.keyType ? { keyType: m.keyType } : {}),
+  ...(m.keyId ? { keyId: m.keyId } : {}),
+  ...(m.publicKey ? { publicKey: m.publicKey } : {}),
+  member: m,
+});
 
 export function createCardService(getMyDeviceId: () => string | null): CardService {
   return {
     toLink(card) {
-      return `${location.origin}/join#c=${utf8ToBase64Url(JSON.stringify(toWire(card)))}`;
+      return cardLink(appConfig.origin, toWire(card));
     },
-    fromLink(urlOrText) {
-      const code = extractCode(urlOrText);
-      if (!code) throw new CardError("not_pehchaan");
-      let parsed: unknown;
+    async fromLink(urlOrText) {
       try {
-        parsed = JSON.parse(base64UrlToUtf8(code));
-      } catch {
+        return await fromWire(await decodeCard(urlOrText, { myDeviceId: getMyDeviceId() }));
+      } catch (e) {
+        if (e instanceof CoreCardError) throw new CardError(e.code, e.cardName);
         throw new CardError("corrupt");
       }
-      const card = validate(parsed);
-      if (card.deviceId === getMyDeviceId()) throw new CardError("own_card");
-      return card;
+    },
+    guard(card, family): CardGuard {
+      const r = guardNewCard(toWire(card), family.map(known));
+      return r.kind === "new"
+        ? r
+        : r.kind === "impostor"
+          ? { ...r, member: r.member.member }
+          : { kind: r.kind, member: r.member.member };
     },
   };
 }
 
-/** The card this phone shares (C3), built from the profile. */
-export function myCard(p: {
-  deviceId: string;
-  name: string;
-  phone?: string;
-  color: AvatarColor;
-  role: "can_be_verified" | "checks_only";
-  keyId?: string;
-  publicKey?: string;
-  safetyWords?: FamilyCard["safetyWords"];
-}): FamilyCard {
+/** My own card's safety words (6.3): derived from my card's keys exactly as family derive them from my link. */
+export function ownSafetyWords(
+  p: Pick<Profile, "role" | "keyId" | "publicKey">,
+  id: IdentityRow,
+): Promise<SafetyWordsT> {
+  const canBeVerified = p.role === "can_be_verified" && Boolean(p.keyId && p.publicKey);
+  return wordsFor({
+    deviceId: id.deviceId,
+    devicePub: id.devicePub,
+    encPub: id.encPub,
+    canBeVerified,
+    ...(canBeVerified ? { keyId: p.keyId, publicKey: p.publicKey } : {}),
+  });
+}
+
+/** The card this phone shares (C3), built from the profile and the device identity. */
+export function myCard(p: Profile, id: IdentityRow): FamilyCard {
   const canBeVerified = p.role === "can_be_verified" && Boolean(p.keyId && p.publicKey);
   const card: FamilyCard = {
-    v: 1,
-    deviceId: p.deviceId,
+    v: 2,
+    deviceId: id.deviceId,
     name: p.name,
     color: p.color,
     canBeVerified,
+    devicePub: id.devicePub,
+    encPub: id.encPub,
+    grant: `${id.grantId}.${id.grantSecret}`,
+    // Stable, so the QR code doesn't change on every render: the card is as new as its newest key.
+    createdAt: Math.max(id.createdAt, p.keyCreatedAt ?? 0),
     safetyWords: p.safetyWords ?? ["—", "—", "—", "—"],
   };
   if (p.phone) card.phone = p.phone;
-  if (canBeVerified) {
-    card.keyId = p.keyId;
-    card.publicKey = p.publicKey;
-  }
+  if (canBeVerified) Object.assign(card, { keyType: "pk" as const, keyId: p.keyId, publicKey: p.publicKey });
   return card;
 }

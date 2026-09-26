@@ -1,14 +1,14 @@
-// The simulated relay's wire: a BroadcastChannel('pehchaan-sim') shared by every tab of this
-// browser. Two tabs act as two phones; a third can be the Security Lab (spec B3, SimRelay).
+// The simulated relay's wire: a BroadcastChannel('pehchaan-sim') shared by every tab of this browser. Two tabs
+// act as two phones; a third can be the Security Lab (frontend spec B3, SimRelay).
 //
-// Routing: a message is posted with hop "deliver" (straight to its recipient) — unless the Lab
-// has taken control of the relay (attacker mode), in which case phones post hop "up" and only
-// the Lab forwards it on as "deliver", possibly after tampering with it.
+// Routing: a message is posted with hop "deliver" (straight to its recipient), unless the Lab has taken control
+// of the relay (attacker mode), in which case phones post hop "up" and only the Lab forwards it as "deliver",
+// possibly after tampering with it. Receipts ("ack", "seen", "reject") and cancel notices travel the same way.
 import type { AttackKind, InvalidReason, PeerInfo, Verdict } from "../types";
 
 export const CHANNEL_NAME = "pehchaan-sim";
 
-export type MsgKind = "request" | "answer" | "alert" | "guard";
+export type MsgKind = "request" | "answer" | "alert" | "guard" | "cancel" | "ack" | "seen" | "reject";
 
 export interface WireMsg {
   t: "msg";
@@ -19,6 +19,8 @@ export interface WireMsg {
   payload: unknown;
   hop: "up" | "deliver";
   at: number;
+  /** The sender's device keys (a request carries them, so the answer can go back). */
+  sender?: { devicePub: string; encPub: string };
   tampered?: AttackKind;
   /** The Lab created this message itself (a replayed or forged answer). */
   injected?: boolean;
@@ -71,7 +73,7 @@ export function openBus(onMessage: (w: Wire) => void): Bus {
   };
 }
 
-/** 250–600 ms of random latency per message (spec B3). */
+/** 250–600 ms of random latency per message (frontend spec B3). */
 export const latency = () => 250 + Math.floor(Math.random() * 351);
 
 export const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));

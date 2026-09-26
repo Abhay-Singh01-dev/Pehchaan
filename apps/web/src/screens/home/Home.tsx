@@ -18,6 +18,7 @@ import { FamilyIllustration } from "@/components/illustrations";
 import { PageBody } from "@/components/screen/Page";
 import { useProfile } from "@/store/profile";
 import { useFamily } from "@/store/family";
+import { usePresence } from "@/app/presence";
 import { useAlerts, useUnreadAlertCount } from "@/store/alerts";
 import { usePendingIncoming, useRecentCheck } from "@/store/requests";
 import { useConnection, useReachable, useReduced, useSession } from "@/app/session";
@@ -38,6 +39,8 @@ export function Home() {
   const pending = usePendingIncoming();
   const connection = useConnection();
   const reachable = useReachable();
+  // Presence is asked while Home is in front (backend spec 12); the answers update `reachable`.
+  usePresence((family ?? []).map((mem) => mem.deviceId));
   const reducedPref = useReduced();
   // Stagger only on the first visit this session.
   const [intro] = useState(() => !useSession.getState().homeIntroPlayed);

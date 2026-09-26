@@ -9,14 +9,18 @@
 //   simulation panel are exempt (they are test tools). Two sentences dictated word for word by the
 //   frontend spec are allowed (lines 833/1155 and 1521).
 //
-// Usage: node scripts/check-banned-words.mjs   (exits 1 and lists every hit)
+// Usage: node scripts/check-banned-words.mjs [--root <dir>]   (exits 1 and lists every hit)
+//   --root  scan another checkout (the tests use throwaway repositories); default: this repository
 import { execSync } from "node:child_process";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { dirname, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-const LIST = join(root, "scripts", "banned-words.txt");
+const here = dirname(fileURLToPath(import.meta.url));
+const rootArg = process.argv.indexOf("--root");
+const root = rootArg > 0 && process.argv[rootArg + 1] ? process.argv[rootArg + 1] : join(here, "..");
+// The list always comes from this repository, whichever checkout is scanned.
+const LIST = join(here, "banned-words.txt");
 
 const SKIP_DIRS = new Set([
   "node_modules",
@@ -29,7 +33,6 @@ const SKIP_DIRS = new Set([
   ".git",
   ".vite",
   ".venv",
-  "frontend",
   "tests",
   "test",
   "__tests__",
@@ -41,8 +44,6 @@ const SKIP_FILES = new Set([
   "docs/BACKEND_SPEC.md",
   "docs/FRONTEND_SPEC.md",
   "pnpm-lock.yaml",
-  "Pehchaan_Backend_Specification.md",
-  "Pehchaan_Frontend_Build_Prompt.md",
 ]);
 const TEXT_EXT =
   /\.(ts|tsx|mts|cts|js|mjs|cjs|json|md|yml|yaml|html|css|lua|sql|sh|txt|alloy|toml|Caddyfile|example)$/i;
@@ -61,16 +62,22 @@ function repoFiles() {
       encoding: "utf8",
       maxBuffer: 64 * 1024 * 1024,
     });
-    return out
-      .split("\n")
-      .filter(Boolean)
-      .filter((rel) => {
-        const parts = rel.split("/");
-        const name = parts.at(-1);
-        if (parts.slice(0, -1).some((p) => SKIP_DIRS.has(p))) return false;
-        return (TEXT_EXT.test(name) || name === "Caddyfile" || name.startsWith("Dockerfile")) && !TEST_FILE.test(name);
-      })
-      .map((rel) => join(root, rel));
+    return (
+      out
+        .split("\n")
+        .filter(Boolean)
+        .filter((rel) => {
+          const parts = rel.split("/");
+          const name = parts.at(-1);
+          if (parts.slice(0, -1).some((p) => SKIP_DIRS.has(p))) return false;
+          return (
+            (TEXT_EXT.test(name) || name === "Caddyfile" || name.startsWith("Dockerfile")) && !TEST_FILE.test(name)
+          );
+        })
+        .map((rel) => join(root, rel))
+        // `-c` also lists tracked files deleted from the working tree but not yet committed: nothing to read.
+        .filter((file) => existsSync(file))
+    );
   } catch {
     return listFiles(root);
   }
@@ -112,7 +119,8 @@ export function checkEverywhere(
 }
 
 // Family-screen rule. Namespaces that belong to the test tools are exempt.
-const TOOL_NAMESPACES = ["lab", "guard", "diagnostics", "sim", "dev"];
+// The Diagnostics screen's strings live under "diag".
+const TOOL_NAMESPACES = ["lab", "guard", "diag", "diagnostics", "sim", "dev"];
 const FAMILY_WORDS = ["demo", "mock", "test", "sample", "safe", "100% secure", "AI-powered", "hacker-proof"];
 const SPEC_DICTATED = new Set(["family.inperson", "limits.closing"]); // frontend spec lines 833/1155, 1521
 

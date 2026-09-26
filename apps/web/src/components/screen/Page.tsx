@@ -105,8 +105,3 @@ export function BottomActions({ children, className }: { children: ReactNode; cl
 }
 
 /** Small uppercase label (caption + 0.06em tracking, tiny labels only). */
-export function Eyebrow({ children, className }: { children: ReactNode; className?: string }) {
-  return (
-    <div className={cn("text-caption font-medium uppercase tracking-[0.06em] text-muted", className)}>{children}</div>
-  );
-}

@@ -20,6 +20,8 @@ apps/*/test-results
 .env.*
 !.env.example
 !**/.env.example
+# The relay's local-development settings hold no secrets (spec 18.12), so `pnpm dev` works after a clone.
+!apps/relay/.env.development
 *.pem
 *.key
 age-key.txt

@@ -1,192 +1,274 @@
-// The 7 checks (spec B4) and every INVALID reason, run against the simulated verifier.
-// The same expectations apply to the team's RealVerifier (Part E).
+// The app's verifier (backend spec 10.5–10.7, 9.4, FC-5) over the security core's 7 checks, with answers signed
+// exactly as a passkey signs them (a software authenticator, real WebCrypto, nothing mocked). SimVerifier and
+// RealVerifier are the same code expecting different addresses (D-008).
 import { beforeEach, describe, expect, it } from "vitest";
+import { b64url, b64urlDecode } from "@pehchaan/crypto/bytes";
+import { createSoftCredential, softAnswer, type SoftCredential } from "@pehchaan/crypto/soft-authenticator";
 import { db } from "@/store/db";
 import { createSimVerifier } from "@/services/sim/SimVerifier";
-import { makeSignedAnswer } from "@/services/sim/simSign";
+import { createRealVerifier } from "@/services/real/RealVerifier";
 import { createRequestFactory } from "@/services/requests";
-import { assertMayPersist, decideVerdict, failedChecks, makeCheck } from "@/services/verdict";
-import type { FamilyMember, SignedAnswer, VerifyRequest } from "@/services/types";
+import { newIdentity } from "@/services/identity";
+import { assertMayPersist, failedChecks, isGreenAllowed, makeCheck } from "@/services/verdict";
+import type { Decision, FamilyMember, IncomingAnswer, VerifyRequest, WireAnswer } from "@/services/types";
 
+const ORIGIN = "https://pehchaan.test";
+const RP_ID = "pehchaan.test";
 const verifier = createSimVerifier(db);
 const requests = createRequestFactory();
 
-const arjun: FamilyMember = {
-  v: 1,
-  id: "m_arjun",
-  deviceId: "sim-arjun",
-  name: "Arjun Sharma",
-  color: "indigo",
-  canBeVerified: true,
-  keyId: "key_arjun_test",
-  publicKey: "pk_test",
-  safetyWords: ["TIGER", "MANGO", "RIVER", "LAMP"],
-  label: "Arjun",
-  relation: "son",
-  addedAt: 0,
-  addedBy: "in_person",
-};
+let arjunKey: SoftCredential;
+let arjun: FamilyMember;
 
-async function pendingRequest(): Promise<VerifyRequest> {
-  const req = requests.create({
-    from: { deviceId: "sim-maa", name: "Sunita" },
+async function makeArjun(): Promise<FamilyMember> {
+  const id = await newIdentity();
+  arjunKey = await createSoftCredential();
+  return {
+    v: 2,
+    id: "m_arjun",
+    deviceId: id.deviceId,
+    name: "Arjun Sharma",
+    color: "indigo",
+    canBeVerified: true,
+    devicePub: id.devicePub,
+    encPub: id.encPub,
+    grant: `${id.grantId}.${id.grantSecret}`,
+    keyType: "pk",
+    keyId: arjunKey.credId,
+    publicKey: arjunKey.publicKey,
+    createdAt: 1,
+    safetyWords: ["ABLE", "BABY", "CABIN", "DANCE"],
+    label: "Arjun",
+    relation: "son",
+    addedAt: 1,
+    addedBy: "in_person",
+  };
+}
+
+function newRequest(): VerifyRequest {
+  return requests.create({
+    from: { deviceId: "maa-device-0000000000000", name: "Sunita" },
     member: arjun,
     reason: "money",
     amountInr: 50000,
   });
-  await db.outgoing.put({
-    requestId: req.requestId,
-    request: req,
-    memberId: arjun.id,
-    memberDeviceId: arjun.deviceId,
-    memberLabel: arjun.label,
-    status: "pending",
-    createdAt: req.createdAt,
-  });
-  return req;
 }
 
-const sign = (req: Pick<VerifyRequest, "requestId" | "nonce">, decision: "ME" | "NOT_ME", keyId = arjun.keyId!) =>
-  makeSignedAnswer({ keyId, req, decision, fromDeviceId: arjun.deviceId });
+function sign(
+  req: VerifyRequest,
+  decision: Decision,
+  o: { key?: SoftCredential; origin?: string; flags?: number } = {},
+): Promise<WireAnswer> {
+  const key = o.key ?? arjunKey;
+  return softAnswer({
+    req,
+    decision,
+    credId: key.credId,
+    privateKey: key.privateKey,
+    rpId: RP_ID,
+    origin: o.origin ?? ORIGIN,
+    ...(o.flags === undefined ? {} : { flags: o.flags }),
+  });
+}
 
-const failed = (r: { checks: { n: number; passed: boolean }[] }) => failedChecks(r.checks as never);
+/** As the relay delivers it: from Arjun's device, received now (or at `at`). */
+const incoming = (
+  req: VerifyRequest,
+  ans: WireAnswer | undefined,
+  o: Partial<IncomingAnswer> = {},
+): IncomingAnswer => ({
+  sealOk: ans !== undefined,
+  envFrom: arjun.deviceId,
+  re: req.requestId,
+  receivedAt: Date.now(),
+  ...(ans ? { ans } : {}),
+  ...o,
+});
+
+const verify = (req: VerifyRequest, i: IncomingAnswer) => verifier.verify({ req, incoming: i, member: arjun });
 
 beforeEach(async () => {
-  await Promise.all([db.outgoing.clear(), db.usedNonces.clear()]);
+  await db.usedNonces.clear();
+  arjun = await makeArjun();
 });
 
 describe("genuine answers", () => {
   it("YES with all 7 checks passing is VERIFIED, with confirmation words", async () => {
-    const req = await pendingRequest();
-    const r = await verifier.verify(req, await sign(req, "ME"), arjun);
+    const req = newRequest();
+    const r = await verify(req, incoming(req, await sign(req, "ME")));
     expect(r.verdict).toBe("VERIFIED");
     expect(r.checks).toHaveLength(7);
-    expect(r.checks.every((c) => c.passed)).toBe(true);
-    expect(r.confirmationWords).toHaveLength(2);
+    expect(r.checks.every((c) => c.passed && !c.skipped)).toBe(true);
+    expect(r.confirmationWords).toEqual([expect.stringMatching(/^[A-Z]+$/), expect.stringMatching(/^[A-Z]+$/)]);
+    expect(r).toMatchObject({ memberLabel: "Arjun", reason: "money", amountInr: 50000 });
     expect(() => assertMayPersist(r)).not.toThrow();
   });
 
-  it("NOT ME with all 7 checks passing is DENIED (a genuine 'not me')", async () => {
-    const req = await pendingRequest();
-    const r = await verifier.verify(req, await sign(req, "NOT_ME"), arjun);
+  it("the confirmation words are the ones Arjun's phone shows (10.8)", async () => {
+    const req = newRequest();
+    const ans = await sign(req, "ME");
+    const r = await verify(req, incoming(req, ans));
+    expect(r.confirmationWords).toEqual(await requests.confirmationWords(ans));
+  });
+
+  it("NOT ME with all 7 checks passing is DENIED, without words", async () => {
+    const req = newRequest();
+    const r = await verify(req, incoming(req, await sign(req, "NOT_ME")));
     expect(r.verdict).toBe("DENIED");
-    expect(failed(r)).toEqual([]);
+    expect(failedChecks(r.checks)).toEqual([]);
     expect(r.confirmationWords).toBeUndefined();
+  });
+
+  it("times the answer by THIS phone's receive time, never by the answerer's clock (8.7)", async () => {
+    const req = newRequest();
+    const skewed = { ...(await sign(req, "ME")), answeredAt: Date.now() + 7 * 60_000 };
+    const receivedAt = Date.now();
+    const r = await verify(req, incoming(req, skewed, { receivedAt }));
+    expect(r.verdict).toBe("VERIFIED");
+    expect(r.answeredAt).toBe(receivedAt);
+    expect(r.decidedAt).toBe(receivedAt);
+  });
+
+  it("never marks the nonce used itself: the controller does, at the right moment (10.9)", async () => {
+    const req = newRequest();
+    await verify(req, incoming(req, await sign(req, "ME")));
+    expect(await db.usedNonces.count()).toBe(0);
   });
 });
 
-describe("every INVALID reason", () => {
-  it("changed: a flipped decision fails check 3 but passes check 6", async () => {
-    const req = await pendingRequest();
+describe("every INVALID reason (the 10.5 table)", () => {
+  it("changed: NOT ME flipped to ME in transit fails check 3 only", async () => {
+    const req = newRequest();
     const genuine = await sign(req, "NOT_ME");
-    const r = await verifier.verify(req, { ...genuine, decision: "ME" }, arjun);
-    expect(r.verdict).toBe("INVALID");
-    expect(r.invalidReason).toBe("changed");
-    expect(failed(r)).toEqual([3]);
-    expect(r.checks.find((c) => c.n === 6)?.passed).toBe(true);
+    const r = await verify(req, incoming(req, { ...genuine, decision: "ME" }));
+    expect(r).toMatchObject({ verdict: "INVALID", invalidReason: "changed" });
+    expect(failedChecks(r.checks)).toEqual([3]);
   });
 
-  it("reused: an old genuine YES re-sent for a new request", async () => {
-    const oldReq = await pendingRequest();
-    const oldAnswer = await sign(oldReq, "ME");
-    expect((await verifier.verify(oldReq, oldAnswer, arjun)).verdict).toBe("VERIFIED");
-    const req = await pendingRequest();
-    const replayed: SignedAnswer = { ...oldAnswer, requestId: req.requestId };
-    const r = await verifier.verify(req, replayed, arjun);
-    expect(r.verdict).toBe("INVALID");
-    expect(r.invalidReason).toBe("reused");
-    expect(failed(r)).toEqual(expect.arrayContaining([1, 3, 7]));
+  it("changed: an envelope that couldn't be opened fails check 3; the rest are not checked (9.4)", async () => {
+    const req = newRequest();
+    const r = await verify(req, incoming(req, undefined));
+    expect(r).toMatchObject({ verdict: "INVALID", invalidReason: "changed" });
+    expect(failedChecks(r.checks)).toEqual([3]);
+    expect(r.checks.filter((c) => c.skipped).map((c) => c.n)).toEqual([1, 2, 4, 5, 6, 7]);
+    expect(r.checks.find((c) => c.n === 3)?.detail).toBe("sealed_changed");
+    expect(isGreenAllowed(r)).toBe(false);
   });
 
-  it("reused: the same answer verified twice fails check 7 the second time", async () => {
-    const req = await pendingRequest();
+  it("reused: Arjun's old YES replayed for a new request fails checks 1, 3 and 7", async () => {
+    const oldReq = newRequest();
+    const old = await sign(oldReq, "ME");
+    await db.usedNonces.put({ nonce: oldReq.nonce, requestId: oldReq.requestId, usedAt: Date.now() });
+    const req = newRequest();
+    const r = await verify(req, incoming(req, { ...old, requestId: req.requestId }));
+    expect(r).toMatchObject({ verdict: "INVALID", invalidReason: "reused" });
+    expect(failedChecks(r.checks)).toEqual([1, 3, 7]);
+  });
+
+  it("reused: the same answer after its nonce was used fails check 7", async () => {
+    const req = newRequest();
     const ans = await sign(req, "ME");
-    await verifier.verify(req, ans, arjun);
-    const r = await verifier.verify(req, ans, arjun);
-    expect(r.verdict).toBe("INVALID");
-    expect(r.checks.find((c) => c.n === 7)?.passed).toBe(false);
+    await db.usedNonces.put({ nonce: req.nonce, requestId: req.requestId, usedAt: Date.now() });
+    const r = await verify(req, incoming(req, ans));
+    expect(r).toMatchObject({ verdict: "INVALID", invalidReason: "reused" });
+    expect(failedChecks(r.checks)).toEqual([7]);
   });
 
-  it("wrong_key: a YES signed with the attacker's own key", async () => {
-    const req = await pendingRequest();
-    const r = await verifier.verify(req, await sign(req, "ME", "key_attacker_x"), arjun);
-    expect(r.verdict).toBe("INVALID");
-    expect(r.invalidReason).toBe("wrong_key");
-    expect(failed(r)).toEqual([2, 6]);
+  it("wrong_key: a YES forged with the attacker's own key fails checks 2 and 6", async () => {
+    const req = newRequest();
+    const r = await verify(req, incoming(req, await sign(req, "ME", { key: await createSoftCredential() })));
+    expect(r).toMatchObject({ verdict: "INVALID", invalidReason: "wrong_key" });
+    expect(failedChecks(r.checks)).toEqual([2, 6]);
   });
 
-  it("wrong_app: signed for a different website", async () => {
-    const req = await pendingRequest();
-    const ans = await makeSignedAnswer({
-      keyId: arjun.keyId!,
-      req,
-      decision: "ME",
-      fromDeviceId: arjun.deviceId,
-      origin: "https://evil.example",
-    });
-    const r = await verifier.verify(req, ans, arjun);
-    expect(r.invalidReason).toBe("wrong_app");
-    expect(failed(r)).toEqual([4]);
+  it("wrong_key: a genuine answer relayed from a device other than Arjun's fails check 2", async () => {
+    const req = newRequest();
+    const other = await newIdentity();
+    const r = await verify(req, incoming(req, await sign(req, "ME"), { envFrom: other.deviceId }));
+    expect(r).toMatchObject({ verdict: "INVALID", invalidReason: "wrong_key" });
+    expect(failedChecks(r.checks)).toEqual([2]);
   });
 
-  it("not_unlocked: user verification missing", async () => {
-    const req = await pendingRequest();
-    const ans = { ...(await sign(req, "ME")), userVerified: false };
-    const r = await verifier.verify(req, ans, arjun);
-    expect(r.invalidReason).toBe("not_unlocked");
-    expect(failed(r)).toEqual([5]);
+  it("wrong_app: signed on a look-alike website fails check 4", async () => {
+    const req = newRequest();
+    const r = await verify(req, incoming(req, await sign(req, "ME", { origin: "https://pehchaan-help.example" })));
+    expect(r).toMatchObject({ verdict: "INVALID", invalidReason: "wrong_app" });
+    expect(failedChecks(r.checks)).toEqual([4]);
   });
 
-  it("bad_signature: the signature doesn't verify", async () => {
-    const req = await pendingRequest();
-    const ans = { ...(await sign(req, "ME")), signature: "00".repeat(32) };
-    const r = await verifier.verify(req, ans, arjun);
-    expect(r.invalidReason).toBe("bad_signature");
-    expect(failed(r)).toEqual([6]);
+  it("not_unlocked: signed without a fingerprint or PIN fails check 5", async () => {
+    const req = newRequest();
+    const r = await verify(req, incoming(req, await sign(req, "ME", { flags: 0x01 })));
+    expect(r).toMatchObject({ verdict: "INVALID", invalidReason: "not_unlocked" });
+    expect(failedChecks(r.checks)).toEqual([5]);
   });
 
-  it("expired: the answer arrives after the request's 60 s", async () => {
-    const req = await pendingRequest();
-    const late = { ...req, expiresAt: Date.now() - 1 };
-    const r = await verifier.verify(late, await sign(req, "ME"), arjun);
-    expect(r.invalidReason).toBe("expired");
-    expect(failed(r)).toContain(1);
+  it("bad_signature: the UV bit set in transit fails check 6", async () => {
+    const req = newRequest();
+    const ans = await sign(req, "ME", { flags: 0x01 });
+    const ad = b64urlDecode(ans.authenticatorData);
+    ad[32] = 0x05;
+    const r = await verify(req, incoming(req, { ...ans, authenticatorData: b64url(ad) }));
+    expect(r).toMatchObject({ verdict: "INVALID", invalidReason: "bad_signature" });
+    expect(failedChecks(r.checks)).toEqual([6]);
+  });
+});
+
+describe("the late-answer policy (10.7)", () => {
+  it("a genuine YES after the timer is NO_RESPONSE `late`, never green", async () => {
+    const req = newRequest();
+    const r = await verify(req, incoming(req, await sign(req, "ME"), { receivedAt: req.expiresAt + 9000 }));
+    expect(r).toMatchObject({ verdict: "NO_RESPONSE", noResponseReason: "late" });
+    expect(r.checks.find((c) => c.n === 1)).toMatchObject({ passed: false, detail: "late" });
+    expect(r.confirmationWords).toBeUndefined();
+  });
+
+  it("a genuine NOT ME after the timer is still DENIED, marked late", async () => {
+    const req = newRequest();
+    const r = await verify(req, incoming(req, await sign(req, "NOT_ME"), { receivedAt: req.expiresAt + 9000 }));
+    expect(r).toMatchObject({ verdict: "DENIED", late: true });
+  });
+
+  it("a late answer that fails anything else is INVALID", async () => {
+    const req = newRequest();
+    const genuine = await sign(req, "NOT_ME");
+    const r = await verify(req, incoming(req, { ...genuine, decision: "ME" }, { receivedAt: req.expiresAt + 9000 }));
+    expect(r).toMatchObject({ verdict: "INVALID", invalidReason: "changed" });
   });
 });
 
 describe("the green guard (B9 #1)", () => {
   it("never returns VERIFIED for a tampered answer", async () => {
-    const req = await pendingRequest();
+    const req = newRequest();
     const genuine = await sign(req, "NOT_ME");
-    const attempts: SignedAnswer[] = [
-      { ...genuine, decision: "ME" },
-      await sign(req, "ME", "key_attacker"),
-      { ...(await sign(req, "ME")), userPresent: false },
-      { ...(await sign(req, "ME")), clientData: "{}" },
+    const attempts: IncomingAnswer[] = [
+      incoming(req, { ...genuine, decision: "ME" }),
+      incoming(req, await sign(req, "ME", { key: await createSoftCredential() })),
+      incoming(req, await sign(req, "ME", { flags: 0x00 })),
+      incoming(req, { ...(await sign(req, "ME")), clientDataJSON: b64url(new TextEncoder().encode("{}")) }),
+      incoming(req, undefined),
     ];
-    for (const a of attempts) {
-      await db.usedNonces.clear();
-      expect((await verifier.verify(req, a, arjun)).verdict).not.toBe("VERIFIED");
-    }
+    for (const a of attempts) expect((await verify(req, a)).verdict).not.toBe("VERIFIED");
   });
 
   it("refuses to store a VERIFIED result the verifier didn't produce", () => {
     const fabricated = {
       requestId: "x",
       verdict: "VERIFIED" as const,
-      checks: [1, 2, 3, 4, 5, 6, 7].map((n) => makeCheck(n as 1, true)),
+      checks: ([1, 2, 3, 4, 5, 6, 7] as const).map((n) => makeCheck(n, true)),
       memberLabel: "Arjun",
       decidedAt: Date.now(),
     };
     expect(() => assertMayPersist(fabricated)).toThrow();
   });
 
-  it("maps checks to verdicts exactly as the spec's table", () => {
-    const all = [1, 2, 3, 4, 5, 6, 7].map((n) => makeCheck(n as 1, true));
-    expect(decideVerdict(all, "ME", false).verdict).toBe("VERIFIED");
-    expect(decideVerdict(all, "NOT_ME", false).verdict).toBe("DENIED");
-    const one = all.map((c) => (c.n === 4 ? makeCheck(4, false) : c));
-    expect(decideVerdict(one, "ME", false)).toEqual({ verdict: "INVALID", invalidReason: "wrong_app" });
-    expect(decideVerdict(all.slice(0, 6), "ME", false).verdict).toBe("INVALID");
+  it("RealVerifier runs the same checks against the configured address", async () => {
+    const real = createRealVerifier(db);
+    const req = newRequest();
+    const ok = await real.verify({ req, incoming: incoming(req, await sign(req, "ME")), member: arjun });
+    expect(ok.verdict).toBe("VERIFIED");
+    const elsewhere = await sign(req, "ME", { origin: "https://pehchaan.test.evil.example" });
+    const bad = await real.verify({ req, incoming: incoming(req, elsewhere), member: arjun });
+    expect(bad).toMatchObject({ verdict: "INVALID", invalidReason: "wrong_app" });
   });
 });

@@ -11,7 +11,9 @@ import { AnimatePresence } from "motion/react";
 import * as m from "motion/react-m";
 import { useTranslation } from "react-i18next";
 import { ArrowCounterClockwise, WarningOctagon } from "@phosphor-icons/react";
-import type { FamilyCard, Relation } from "@/services/types";
+import { services } from "@/services";
+import type { FamilyCard, FamilyMember, Relation } from "@/services/types";
+import { CardWarning, isBlocked, type CardBlock } from "@/components/CardWarning";
 import { Avatar } from "@/components/Avatar";
 import { Button } from "@/components/Button";
 import { ChipGroup, TextField } from "@/components/controls";
@@ -20,7 +22,8 @@ import { SafetyWords } from "@/components/SafetyWords";
 import { Sheet } from "@/components/Sheet";
 import { BottomActions, PageBody } from "@/components/screen/Page";
 import { TopBar } from "@/components/screen/TopBar";
-import { addMember, suggestLabel } from "@/store/family";
+import { AlreadyInFamilyError, addMember, listFamily, suggestLabel } from "@/store/family";
+import { queueContactOp } from "@/app/contacts";
 import { toast } from "@/app/ui";
 import { useReduced } from "@/app/session";
 import { haptic } from "@/design/haptics";
@@ -54,6 +57,7 @@ export function ConfirmMember() {
   const [saving, setSaving] = useState(false);
   const [flying, setFlying] = useState(false);
   const [sheet, setSheet] = useState<string | null>(null);
+  const [block, setBlock] = useState<CardBlock | null>(null);
 
   const firstName = useMemo(() => card?.name.split(/\s+/)[0] ?? "", [card]);
   const origin = state?.origin;
@@ -77,7 +81,25 @@ export function ConfirmMember() {
   const save = async () => {
     if (!relation) return;
     setSaving(true);
-    const member = await addMember(card, { label: shownLabel, relation, addedBy: "in_person" });
+    // The family may have changed since the scan: guard again, right before saving (6.5).
+    const guard = services.card.guard(card, await listFamily());
+    if (guard.kind !== "new") {
+      setSaving(false);
+      haptic("error");
+      if (isBlocked(guard)) setBlock(guard);
+      else toast(t("scan.already", { name: guard.member.label }));
+      return;
+    }
+    let member: FamilyMember;
+    try {
+      member = await addMember(card, { label: shownLabel, relation, addedBy: "in_person" });
+    } catch (e) {
+      setSaving(false);
+      if (e instanceof AlreadyInFamilyError) return void toast(t("scan.already", { name: e.member.label }));
+      throw e;
+    }
+    // Added face to face: lift any earlier block on this device (6.4, FC-19). Queued, so offline is fine.
+    void queueContactOp("unrevoke", card.deviceId);
     haptic("success");
     setFlying(true);
     window.setTimeout(
@@ -239,6 +261,8 @@ export function ConfirmMember() {
           </Button>
         </div>
       </Sheet>
+
+      {block && <CardWarning block={block} onDontAdd={() => navigate("/family", { replace: true })} />}
     </>
   );
 }

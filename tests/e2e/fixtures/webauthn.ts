@@ -11,7 +11,22 @@ export interface VirtualAuthenticator {
   /** Simulates the person dismissing the prompt: no presence, so the ceremony never completes. */
   setPresence(ok: boolean): Promise<void>;
   credentials(): Promise<Array<{ credentialId: string; rpId?: string; signCount: number }>>;
+  /** Everything needed to put the same passkeys on another page's authenticator (the phone keeps its passkeys
+   *  when its app is closed and opened again; a virtual authenticator lives only as long as its page). */
+  exportCredentials(): Promise<StoredCredential[]>;
+  importCredentials(creds: StoredCredential[]): Promise<void>;
+  /** The passkey is deleted from the password manager (spec 23). */
+  clearCredentials(): Promise<void>;
   remove(): Promise<void>;
+}
+
+export interface StoredCredential {
+  credentialId: string;
+  isResidentCredential: boolean;
+  rpId?: string;
+  privateKey: string;
+  userHandle?: string;
+  signCount: number;
 }
 
 export async function addVirtualAuthenticator(page: Page): Promise<VirtualAuthenticator> {
@@ -39,6 +54,17 @@ export async function addVirtualAuthenticator(page: Page): Promise<VirtualAuthen
     async credentials() {
       const { credentials } = await cdp.send("WebAuthn.getCredentials", { authenticatorId });
       return credentials;
+    },
+    async exportCredentials() {
+      const { credentials } = await cdp.send("WebAuthn.getCredentials", { authenticatorId });
+      return credentials as StoredCredential[];
+    },
+    async importCredentials(creds) {
+      // The sign count carries over, as it would on the same phone.
+      for (const credential of creds) await cdp.send("WebAuthn.addCredential", { authenticatorId, credential });
+    },
+    async clearCredentials() {
+      await cdp.send("WebAuthn.clearCredentials", { authenticatorId });
     },
     async remove() {
       await cdp.send("WebAuthn.removeVirtualAuthenticator", { authenticatorId });

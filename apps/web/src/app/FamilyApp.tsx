@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState, type ReactNode } from "react";
 import { AnimatedRoutes } from "./AnimatedRoutes";
 import { GlobalListeners } from "./GlobalListeners";
-import { lazyNamed, prefetchScreens } from "./lazy";
+import { lazyNamed, preloadCritical, prefetchScreens } from "./lazy";
 import { prefetchOtherLanguage } from "./i18n";
 import { useUi } from "./ui";
 import { TabBar } from "@/components/TabBar";
@@ -30,6 +30,7 @@ export function FamilyApp() {
   const unlocking = useUnlockBridge((s) => s.pending !== null);
 
   useEffect(() => {
+    preloadCritical();
     const id = window.setTimeout(() => {
       prefetchScreens();
       prefetchOtherLanguage();

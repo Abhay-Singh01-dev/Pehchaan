@@ -70,7 +70,7 @@ function BannerCard({ item }: { item: BannerItem }) {
   if (item.kind === "alert") {
     const a = item.alert;
     const about = labelFor(family, a.aboutDeviceId, a.aboutLabel);
-    const victim = labelFor(family, a.victimDeviceId, a.victimLabel);
+    const victim = labelFor(family, a.victimDeviceId, a.victimName);
     const imp = a.type === "impersonation";
     return (
       <m.div role="alert" className={shell} {...motionProps}>

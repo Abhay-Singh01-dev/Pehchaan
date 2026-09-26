@@ -15,7 +15,6 @@ export default tseslint.config(
       "**/test-results/**",
       "**/playwright-report/**",
       "**/.turbo/**",
-      "frontend/**",
       "**/fixtures/depcruise/**",
     ],
   },

@@ -14,12 +14,15 @@ import {
   DeviceMobile,
 } from "@phosphor-icons/react";
 import { loadGuard, services } from "@/services";
-import type { GuardService, GuardSignals, Tactic } from "@/services/types";
+import type { GuardService, GuardSignals, PeerInfo, Tactic } from "@/services/types";
 import { GuardError } from "@/services/errors";
 import { AMOUNT_PATTERNS, IDENTITY_PATTERNS, TACTIC_RULES, analyzeLine } from "@/services/guard/rules";
 import { Button } from "@/components/Button";
 import { Segmented, Switch } from "@/components/controls";
-import { useFamily } from "@/store/family";
+import { getMemberByDeviceId, useFamily } from "@/store/family";
+import { useGuardTargets } from "@/store/guardTargets";
+import { AddPhone } from "./AddPhone";
+import { recipientOf } from "@/app/verification";
 import { useProfile } from "@/store/profile";
 import { connectRelay } from "@/app/bootstrap";
 import { useSession, useReduced } from "@/app/session";
@@ -32,6 +35,9 @@ import { LaptopHeader, LaptopNarrowNote } from "../lab/LaptopShell";
 import { WaveformCanvas } from "./Waveform";
 
 type Line = { id: number; text: string; final: boolean };
+
+/** The "+ Add a phone" item in the target list. */
+const ADD = "__add";
 
 function Highlighted({ text, names }: { text: string; names: string[] }) {
   const matches = useMemo(() => analyzeLine(text, names).matches.filter((m) => m.length > 1), [text, names]);
@@ -122,7 +128,19 @@ export function Guard() {
     guard?.setNames(names);
   }, [guard, names]);
 
-  const phones = peers.filter((p) => p.kind === "phone");
+  // 13.2: phones paired by card ("+ Add a phone"), plus, in the simulation, phones announced on the channel.
+  const targets = useGuardTargets();
+  const [adding, setAdding] = useState(false);
+  const phones = useMemo(() => {
+    const saved: PeerInfo[] = (targets ?? []).map((g) => ({
+      deviceId: g.deviceId,
+      name: g.name,
+      kind: "phone",
+      lastSeen: 0,
+    }));
+    const live = peers.filter((p) => p.kind === "phone" && !saved.some((s) => s.deviceId === p.deviceId));
+    return [...saved, ...live];
+  }, [targets, peers]);
   useEffect(() => {
     if (!target || !phones.some((p) => p.deviceId === target)) {
       const pick = phones.find((p) => !p.canBeVerified) ?? phones[0];
@@ -156,6 +174,15 @@ export function Guard() {
   const send = useCallback(async () => {
     if (!target) return;
     try {
+      // The phone's saved card carries what a sealed prompt needs (13.2): paired by card, or in this laptop's
+      // family list. A simulated peer needs only its ID.
+      const paired = targets?.find((g) => g.deviceId === target);
+      const member = paired ? null : await getMemberByDeviceId(target);
+      const to = paired
+        ? { deviceId: paired.deviceId, grant: paired.grant, encPub: paired.encPub, devicePub: paired.devicePub }
+        : member
+          ? recipientOf(member)
+          : { deviceId: target, grant: "", encPub: "", devicePub: "" };
       await services.relay.sendGuardPrompt(
         {
           claimedLabel: signals.claimedLabel ?? "",
@@ -163,14 +190,14 @@ export function Guard() {
           tactics: signals.tactics,
           at: Date.now(),
         },
-        target,
+        to,
       );
       setSentAt(Date.now());
       setFlying((n) => n + 1);
     } catch {
       toast(t("conn.offline"), { tone: "error" });
     }
-  }, [target, signals, t]);
+  }, [target, targets, signals, t]);
 
   // Auto-send once there's an identity claim and the stage reaches Money.
   useEffect(() => {
@@ -237,8 +264,8 @@ export function Guard() {
         <label className="flex items-center gap-2 text-body-sm text-ink-2">
           {t("guard.sendTo")}
           <select
-            value={target}
-            onChange={(e) => setTarget(e.target.value)}
+            value={adding ? ADD : target}
+            onChange={(e) => (e.target.value === ADD ? setAdding(true) : setTarget(e.target.value))}
             className="h-10 rounded-full bg-surface-2 px-3 text-body-sm font-medium text-ink shadow-[inset_0_0_0_1px_var(--line)] outline-none"
           >
             {phones.length === 0 && <option value="">{t("guard.noDevices")}</option>}
@@ -247,6 +274,7 @@ export function Guard() {
                 {t("lab.asker", { name: p.name?.split(/\s+/)[0] || p.deviceId })}
               </option>
             ))}
+            <option value={ADD}>{t("guardPair.add")}</option>
           </select>
         </label>
         {running ? (
@@ -264,6 +292,16 @@ export function Guard() {
       <main className="mx-auto grid max-w-[1280px] gap-6 px-6 py-6 lg:grid-cols-[1.5fr_1fr] lg:px-8">
         {/* Left: waveform + transcript */}
         <section className="flex flex-col gap-4">
+          {adding && (
+            <AddPhone
+              onCancel={() => setAdding(false)}
+              onDone={(g) => {
+                setAdding(false);
+                setTarget(g.deviceId);
+                toast(t("guardPair.saved", { name: g.name }), { tone: "success" });
+              }}
+            />
+          )}
           <div className="card p-5">
             <div className="mb-3 flex items-center justify-between">
               <h2 className="flex items-center gap-2 text-caption font-semibold uppercase tracking-[0.06em] text-muted">
@@ -487,7 +525,12 @@ export function Guard() {
           </div>
         </section>
 
-        <p className="text-center text-body-sm font-medium text-muted lg:col-span-2">{t("guard.footer")}</p>
+        <div className="text-center lg:col-span-2">
+          <p className="text-body-sm font-medium text-muted">{t("guard.footer")}</p>
+          {/* 13.2: the consent line, and where the audio may go. */}
+          <p className="mt-1 text-body-sm font-semibold text-ink-2">{t("guard.consent")}</p>
+          <p className="mt-1 text-caption text-muted">{t("guard.speechNote")}</p>
+        </div>
       </main>
     </div>
   );

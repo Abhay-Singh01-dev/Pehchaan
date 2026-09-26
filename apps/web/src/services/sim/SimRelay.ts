@@ -1,31 +1,42 @@
-// SimRelay (spec B3 item 1): the relay between phones, simulated with a BroadcastChannel.
+// SimRelay (frontend spec B3 item 1; backend spec 22.2): the relay between phones, simulated with a
+// BroadcastChannel, with the same contract as RealRelay so simulation exercises every screen state.
 //   - 250–600 ms random latency per message
 //   - presence heartbeat every 2 s; a device is reachable if seen in the last 6 s
 //   - connection can be forced to reconnecting / offline from the Simulation panel
 //   - while reconnecting, outgoing messages wait and incoming ones are held until connected;
 //     while offline, sending fails and incoming messages are lost (like a real relay session)
-//   - when the Security Lab runs in attacker mode, messages go "up" to the Lab, which forwards
-//     them (and may tamper with them), exactly like an attacker who controls the relay.
+//   - receipts: accepted after sending, delivered when the recipient acks, seen when it opens F1,
+//     queued when the recipient isn't on the channel, rejected when it has removed the sender
+//   - when the Security Lab runs in attacker mode, messages go "up" to the Lab, which forwards them
+//     (and may tamper with them), exactly like an attacker who controls the relay.
+import { ulid } from "@pehchaan/protocol";
 import type {
   AutoAnswerMode,
+  CancelNotice,
   ConnectionState,
+  Contact,
   FamilyAlert,
   GuardPrompt,
+  IncomingAnswer,
+  IncomingRequest,
   PeerInfo,
+  PresenceState,
+  Receipt,
+  RecipientCard,
+  RelayInfo,
   RelayService,
-  SignedAnswer,
   Unsubscribe,
   VerifyRequest,
+  WireAnswer,
 } from "../types";
 import { RelayError } from "../errors";
-import { randomId } from "../crypto";
 import { latency, openBus, sleep, type Bus, type MsgKind, type Wire, type WireMsg } from "./bus";
 
 const HEARTBEAT_MS = 2000;
 const REACHABLE_MS = 6000;
-// The Lab's attacker mode is sticky: it holds until the Lab says otherwise (or closes). The
-// Lab re-announces itself whenever a phone appears, and heartbeats every second; a long stale
-// window keeps routing correct even when the Lab's tab is in the background (timers throttled).
+// The Lab's attacker mode is sticky: it holds until the Lab says otherwise (or closes). The Lab re-announces
+// itself whenever a phone appears, and heartbeats every second; a long stale window keeps routing correct even
+// when the Lab's tab is in the background (timers throttled).
 const LAB_STALE_MS = 150_000;
 const LAB_ROUTING_KEY = "pehchaan:lab-routing";
 
@@ -33,7 +44,15 @@ type Listener<T> = (v: T) => void;
 
 export interface SimRelayDeps {
   getAutoAnswer: () => Promise<AutoAnswerMode>;
-  autoRespond: (req: VerifyRequest, mode: AutoAnswerMode, deliver: (ans: SignedAnswer) => void) => Promise<void>;
+  autoRespond: (req: VerifyRequest, mode: AutoAnswerMode, deliver: (ans: WireAnswer) => void) => Promise<void>;
+  /** This device's public keys (they travel with requests so answers can come back). */
+  myKeys: () => { devicePub: string; encPub: string };
+  /** Devices I removed from my family (contact.revoke), whose messages I refuse. */
+  isRevoked: (deviceId: string) => Promise<boolean>;
+  setRevoked: (deviceId: string, revoked: boolean) => Promise<void>;
+  revokedList: () => Promise<string[]>;
+  /** "Reset my code": a new grant for my card. */
+  rotateGrant: () => Promise<string>;
 }
 
 export class SimRelay implements RelayService {
@@ -42,7 +61,7 @@ export class SimRelay implements RelayService {
   private state: ConnectionState = "offline";
   private forced: ConnectionState | null = null;
   private booting = false;
-  private info: { name: string; kind: PeerInfo["kind"]; canBeVerified?: boolean } = { name: "", kind: "phone" };
+  private info_: { name: string; kind: PeerInfo["kind"]; canBeVerified?: boolean } = { name: "", kind: "phone" };
   private peers = new Map<string, PeerInfo>();
   private lastReachable = "";
   private seen = new Set<string>();
@@ -52,15 +71,20 @@ export class SimRelay implements RelayService {
   private waiters: Array<{ resolve: () => void; reject: (e: unknown) => void }> = [];
   private lastMsg: number | null = null;
   private timers: number[] = [];
+  /** requestId → recipient (for cancel) and → asker (for seen). */
+  private sentTo = new Map<string, string>();
+  private askedBy = new Map<string, string>();
 
   private ls = {
     state: new Set<Listener<ConnectionState>>(),
     presence: new Set<Listener<string[]>>(),
     peers: new Set<Listener<PeerInfo[]>>(),
-    request: new Set<Listener<VerifyRequest>>(),
-    answer: new Set<Listener<SignedAnswer>>(),
+    request: new Set<Listener<IncomingRequest>>(),
+    answer: new Set<Listener<IncomingAnswer>>(),
     alert: new Set<Listener<FamilyAlert>>(),
     guard: new Set<Listener<GuardPrompt>>(),
+    receipt: new Set<Listener<Receipt>>(),
+    cancel: new Set<Listener<CancelNotice>>(),
   };
 
   constructor(private deps: SimRelayDeps) {}
@@ -170,6 +194,23 @@ export class SimRelay implements RelayService {
     return this.lastMsg;
   }
 
+  info(): RelayInfo {
+    return { env: "simulation", e2e: false };
+  }
+
+  onInfo(cb: (i: RelayInfo) => void): Unsubscribe {
+    cb(this.info());
+    return () => {};
+  }
+
+  onUpdateRequired(): Unsubscribe {
+    return () => {};
+  }
+
+  clockOffsetMs(): number {
+    return 0;
+  }
+
   async ping(): Promise<number> {
     if (this.state === "offline") throw new RelayError("offline");
     const t0 = performance.now();
@@ -182,7 +223,7 @@ export class SimRelay implements RelayService {
   // ─── Presence ────────────────────────────────────────────────────────────
 
   announce(info: { name: string; kind: PeerInfo["kind"]; canBeVerified?: boolean }): void {
-    this.info = info;
+    this.info_ = info;
     this.beat();
   }
 
@@ -191,9 +232,9 @@ export class SimRelay implements RelayService {
     this.bus.post({
       t: "presence",
       from: this.me,
-      name: this.info.name,
-      kind: this.info.kind,
-      canBeVerified: this.info.canBeVerified,
+      name: this.info_.name,
+      kind: this.info_.kind,
+      canBeVerified: this.info_.canBeVerified,
       at: Date.now(),
     });
   }
@@ -226,14 +267,24 @@ export class SimRelay implements RelayService {
     return () => this.ls.peers.delete(cb);
   }
 
-  // ─── Messages ────────────────────────────────────────────────────────────
+  async queryPresence(deviceIds: string[]): Promise<Record<string, PresenceState>> {
+    if (this.state === "offline") throw new RelayError("offline");
+    await sleep(latency());
+    // With auto-answer on, a simulated family member answers for everyone, so everyone is reachable.
+    const auto = (await this.deps.getAutoAnswer()) !== "off";
+    return Object.fromEntries(
+      deviceIds.map((id) => [id, auto || this.peers.get(id)?.kind === "phone" ? "online" : "offline"] as const),
+    );
+  }
+
+  // ─── Lab routing ─────────────────────────────────────────────────────────
 
   private labControlled() {
     return this.labMode && Date.now() - this.labAt < LAB_STALE_MS;
   }
 
-  // A reloaded tab remembers (for this tab session) whether the Lab controls the relay, so its
-  // very first message is routed correctly — no race against the Lab's next announcement.
+  // A reloaded tab remembers (for this tab session) whether the Lab controls the relay, so its very first
+  // message is routed correctly: no race against the Lab's next announcement.
   private persistLabRouting() {
     try {
       sessionStorage.setItem(LAB_ROUTING_KEY, JSON.stringify({ mode: this.labMode, at: this.labAt }));
@@ -262,32 +313,145 @@ export class SimRelay implements RelayService {
     return { controlled: this.labControlled(), lastHeardMs: this.labAt ? Date.now() - this.labAt : null };
   }
 
+  // ─── Sending ─────────────────────────────────────────────────────────────
+
   private async waitConnected(): Promise<void> {
     if (this.state === "connected") return;
     if (this.state === "offline") throw new RelayError("offline");
     await new Promise<void>((resolve, reject) => this.waiters.push({ resolve, reject }));
   }
 
-  private async send(kind: MsgKind, to: string, payload: unknown): Promise<void> {
+  private async post(kind: MsgKind, to: string, payload: unknown, id: string = ulid()): Promise<WireMsg> {
     if (!this.me || !this.bus) throw new RelayError("offline");
     await this.waitConnected();
     await sleep(latency());
     if (this.state !== "connected") throw new RelayError(this.state === "offline" ? "offline" : "unreachable");
+    // Only requests and answers are routed through the Lab (the attacks it can play).
+    const viaLab = this.labControlled() && (kind === "request" || kind === "answer");
     const msg: WireMsg = {
       t: "msg",
-      id: randomId("msg", 9),
+      id,
       kind,
       from: this.me,
       to,
       payload,
-      hop: this.labControlled() ? "up" : "deliver",
+      hop: viaLab ? "up" : "deliver",
       at: Date.now(),
+      sender: this.deps.myKeys(),
     };
     this.bus.post(msg);
     this.lastMsg = msg.at;
     // BroadcastChannel never echoes to its sender, so deliver messages to ourselves directly.
     if (to === this.me && msg.hop === "deliver") this.receive(msg);
+    return msg;
   }
+
+  private emitReceipt(r: Receipt) {
+    this.ls.receipt.forEach((cb) => cb(r));
+  }
+
+  /** accepted now; queued if the recipient isn't on the channel (the real relay's inbox would keep it). */
+  private acceptedFor(msg: WireMsg, re?: string) {
+    this.emitReceipt({ of: msg.id, ...(re ? { re } : {}), to: msg.to, state: "accepted" });
+    if (!this.peers.has(msg.to) && msg.to !== this.me) {
+      this.emitReceipt({ of: msg.id, ...(re ? { re } : {}), to: msg.to, state: "queued" });
+    }
+  }
+
+  async sendRequest(req: VerifyRequest, to: RecipientCard): Promise<void> {
+    const mode = await this.deps.getAutoAnswer();
+    if (mode !== "off") {
+      // One-device testing: a simulated family member answers instead of another tab.
+      await this.waitConnected();
+      await sleep(latency());
+      if (this.state !== "connected") throw new RelayError("offline");
+      this.lastMsg = Date.now();
+      this.emitReceipt({ of: req.requestId, re: req.requestId, to: to.deviceId, state: "accepted" });
+      void this.deps.autoRespond(req, mode, (ans) =>
+        this.receive({
+          t: "msg",
+          id: ulid(),
+          kind: "answer",
+          from: req.toDeviceId,
+          to: req.fromDeviceId,
+          payload: ans,
+          hop: "deliver",
+          at: Date.now(),
+        }),
+      );
+      return;
+    }
+    const msg = await this.post("request", to.deviceId, req, req.requestId);
+    this.sentTo.set(req.requestId, to.deviceId);
+    this.acceptedFor(msg, req.requestId);
+  }
+
+  async sendAnswer(ans: WireAnswer, to: { deviceId: string }): Promise<void> {
+    await this.post("answer", to.deviceId, ans);
+  }
+
+  async sendAlert(alert: FamilyAlert, to: RecipientCard[]): Promise<Array<{ deviceId: string; msgId: string }>> {
+    const out: Array<{ deviceId: string; msgId: string }> = [];
+    await Promise.all(
+      to.map(async (r) => {
+        const msg = await this.post("alert", r.deviceId, alert);
+        out.push({ deviceId: r.deviceId, msgId: msg.id });
+        this.acceptedFor(msg);
+      }),
+    );
+    return out;
+  }
+
+  async sendGuardPrompt(p: GuardPrompt, to: RecipientCard): Promise<void> {
+    const msg = await this.post("guard", to.deviceId, p);
+    this.acceptedFor(msg);
+  }
+
+  async cancelRequest(requestId: string): Promise<void> {
+    const to = this.sentTo.get(requestId);
+    if (to) await this.post("cancel", to, { requestId, reason: "asker_cancelled" }).catch(() => {});
+  }
+
+  markSeen(requestId: string): void {
+    const asker = this.askedBy.get(requestId);
+    if (asker) void this.post("seen", asker, { re: requestId }).catch(() => {});
+  }
+
+  pushSubscribe(): void {
+    /* the simulated relay has no Web Push */
+  }
+
+  async contacts(): Promise<Contact[]> {
+    return [];
+  }
+
+  async revokeContact(deviceId: string): Promise<void> {
+    await this.deps.setRevoked(deviceId, true);
+  }
+
+  async unrevokeContact(deviceId: string): Promise<void> {
+    await this.deps.setRevoked(deviceId, false);
+  }
+
+  rotateGrant(): Promise<string> {
+    return this.deps.rotateGrant();
+  }
+
+  async retire(): Promise<void> {
+    /* nothing is stored on a simulated relay */
+  }
+
+  async sendTestAlert(): Promise<void> {
+    /* Web Push isn't simulated; Diagnostics explains this */
+  }
+
+  async labOptIn(): Promise<void> {
+    /* the simulated Lab sees every tab's traffic in attacker mode */
+  }
+
+  async labOptOut(): Promise<void> {}
+
+  // ─── Receiving ───────────────────────────────────────────────────────────
 
   private onWire(w: Wire) {
     if (!this.me) return;
@@ -334,63 +498,79 @@ export class SimRelay implements RelayService {
 
   private dispatch(m: WireMsg) {
     this.lastMsg = Date.now();
+    void this.handle(m);
+  }
+
+  private async handle(m: WireMsg) {
+    const now = Date.now();
     switch (m.kind) {
       case "request":
-        this.ls.request.forEach((cb) => cb(m.payload as VerifyRequest));
-        break;
-      case "answer":
-        this.ls.answer.forEach((cb) => cb(m.payload as SignedAnswer));
-        break;
       case "alert":
-        this.ls.alert.forEach((cb) => cb(m.payload as FamilyAlert));
-        break;
-      case "guard":
-        this.ls.guard.forEach((cb) => cb(m.payload as GuardPrompt));
-        break;
+      case "guard": {
+        // Someone I removed from my family can't reach me (6.4): refuse, as the relay would.
+        if (await this.deps.isRevoked(m.from)) {
+          void this.post("reject", m.from, { of: m.id, reason: "not_allowed" }).catch(() => {});
+          return;
+        }
+        void this.post("ack", m.from, { of: m.id }).catch(() => {});
+        if (m.kind === "request") {
+          const req = m.payload as VerifyRequest;
+          this.askedBy.set(req.requestId, m.from);
+          const incoming: IncomingRequest = {
+            req,
+            envFrom: m.from,
+            ttlMs: Math.max(0, req.expiresAt - now), // one browser, one clock: this is the relay's time left
+            receivedAt: now,
+            senderDevicePub: m.sender?.devicePub ?? "",
+            senderEncPub: m.sender?.encPub ?? "",
+          };
+          this.ls.request.forEach((cb) => cb(incoming));
+        } else if (m.kind === "alert") {
+          // Timed by this tab's clock, as the real client does (8.7).
+          const alert = m.payload as FamilyAlert;
+          this.ls.alert.forEach((cb) => cb({ ...alert, createdAt: Date.now(), victimDeviceId: m.from }));
+        } else {
+          this.ls.guard.forEach((cb) => cb(m.payload as GuardPrompt));
+        }
+        return;
+      }
+      case "answer": {
+        const ans = m.payload as WireAnswer;
+        this.ls.answer.forEach((cb) => cb({ ans, sealOk: true, envFrom: m.from, re: ans.requestId, receivedAt: now }));
+        return;
+      }
+      case "ack":
+        this.emitReceipt({ of: (m.payload as { of: string }).of, to: m.from, state: "delivered" });
+        return;
+      case "seen": {
+        const re = (m.payload as { re: string }).re;
+        this.emitReceipt({ of: re, re, to: m.from, state: "seen" });
+        return;
+      }
+      case "reject":
+        this.emitReceipt({
+          of: (m.payload as { of: string }).of,
+          to: m.from,
+          state: "rejected",
+          reason: (m.payload as { reason: string }).reason,
+        });
+        return;
+      case "cancel": {
+        const c = m.payload as { requestId: string; reason: CancelNotice["reason"] };
+        this.ls.cancel.forEach((cb) => cb({ requestId: c.requestId, reason: c.reason, from: m.from }));
+        return;
+      }
     }
   }
 
-  async sendRequest(req: VerifyRequest): Promise<void> {
-    const mode = await this.deps.getAutoAnswer();
-    if (mode !== "off") {
-      // One-device testing: a simulated family member answers instead of another tab.
-      await this.waitConnected();
-      await sleep(latency());
-      if (this.state !== "connected") throw new RelayError("offline");
-      this.lastMsg = Date.now();
-      void this.deps.autoRespond(req, mode, (ans) =>
-        this.receive({
-          t: "msg",
-          id: randomId("msg", 9),
-          kind: "answer",
-          from: req.toDeviceId,
-          to: req.fromDeviceId,
-          payload: ans,
-          hop: "deliver",
-          at: Date.now(),
-        }),
-      );
-      return;
-    }
-    await this.send("request", req.toDeviceId, req);
-  }
-
-  onRequest(cb: (req: VerifyRequest) => void): Unsubscribe {
+  onRequest(cb: (r: IncomingRequest) => void): Unsubscribe {
     this.ls.request.add(cb);
     return () => this.ls.request.delete(cb);
   }
 
-  sendAnswer(ans: SignedAnswer, toDeviceId: string): Promise<void> {
-    return this.send("answer", toDeviceId, ans);
-  }
-
-  onAnswer(cb: (ans: SignedAnswer) => void): Unsubscribe {
+  onAnswer(cb: (a: IncomingAnswer) => void): Unsubscribe {
     this.ls.answer.add(cb);
     return () => this.ls.answer.delete(cb);
-  }
-
-  async sendAlert(alert: FamilyAlert, toDeviceIds: string[]): Promise<void> {
-    await Promise.all(toDeviceIds.map((to) => this.send("alert", to, alert)));
   }
 
   onAlert(cb: (alert: FamilyAlert) => void): Unsubscribe {
@@ -398,13 +578,19 @@ export class SimRelay implements RelayService {
     return () => this.ls.alert.delete(cb);
   }
 
-  sendGuardPrompt(p: GuardPrompt, toDeviceId: string): Promise<void> {
-    return this.send("guard", toDeviceId, p);
-  }
-
   onGuardPrompt(cb: (p: GuardPrompt) => void): Unsubscribe {
     this.ls.guard.add(cb);
     return () => this.ls.guard.delete(cb);
+  }
+
+  onReceipt(cb: (r: Receipt) => void): Unsubscribe {
+    this.ls.receipt.add(cb);
+    return () => this.ls.receipt.delete(cb);
+  }
+
+  onCancel(cb: (c: CancelNotice) => void): Unsubscribe {
+    this.ls.cancel.add(cb);
+    return () => this.ls.cancel.delete(cb);
   }
 
   reportVerdict(r: Parameters<RelayService["reportVerdict"]>[0]): void {

@@ -16,21 +16,36 @@ export async function getMemberByDeviceId(deviceId: string): Promise<FamilyMembe
   return db.family.where("deviceId").equals(deviceId).first();
 }
 
+/** Thrown when a card's device is already saved: adding can never replace a member (backend spec 6.5). */
+export class AlreadyInFamilyError extends Error {
+  constructor(public member: FamilyMember) {
+    super("already_in_family");
+    this.name = "AlreadyInFamilyError";
+  }
+}
+
+/**
+ * Adds a NEW person. Callers run the new-phone guard first (CardService.guard); this refuses again, atomically,
+ * if the device is already saved, so no path can overwrite a saved card's keys.
+ */
 export async function addMember(
   card: FamilyCard,
   p: { label: string; relation: Relation; addedBy: FamilyMember["addedBy"] },
 ): Promise<FamilyMember> {
-  const existing = await getMemberByDeviceId(card.deviceId);
-  const member: FamilyMember = {
-    ...card,
-    id: existing?.id ?? uid("m"),
-    label: p.label.trim().slice(0, 30) || card.name,
-    relation: p.relation,
-    addedAt: existing?.addedAt ?? Date.now(),
-    addedBy: p.addedBy,
-  };
-  await db.family.put(member);
-  return member;
+  return db.transaction("rw", db.family, async () => {
+    const existing = await getMemberByDeviceId(card.deviceId);
+    if (existing) throw new AlreadyInFamilyError(existing);
+    const member: FamilyMember = {
+      ...card,
+      id: uid("m"),
+      label: p.label.trim().slice(0, 30) || card.name,
+      relation: p.relation,
+      addedAt: Date.now(),
+      addedBy: p.addedBy,
+    };
+    await db.family.add(member);
+    return member;
+  });
 }
 
 export async function updateMember(id: string, patch: Partial<FamilyMember>): Promise<void> {

@@ -40,7 +40,12 @@
     "moreActions": "More"
   },
   "sim": {
-    "badge": "Simulated network"
+    "badge": "Simulated: {{parts}}",
+    "parts": {
+      "relay": "network",
+      "key": "key",
+      "verifier": "checks"
+    }
   },
   "a11y": {
     "back": "Go back",
@@ -83,7 +88,8 @@
     "inAppTitle": "Open this link in Chrome or Safari",
     "inAppBody": "This app's built-in browser can't install Pehchaan. Copy the link, then paste it into Chrome or Safari.",
     "copyLink": "Copy link",
-    "desktopHint": "Pehchaan is made for phones. Open this link on your phone to install it."
+    "desktopHint": "Pehchaan is made for phones. Open this link on your phone to install it.",
+    "iosAlertsNote": "Without adding it, Pehchaan can't alert you when it's closed."
   },
   "welcome": {
     "1": {
@@ -155,14 +161,8 @@
     "noLockRetry": "I've set it, try again",
     "skip": "Skip for now",
     "skipNote": "You're set up to check others. You can create your key later in Settings.",
-    "noPasskey": "This phone can't create a key here.",
-    "usePin": "Use a 6-digit Pehchaan PIN instead",
-    "cancelled": "Key not created. Tap to try again.",
-    "pinTitle": "Choose a 6-digit Pehchaan PIN",
-    "pinConfirm": "Enter the same PIN again",
-    "pinHint": "You'll enter it every time you answer a request.",
-    "pinMismatch": "The PINs don't match. Try again.",
-    "pinDigit": "PIN digit {{n}}"
+    "noPasskey": "This phone can't create a key, so family can't verify you yet. You can still check others.",
+    "cancelled": "Key not created. Tap to try again."
   },
   "done": {
     "title": "You're set up",
@@ -171,10 +171,17 @@
     "later": "Later"
   },
   "notif": {
-    "title": "Get requests even when Pehchaan is closed",
-    "body": "Pehchaan can show a notification when family asks you to confirm.",
-    "allow": "Allow",
-    "notNow": "Not now"
+    "title": "Turn on alerts",
+    "body": "When someone in your family asks \"Is this really you?\", Pehchaan needs to alert you even if the app is closed.",
+    "allow": "Turn on alerts",
+    "notNow": "Not now",
+    "denied": "Without alerts, family can only check you while Pehchaan is open.",
+    "unsupported": "This browser can't show Pehchaan alerts when the app is closed.",
+    "iosInstallFirst": "On iPhone, add Pehchaan to your Home Screen first, then turn on alerts from the installed app.",
+    "on": "Alerts are on",
+    "failed": "Couldn't turn on alerts. Check your internet and try again.",
+    "continue": "Continue",
+    "askersNote": "Recommended for everyone: alerts also tell you when someone pretends to be your family."
   },
   "home": {
     "greeting": "Namaste, {{name}}",
@@ -304,7 +311,8 @@
     "removeConfirm": "Remove {{label}}? You won't be able to verify them until you add them again.",
     "removed": "{{label}} removed",
     "saved": "Saved",
-    "notFound": "This person isn't in your family list any more."
+    "notFound": "This person isn't in your family list any more.",
+    "resetCodeToo": "Also reset my code, so they can't reconnect from a new phone"
   },
   "join": {
     "shared": "{{name}} shared their Pehchaan card with you.",
@@ -323,7 +331,12 @@
     "oldBrowser": "Open this in Chrome or Safari.",
     "noMatch": "Don't add this person. Scan again, face to face.",
     "nothingSaved": "Nothing was saved.",
-    "language": "Language"
+    "language": "Language",
+    "reading": "Reading the card…",
+    "oldVersion": "This is an old Pehchaan code. Ask {{name}} to update Pehchaan and share it again.",
+    "them": "them",
+    "onlyMet": "Only add people you've met, or called back on a number you already had.",
+    "iosInstall": "To get alerts on iPhone, add Pehchaan to your Home Screen: tap Share, then Add to Home Screen."
   },
   "verify": {
     "who": "Who does the caller say they are?",
@@ -339,7 +352,8 @@
     "offline": "You're offline, so we can't check right now. Don't pay until you can.",
     "noMembers": "No one in your family can be verified yet. Add a child or relative who has set up their key.",
     "addFamily": "Add family",
-    "askingFor": "Asking for"
+    "askingFor": "Asking for",
+    "mayNotGet": "{{name}}'s phone may not get this right now. You can still ask, or call them."
   },
   "payment": {
     "title": "Payment check",
@@ -365,7 +379,15 @@
     "stop": "Stop waiting",
     "keep": "Keep waiting",
     "you": "You",
-    "timeLeft": "Time left"
+    "timeLeft": "Time left",
+    "status": {
+      "sending": "Sending…",
+      "sent": "Sent",
+      "queued": "Waiting for {{name}}'s phone to come online",
+      "pushed": "Sent to {{name}}'s phone",
+      "delivered": "Delivered",
+      "seen": "Seen by {{name}}"
+    }
   },
   "official": {
     "title": "Real police never arrest anyone over a video call",
@@ -386,12 +408,15 @@
     "denied": {
       "title": "Not {{name}}",
       "body": "{{name}}'s own phone says this is not them.",
-      "warn": "Do not send money."
+      "warn": "Do not send money.",
+      "late": "{{name}} answered after the timer ended."
     },
     "none": {
       "title": "Not confirmed yet",
       "body": "{{name}} hasn't answered. Don't pay until they do.",
-      "network": "Couldn't reach the network."
+      "network": "Couldn't reach the network.",
+      "notAllowed": "{{name}}'s phone isn't accepting checks from you. Add them again in person.",
+      "late": "{{name}} answered after the time ran out. Ask again."
     },
     "fake": {
       "title": "Fake answer",
@@ -434,7 +459,10 @@
       "not_unlocked": "The phone wasn't unlocked to answer.",
       "bad_signature": "The signature doesn't match.",
       "expired": "The answer arrived after the request expired."
-    }
+    },
+    "familySending": "Alerting {{names}}…",
+    "familyQueued": "{{names}} will get it when online",
+    "familyUnreached": "Couldn't reach {{names}}"
   },
   "why": {
     "titleTrust": "Why we trust this answer",
@@ -464,8 +492,11 @@
       "wrong_origin": "It was signed for a different website.",
       "not_verified": "The phone wasn't unlocked with a fingerprint or PIN.",
       "bad": "The signature doesn't verify with {{name}}'s key.",
-      "used": "This exact answer was already used once."
-    }
+      "used": "This exact answer was already used once.",
+      "late": "It arrived after the time ran out.",
+      "sealed_changed": "The sealed answer was changed on the way, so it couldn't be opened."
+    },
+    "skipped": "Not checked"
   },
   "ask": {
     "title": "{{asker}} is asking",
@@ -491,7 +522,11 @@
     "waitingUnlock": "Waiting for your fingerprint or PIN…",
     "sending": "Sending your answer…",
     "noKey": "This phone has no key yet, so it can't answer. Create your key in Settings.",
-    "gone": "This request is no longer here."
+    "gone": "This request is no longer here.",
+    "answeredElsewhere": "You already answered this on another device.",
+    "stoppedWaiting": "{{asker}} stopped waiting.",
+    "keyMaybeMissing": "Still not confirmed? Your key may be missing from this phone. Set it up again, then ask them to add you again in person.",
+    "setUpAgain": "Set up my key again"
   },
   "unlock": {
     "title": "Confirm it's you",
@@ -598,21 +633,30 @@
     "letVerify": "Let family verify you",
     "display": "Display",
     "language": "Language",
-    "notifications": "Requests arrive while Pehchaan is open",
     "help": "Help",
     "howItWorks": "How it works",
     "limits": "What Pehchaan can't protect against",
     "suspicious": "During a suspicious call",
     "privacy": "Privacy",
     "stored": "What's stored on this phone",
-    "storedBody": "Your profile, your family's cards, your history and alerts. Never call recordings. Nothing is kept on a server: our server only passes messages between phones.",
+    "storedBody": "Your profile, your family's cards, your history and alerts. Never call recordings. Our server only passes sealed messages between phones and keeps the little it needs to deliver them: see the privacy notice.",
     "delete": "Delete all data",
     "about": "About",
     "version": "Pehchaan {{v}}",
     "diagUnlocked": "Diagnostics unlocked",
     "diagnostics": "Diagnostics",
     "tapsLeft_one": "{{count}} more tap",
-    "tapsLeft_other": "{{count}} more taps"
+    "tapsLeft_other": "{{count}} more taps",
+    "resetCode": "Reset my code",
+    "resetCodeHint": "Old copies of your code stop working for new people",
+    "resetCodeConfirm": "Reset your code?",
+    "resetCodeDetail": "People who already reach you keep working. Anyone holding an old copy of your code who never contacted you will need your new code.",
+    "resetCodeCta": "Reset",
+    "resetCodeDone": "Code reset. Share your new code with new family members.",
+    "resetCodeFailed": "Couldn't reset your code. Try again when you're online.",
+    "whoCanReach": "Who can reach me",
+    "privacyNotice": "Privacy notice",
+    "alerts": "Alerts"
   },
   "profileEdit": {
     "title": "Profile",
@@ -622,7 +666,6 @@
   "myKey": {
     "title": "My key",
     "status": "Key ready · created {{date}}",
-    "statusPin": "Key ready (Pehchaan PIN) · created {{date}}",
     "noKey": "No key on this phone yet.",
     "create": "Create my key",
     "toggle": "Family can verify me",
@@ -696,7 +739,7 @@
   },
   "deleteAll": {
     "title": "Delete all data",
-    "body": "This removes everything Pehchaan keeps on this phone:",
+    "body": "This removes everything Pehchaan keeps on this phone, and asks our server to forget this phone:",
     "item1": "Your profile",
     "item2": "Your family list",
     "item3": "Your history and alerts",
@@ -705,7 +748,10 @@
     "cta": "Delete everything",
     "confirm": "Yes, delete",
     "confirmBody": "This can't be undone.",
-    "working": "Deleting…"
+    "working": "Deleting…",
+    "unreached": "Couldn't reach Pehchaan's server",
+    "unreachedBody": "It may keep this phone's ID and notification address for up to 12 months. Delete everything on this phone anyway?",
+    "phoneOnly": "Delete on this phone"
   },
   "practice": {
     "title": "Practice a scam call",
@@ -720,7 +766,9 @@
   },
   "pwa": {
     "updateReady": "Update ready",
-    "reload": "Reload"
+    "reload": "Reload",
+    "updateRequired": "This version of Pehchaan is too old to connect. Update it to keep checking.",
+    "updateNow": "Update now"
   },
   "diag": {
     "title": "Diagnostics",
@@ -780,7 +828,44 @@
     "openAs": "Open as {{name}}",
     "simName": "Simulated device",
     "openLab": "Open Security Lab",
-    "openGuard": "Open Call Guard"
+    "openGuard": "Open Call Guard",
+    "build": "Build",
+    "storage": "Storage",
+    "storageState": {
+      "protected": "Protected",
+      "may_be_cleared": "The browser may clear it",
+      "unsupported": "Not reported"
+    },
+    "env": "Relay environment",
+    "gateway": "Gateway",
+    "clockOffset": "Clock offset",
+    "push": "Notifications",
+    "pushState": {
+      "ok": "Working",
+      "missing": "Not set up",
+      "expired": "Expired"
+    },
+    "e2e": "End-to-end",
+    "e2eOn": "Sealed",
+    "e2eLab": "Readable to the Security Lab (Lab phones only)",
+    "e2eSim": "Simulated network",
+    "presence": {
+      "online": "Online",
+      "push": "Reachable by notification",
+      "offline": "Offline"
+    },
+    "lab": {
+      "title": "Security Lab",
+      "body": "Let the Security Lab see and change this phone's messages to other phones that have allowed it. Needs the Lab password. It turns itself off after 4 hours.",
+      "onBody": "The Security Lab can see and change this phone's messages to other phones that have allowed it.",
+      "password": "Lab password",
+      "allow": "Allow Security Lab on this phone",
+      "on": "Security Lab allowed for 4 hours",
+      "wrongPassword": "That password is wrong.",
+      "disabled": "The Security Lab is off right now.",
+      "tooMany": "Too many tries. Wait 10 minutes."
+    },
+    "sendTestAlert": "Send test alert"
   },
   "lab": {
     "title": "Security Lab",
@@ -809,7 +894,8 @@
     },
     "forge": {
       "title": "Forge a yes",
-      "body": "Answers “Yes” using the attacker's own key"
+      "body": "Answers “Yes” using the attacker's own key",
+      "copy": "Use {{name}}'s real key ID"
     },
     "result": "Result",
     "resultIdle": "Arm an attack, then check {{name}} from {{asker}}'s phone.",
@@ -848,7 +934,18 @@
     "held": "held",
     "fallbackAsker": "Maa",
     "fallbackTarget": "Arjun",
-    "wide": "The Security Lab is made for a laptop screen."
+    "wide": "The Security Lab is made for a laptop screen.",
+    "join": {
+      "title": "Join the Security Lab",
+      "body": "Enter the Lab password. This laptop can then see and change messages between test phones that allowed the Security Lab (Diagnostics on each phone), and nobody else's.",
+      "password": "Lab password",
+      "cta": "Join",
+      "wrong": "Wrong password.",
+      "limited": "Too many tries. Wait a few minutes and try again.",
+      "off": "The Security Lab is switched off on this relay."
+    },
+    "noOptIns": "No phones have allowed the Security Lab yet. On each test phone: Settings → Diagnostics → Security Lab.",
+    "heldTimeout": "The Lab didn't answer within 10 seconds, so the message went through unchanged."
   },
   "guard": {
     "title": "Call Guard",
@@ -892,7 +989,9 @@
     "micUnsupported": "Live listening needs Chrome. Use Scripted mode.",
     "micDenied": "The microphone is blocked. Allow it in the browser, or use Scripted mode.",
     "useScripted": "Use Scripted mode",
-    "wide": "Call Guard is made for a laptop screen."
+    "wide": "Call Guard is made for a laptop screen.",
+    "consent": "Use Call Guard only with the consent of the person whose call it is.",
+    "speechNote": "In Microphone mode, the browser's own speech service may process the audio. Only the claimed name, amount and warning signs are sent to the phone."
   },
   "announce": {
     "verdict": "{{title}}. {{body}}"
@@ -900,5 +999,124 @@
   "time": {
     "secondsAgo": "{{count}} s ago",
     "justNow": "just now"
+  },
+  "cardGuard": {
+    "impostorTitle": "This is not the {{label}} you saved",
+    "impostorBody": "Someone may be pretending to be {{label}} with a new phone. Don't add this.",
+    "impostorHow": "If {{label}} really changed phones, remove the old {{label}} first, then add the new phone face to face.",
+    "alteredTitle": "This card has been altered. Don't add it.",
+    "alteredBody": "It uses {{label}}'s phone ID with different keys. Nothing was added.",
+    "dontAdd": "Don't add",
+    "callSaved": "Call {{label}} on their saved number"
+  },
+  "labBanner": {
+    "text": "Security Lab can see and change this phone's messages",
+    "turnOff": "Turn off",
+    "off": "Security Lab turned off for this phone"
+  },
+  "privacy": {
+    "title": "Privacy notice",
+    "intro": "Exactly what Pehchaan keeps, where, and for how long.",
+    "onPhoneTitle": "Only on this phone",
+    "phone": {
+      "family": "Your name, phone number, family list, labels and safety words. Kept until you delete them.",
+      "history": "Your checks, answers, results and alerts. Kept until you delete them."
+    },
+    "onServerTitle": "On our server in Mumbai",
+    "server": {
+      "device": "This phone's random ID, public key, phone type, app version and the day it was last seen. Used to deliver messages and stop abuse. Kept until you delete your data, or after 12 months without use.",
+      "contacts": "Which phones may contact yours, and a fingerprint of your code (never the code itself). Kept until you remove them or delete your data.",
+      "push": "Your notification address, used to wake the app. Kept until it expires or you delete your data.",
+      "envelopes": "Sealed messages waiting to be delivered. The server can't read them. Kept from 60 seconds to 24 hours.",
+      "ip": "Your internet address, scrambled, to limit abuse. Kept up to an hour.",
+      "security": "Security events, with no names and no message contents. Kept 1 year.",
+      "errors": "Error reports with personal details removed. Kept 30 days."
+    },
+    "neverServer": "The server never stores names, phone numbers, amounts, labels or what you answered.",
+    "rightsTitle": "Your choices",
+    "rights": "Delete all data (in Settings) removes everything on this phone and asks the server to forget this phone within 24 hours. Removing a family member stops their phone reaching yours.",
+    "processors": "Service providers: Oracle Cloud in Mumbai runs the server. Error reports, monitoring and encrypted backups may be kept by providers outside India.",
+    "guard": "Call Guard runs on a laptop. Its audio and transcript stay in that browser, though the browser's own speech service may process the audio. Use it only with the consent of the person whose call it is.",
+    "contactTitle": "Questions or complaints"
+  },
+  "reach": {
+    "title": "Who can reach me",
+    "intro": "Phones that can send you checks and alerts. Remove any you don't recognise.",
+    "offline": "Couldn't load this list. Check your internet and try again.",
+    "empty": "No one has contacted you through Pehchaan yet.",
+    "unknown": "Device added via your code on {{date}}",
+    "since": "Since {{date}}",
+    "removeConfirm": "Remove {{name}}? That phone won't be able to contact you.",
+    "thisDevice": "this device",
+    "removed": "Removed"
+  },
+  "notify": {
+    "requestTitle": "{{asker}} is asking",
+    "requestBody": "Are you on a call with {{asker}}? Tap to answer.",
+    "requestStranger": "{{asker}} (not in your family)",
+    "cancelTitle": "{{asker}} stopped waiting",
+    "cancelBody": "You don't need to answer.",
+    "answerTitle": "{{label}} answered",
+    "answerBody": "Open Pehchaan to see the result.",
+    "impTitle": "Someone pretended to be {{about}}",
+    "impBody": "On a call to {{victim}}. Tap for details.",
+    "checkOnTitle": "Can you check on {{about}}?",
+    "checkOnBody": "{{victim}} couldn't confirm a call.",
+    "guardTitle": "Call Guard: verify now?",
+    "guardBody": "The caller says they're {{claimed}}.",
+    "genericTitle": "Pehchaan",
+    "genericBody": "Open Pehchaan.",
+    "testTitle": "Alert check",
+    "testBody": "Alerts work on this phone."
+  },
+  "alertsSettings": {
+    "title": "Alerts",
+    "state": {
+      "on": "On",
+      "off": "Off",
+      "blocked": "Blocked in browser settings",
+      "unsupported": "Not available here"
+    },
+    "turnOn": "Turn on",
+    "reliable": "Make alerts reliable on this phone",
+    "reliableIntro": "Some phones stop alerts to save battery. On this phone:",
+    "steps": {
+      "chrome": "Settings → Apps → Chrome → Battery → No restrictions (or Unrestricted).",
+      "autostart": "Settings → Apps → Chrome → Autostart: on.",
+      "notifications": "Keep Chrome's notifications on for Pehchaan.",
+      "test": "Then send yourself an alert check and lock the screen."
+    },
+    "brand": {
+      "xiaomi": "Xiaomi, Redmi or POCO",
+      "vivo": "Vivo or iQOO",
+      "oppo": "Oppo or Realme",
+      "oneplus": "OnePlus",
+      "samsung": "Samsung",
+      "other": "Your phone"
+    },
+    "iphone": "On iPhone, alerts work only in the app added to your Home Screen.",
+    "testCta": "Send an alert check",
+    "testSent": "Lock your screen. The alert check arrives in about 10 seconds.",
+    "testArrived": "The alert check arrived after {{seconds}} s",
+    "testFailed": "Couldn't send an alert check. Check your internet and try again.",
+    "stateLabel": "Alerts on this phone",
+    "blockedHint": "Allow notifications for this site in your browser's settings, then come back here.",
+    "checkTitle": "Alert check",
+    "testLimited": "You can send 3 alert checks an hour. Try again later."
+  },
+  "guardPair": {
+    "add": "+ Add a phone",
+    "title": "Add a phone",
+    "body": "Show Pehchaan's My code on the phone and scan it with this laptop's camera, or paste the phone's family link.",
+    "scan": "Scan with the camera",
+    "paste": "Or paste the family link",
+    "read": "Read link",
+    "compare": "Check that {{name}}'s phone shows these same four words:",
+    "match": "They match · Save",
+    "noMatch": "They don't match",
+    "saved": "Call Guard will send prompts to {{name}}'s phone.",
+    "unreadable": "That isn't a Pehchaan family code, or it's incomplete.",
+    "own": "That's this laptop's own code. Use the phone's code.",
+    "noCamera": "The camera isn't available. Paste the family link instead."
   }
 }

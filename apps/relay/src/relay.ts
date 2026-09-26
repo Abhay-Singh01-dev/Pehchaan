@@ -23,6 +23,7 @@ import type { Hub } from "./hub";
 import { createLogger, hmacId } from "./log";
 import { createMetrics } from "./metrics";
 import { noPush, type Push } from "./push/push";
+import { createWebPush } from "./push/sender";
 import { createSubscriptions } from "./push/subscriptions";
 import { createStore } from "./store/db";
 import type { Connection } from "./ws/connection";
@@ -146,7 +147,29 @@ export async function createRelay(config: Config, opts: RelayOptions = {}): Prom
     timers.add(t);
   };
   if (opts.push) hub.push = opts.push(hub);
-  if (config.LAB_ENABLED && opts.lab) hub.lab = opts.lab(hub);
+  else if (config.VAPID_PUBLIC_KEY && config.VAPID_PRIVATE_KEY) {
+    // Web Push (11): the current key, and during a rotation the previous one (11.9).
+    const vapid = [
+      { id: config.VAPID_KEY_ID, publicKey: config.VAPID_PUBLIC_KEY, privateKey: config.VAPID_PRIVATE_KEY },
+    ];
+    if (config.VAPID_PREVIOUS_KEY_ID && config.VAPID_PREVIOUS_PUBLIC_KEY && config.VAPID_PREVIOUS_PRIVATE_KEY) {
+      vapid.push({
+        id: config.VAPID_PREVIOUS_KEY_ID,
+        publicKey: config.VAPID_PREVIOUS_PUBLIC_KEY,
+        privateKey: config.VAPID_PREVIOUS_PRIVATE_KEY,
+      });
+    }
+    hub.push = createWebPush({
+      subscriptions: hub.subscriptions,
+      keys: vapid,
+      subject: config.VAPID_SUBJECT,
+      metrics,
+      log,
+      ...(config.PUSH_TEST_TARGET ? { testTarget: config.PUSH_TEST_TARGET } : {}),
+    });
+  }
+  // 14.1 layer 1: the Lab module's code is loaded only in a build that enables it.
+  if (config.LAB_ENABLED) hub.lab = (opts.lab ?? (await import("./lab/module")).createLabModule)(hub);
 
   // ── Valkey: connect, keep this gateway's liveness key fresh, and rebuild routes after a restart (15.4).
   const rehydrate = async () => {

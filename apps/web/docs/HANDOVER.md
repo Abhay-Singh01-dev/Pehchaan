@@ -1,94 +1,56 @@
-# Handover: replacing the simulations (spec Part E)
+# The real services (backend spec Part C, section 22)
 
-When the frontend passes the Part D walkthrough (`npm run e2e`), the team swaps the simulated
-services for real ones. **No screen should need to change** — screens only use the interfaces in
-`src/services/types.ts`.
+The frontend is connected to the Pehchaan relay. Screens still use only the interfaces in `src/services/types.ts`;
+`src/services/index.ts` picks each implementation by flag, and every combination works (APP-01).
 
-## What to replace
-
-| Replace | With | File to fill in |
+| Flag | Simulated (`true`) | Real (`false`) |
 | --- | --- | --- |
-| `SimRelay` | WebSocket client to the team's relay | `src/services/real/RealRelay.ts` |
-| `SimKey` | WebAuthn passkeys | `src/services/real/RealKey.ts` |
-| `SimVerifier` | **written by the team** (~80 lines) | `src/services/real/RealVerifier.ts` |
-| `SimLab` | the relay's test-environment lab channel | `src/services/real/RealLab.ts` |
-| `SimGuard` (mic) | optional: a better speech-to-text engine | `src/services/real/RealGuard.ts` |
-| Flags | `VITE_SIMULATION=false` | `.env` |
-| Domain | one fixed HTTPS domain (passkeys are bound to it — never change it after keys exist) | hosting |
+| `VITE_SIM_RELAY` | `sim/SimRelay.ts`: tabs talk over a BroadcastChannel | `real/relay/RealRelay.ts`: the relay's WebSocket protocol |
+| `VITE_SIM_KEY` | `sim/SimKey.ts`: a software authenticator behind the simulated unlock sheet (D-008) | `real/RealKey.ts`: the phone's passkey (WebAuthn, ES256, user verification required) |
+| `VITE_SIM_VERIFIER` | `sim/SimVerifier.ts`: the 7 checks, expecting this page's own address | `real/RealVerifier.ts`: the 7 checks, expecting `VITE_ORIGIN` / `VITE_RP_ID` |
 
-Each real file already contains a comment block describing its job. They currently throw
-`Not implemented: team-owned`; `services/index.ts` never constructs them while simulating.
+`VITE_SIMULATION` is the default for all three. Both verifiers run the **same** code
+(`services/verifier.ts` over `packages/crypto/src/verifier.ts`); there is no second, weaker path to a green.
 
-## Interface methods, including the documented extensions
+## Where each backend rule lives
 
-Methods marked *ext* go beyond the spec's B3 listing; they are small and exist for Diagnostics,
-the Lab and Call Guard. The screens depend on them, so the real classes must provide them too.
+| Rule (backend spec) | Code |
+| --- | --- |
+| Device identity: signing and encryption keys (non-extractable), grant, derived device ID (5, FC-2) | `services/identity.ts` |
+| Card v2, derived safety words, the new-phone guard (6, FC-3) | `services/card.ts` over `@pehchaan/crypto/card` |
+| Relay protocol client: login, outbox, receipts, reconnect, dedupe, tombstones, push inbox (7–8, FC-6) | `services/real/relay/` (`RealRelay.ts`, `socket.ts`, `outbox.ts`) |
+| End-to-end seal and open; plain only between Security-Lab-opted-in phones (9, FC-7) | `services/real/relay/envelope.ts` |
+| Passkey create and sign, challenges precomputed when F1 opens (10.3–10.4, FC-4) | `services/real/RealKey.ts` |
+| The 7 checks, the late policy, unreadable seals (10.5–10.7, FC-5) | `services/verifier.ts` |
+| Asking: receipts, refusals, the late window, used nonces, family alerts (10.7–10.9, 13.1, FC-12, FC-13) | `app/verification.ts` |
+| Answering: F1's countdown from `ttlMs`, cancellations, sanity checks (8.6–8.7, FC-14, FC-15, FC-27) | `app/answering.ts` |
+| Remove / add in person on the relay (6.4, FC-19) | `app/contacts.ts` |
+| Presence on demand (12, FC-17) | `app/presence.ts` |
+| Web Push on the phone: A8, the subscription kept fresh at each login, VAPID rotation, the alert check (11.2, 11.8, 11.9, FC-8) | `app/push.ts`, A8 in `screens/setup/Done.tsx`, `screens/settings/AlertsSettings.tsx` |
+| Battery-saver guidance by phone maker (11.8, FC-9) | `app/phoneBrand.ts` |
+| The service worker: precache, push → notification (never an amount or reason), taps, re-subscription (11.4–11.6) | `sw.ts` over `sw/handle.ts` and `sw/describe.ts` |
 
-**RelayService** — `connect`, `onState`, `onPresence`, `sendRequest`, `onRequest`, `sendAnswer`,
-`onAnswer`, `sendAlert`, `onAlert`, `sendGuardPrompt`, `onGuardPrompt`, plus *ext*:
-`announce({ name, kind, canBeVerified })` (sent with the presence heartbeat), `onPeers(cb)`,
-`getState()`, `ping()` (round-trip ms), `reconnect()`, `address()`, `lastMessageAt()`,
-`reportVerdict({ requestId, verdict, invalidReason, failedChecks })` (send to the lab channel in the
-test environment only; ignore it in production).
+## Push notifications
 
-Requirements from the spec: reconnect with backoff 1, 2, 4, 8 s then every 8 s; heartbeat every
-2 s; reachable = seen in the last 6 s; emit `reconnecting` while retrying, `offline` when the
-browser is offline; while reconnecting, queue sends; while offline, reject sends
-(`RelayError("offline")` from `services/errors.ts`) so the app fails closed.
+The service worker (`src/sw.ts`, built by vite-plugin-pwa's `injectManifest`) opens each push with this phone's
+key, names the sender from this phone's own family list, and always shows a notification: silent while the app is
+on screen, and the generic "Open Pehchaan." when a push can't be opened. The frame also goes to the push inbox, which
+the app handles exactly once however it arrives. Taps open the app on the notification's own screen (`/request/:id`,
+`/verify/waiting/:id`, `/alerts`…). The app registers the service worker only in production builds, so push works
+in `pnpm build && pnpm preview` or a deployed build, not in `pnpm dev`. Alerts also need a VAPID key pair: generate
+one with `pnpm tsx infra/scripts/vapid-keys.ts` and set it on both the relay and the app (`.env.example`).
 
-**KeyService** — `checkSupport`, `createKey`, `signAnswer`, `deleteKey`, plus *ext*
-`createPinKey({ deviceId, name, pin })` for A6's “6-digit Pehchaan PIN” fallback (optional: if
-absent, the PIN path can't finish). Throw `KeyError("cancelled")` when the person cancels the
-system sheet — F5 and A6 rely on it. Derive safety words with `safetyWordsFor(spkiBase64url)` from
-`services/words.ts` so both phones show the same four words.
+## Security Lab and Call Guard
 
-**VerifierService** — `verify(req, ans, member)`, plus *ext* `resetUsedNonces()` (Diagnostics).
+- **Security Lab** (spec 14, FC-21): `real/RealLab.ts` speaks the relay's Lab protocol over the laptop's own
+  device connection. It joins with the Lab password, then change, replay and forge are held, rebuilt and injected
+  through the relay; forged answers are made in WebCrypto (`@pehchaan/crypto/soft-authenticator`). Test phones
+  allow the Lab in Diagnostics. The asker's phone verifies with the normal verifier; the page only shows its report.
+  The relay side is `apps/relay/src/lab/module.ts`; switch it on with `admin lab on` (it turns itself off after 12 h).
+- **Call Guard** (13.2, FC-22): "+ Add a phone" pairs the laptop with a phone by its family card after comparing
+  the four safety words (`screens/guard/AddPhone.tsx`, `store/guardTargets.ts`); prompts are sealed to that card.
 
-**LabService** — the six spec methods plus *ext* `start`, `stop`, `onStatus`, `onPeers`,
-`setRoles`, `attackLog`, `clearLog` (see `SimLab.ts` for the exact behaviour, e.g. an armed
-attack fires on the next check and then disarms).
+## Running it
 
-**GuardService** — the four spec methods plus *ext* `setNames`, `next` (scripted mode), `onLevel`
-(0..1 audio level for the waveform), `micSupported`. Keep the keyword rules: pass each final
-transcript line through `analyzeLine()` + `accumulate()` in `services/guard/rules.ts`.
-
-**Data model extensions** (all optional fields): `Profile.keyCreatedAt / keyKind`,
-`FamilyMember.lastCheckedAt`, `VerifyRequest.fromPhone`, `CheckResult.params`,
-`VerdictResult.answeredAt`, `FamilyAlert.aboutDeviceId / victimDeviceId / aboutPhone / resolved`,
-`HistoryEvent` timeline fields, `RelayEvent.kind: "guard"` and `requestId`.
-
-## RealVerifier checklist (the Ownership centrepiece)
-
-Build each check with `makeCheck(n, passed, { detail, params })` and finish with
-`finalizeVerdict({ ...decideVerdict(checks, ans.decision, expired), … })` from
-`services/verdict.ts`. That keeps every INVALID reason identical to the simulation, and it's the
-only way a VERIFIED result can be stored (`assertMayPersist`).
-
-1. **fresh** — the request is ours and still `pending` (`db.outgoing`), the answer's nonce equals
-   the request's, and `now <= expiresAt`. Params: `{ n: secondsSinceCreated }`.
-2. **key** — the credential id is the one saved for this member. Params: `{ name: member.label }`.
-3. **exact** — recompute `challenge = SHA-256(canonical(request) ‖ "|" ‖ decision)` for the
-   decision the answer claims; it must equal the challenge inside `clientDataJSON`.
-4. **address** — `clientData.type === "webauthn.get"`, `clientData.origin === location.origin`,
-   and `authenticatorData.rpIdHash === SHA-256(rpId)`.
-5. **unlocked** — the UP and UV flags are set.
-6. **signature** — ECDSA P-256/SHA-256 over `authenticatorData ‖ SHA-256(clientDataJSON)` with the
-   member's SPKI key (convert the DER signature to raw r‖s first).
-7. **unused** — the nonce isn't in `db.usedNonces`; then add it.
-
-**Canonical request format** (the key and the verifier must agree): JSON with keys sorted
-alphabetically, no whitespace, containing `v`, `requestId`, `nonce`, `fromDeviceId`, `toDeviceId`,
-`claimedLabel`, `reason` (if set), `amountInr` (if set), `createdAt`, `expiresAt`. Append `|` and
-the decision before hashing.
-
-The unit tests in `tests/unit/verifier.test.ts` describe the required behaviour for every reason.
-To run them against the real verifier, add a variant of that file that builds real WebAuthn-shaped
-answers (or recorded test vectors).
-
-## Before judging day
-
-- Run `npm run e2e` against real phones on the real relay (Part D step 14 on actual devices).
-- Run at least 50 attacks from the Security Lab and export the log.
-- Every teammate walks through `RealVerifier` line by line.
-- Build with `VITE_SIMULATION=false` and confirm the “Simulated network” badge is gone.
-- Have a native Hindi speaker review `src/i18n/hi.json`.
+See the repository README: `pnpm db:up`, then `pnpm dev` runs the relay and this app with the real relay
+(simulated keys and verifier by default in development; set the `VITE_SIM_*` flags in `.env.local`).

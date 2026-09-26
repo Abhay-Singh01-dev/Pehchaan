@@ -27,6 +27,11 @@ export function createKeys(prefix: string) {
     labHeld: (heldId: string) => `${p}lab:held:${heldId}`,
     labSwitch: () => `${p}cfg:lab`,
     labSince: () => `${p}lab:since`,
+    /** Sorted sets scored by expiry: Lab page sessions, and phones opted in (14.1 layers 2 and 3). */
+    labPages: () => `${p}lab:pages`,
+    labOptins: () => `${p}lab:optins`,
+    /** A request the Lab tampered with, until the asker reports its verdict (14.4). */
+    labTampered: (requestId: string) => `${p}lab:tampered:${requestId}`,
     /** Abuse-signal counters (16.8). */
     abuse: (kind: string, deviceId: string) => `${p}ab:${kind}:${deviceId}`,
     /** Pub/sub channels. */

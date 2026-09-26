@@ -1,7 +1,16 @@
 // CRY-04 device IDs; CRY-05 the relay login signature (5.2, 7.3).
 import { describe, expect, it } from "vitest";
 import { b64url, b64urlDecode } from "../src/bytes";
-import { authMessage, deviceIdFrom, isRawP256, signAuth, verifyAuth } from "../src/device-auth";
+import {
+  authMessage,
+  deviceIdFrom,
+  fetchMessage,
+  isRawP256,
+  resubscribeMessage,
+  signAuth,
+  verifyAuth,
+  verifyDeviceRequest,
+} from "../src/device-auth";
 
 const ECDSA = { name: "ECDSA", namedCurve: "P-256" } as const;
 
@@ -88,5 +97,34 @@ describe("CRY-05 · login signature (7.3)", () => {
     k[0] = 4;
     expect(isRawP256(k)).toBe(true);
     expect(isRawP256(k.subarray(1))).toBe(false);
+  });
+});
+
+describe("signed requests from the service worker (11.2, 11.4)", () => {
+  it("builds the exact fetch message of 11.4, and a resubscribe message of the same shape", () => {
+    const text = (b: Uint8Array) => new TextDecoder().decode(b);
+    expect(text(fetchMessage("relay.x.in", "dev", "01MSG", 1234))).toBe(
+      "pehchaan-fetch-v1\nrelay.x.in\ndev\n01MSG\n1234",
+    );
+    expect(text(resubscribeMessage("relay.x.in", "dev", "https://fcm.googleapis.com/fcm/send/a", 1234))).toBe(
+      "pehchaan-resubscribe-v1\nrelay.x.in\ndev\nhttps://fcm.googleapis.com/fcm/send/a\n1234",
+    );
+  });
+
+  it("accepts a request signed by the device's own key", async () => {
+    const d = await device();
+    const msg = fetchMessage("relay.x.in", d.deviceId, "01MSG", 1234);
+    expect(await verifyDeviceRequest(d.pub, msg, await signAuth(d.pair.privateKey, msg))).toBe(true);
+  });
+
+  it("rejects another key, another message, and garbage without throwing", async () => {
+    const [a, b] = await Promise.all([device(), device()]);
+    const msg = fetchMessage("relay.x.in", a.deviceId, "01MSG", 1234);
+    const sig = await signAuth(a.pair.privateKey, msg);
+    expect(await verifyDeviceRequest(b.pub, msg, sig)).toBe(false);
+    expect(await verifyDeviceRequest(a.pub, fetchMessage("relay.x.in", a.deviceId, "01MSG", 1235), sig)).toBe(false);
+    expect(await verifyDeviceRequest(a.pub, msg, "not-a-signature")).toBe(false);
+    expect(await verifyDeviceRequest(new Uint8Array(65), msg, sig)).toBe(false);
+    expect(await verifyDeviceRequest(new Uint8Array(3), msg, sig)).toBe(false);
   });
 });

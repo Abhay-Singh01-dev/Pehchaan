@@ -95,3 +95,22 @@ describe("REL-20 · configuration", () => {
     expect(r.stderr).toContain("RELAY_HOST");
   }, 90_000);
 });
+
+describe("VAPID key rotation settings (11.9)", () => {
+  const rotating = {
+    VAPID_PREVIOUS_KEY_ID: "v1",
+    VAPID_PREVIOUS_PUBLIC_KEY: "BOld",
+    VAPID_PREVIOUS_PRIVATE_KEY: "oldpriv",
+  };
+
+  it("accepts a complete previous key alongside the current one", () => {
+    expect(problems({ ...base, VAPID_KEY_ID: "v2", ...rotating })).toEqual([]);
+  });
+
+  it("refuses a partial previous key, or one with the current key's ID", () => {
+    expect(problems({ ...base, VAPID_KEY_ID: "v2", VAPID_PREVIOUS_KEY_ID: "v1" }).join()).toContain(
+      "VAPID_PREVIOUS_PRIVATE_KEY",
+    );
+    expect(problems({ ...base, VAPID_KEY_ID: "v1", ...rotating }).join()).toContain("VAPID_PREVIOUS_KEY_ID");
+  });
+});

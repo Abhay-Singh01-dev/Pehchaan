@@ -1,22 +1,24 @@
-// Shared verdict logic: turns the 7 check results into a verdict (spec B4, "Mapping the checks
-// to a verdict" and "INVALID reasons"). Used by SimVerifier and by the team's RealVerifier,
-// so both behave identically.
+// Shared verdict helpers for the UI, and THE GREEN GUARD (frontend spec B9 #1: "no green without all 7 checks").
+// The 7 checks themselves, the late policy and the reason priority are the security core's
+// (@pehchaan/crypto/verifier); services/verifier.ts turns its result into a VerdictResult.
 //
-// Safety rule B9 #1 — "No green without all 7 checks" — is enforced twice:
-//   1. decideVerdict() only returns VERIFIED when all 7 pass and the decision is ME;
-//   2. only results created by finalizeVerdict() may be stored as VERIFIED
-//      (assertMayPersist), so no screen or other code path can fabricate a green.
-import type { CheckKey, CheckResult, Decision, InvalidReason, Verdict, VerdictResult } from "./types";
+// The green guard, enforced twice:
+//   1. the verifier only returns VERIFIED when all 7 pass and the decision is ME;
+//   2. only results created by finalizeVerdict() may be stored as VERIFIED (assertMayPersist), so no screen
+//      or other code path can fabricate a green.
+import type { CheckKey, CheckResult, VerdictResult } from "./types";
 
 export const CHECK_ORDER: CheckKey[] = ["fresh", "key", "exact", "address", "unlocked", "signature", "unused"];
 
-/** Why a check failed (mapped to plain language by the UI). */
+/** Why a check failed (mapped to plain language by the UI: checks.fail.*). */
 export type CheckFailDetail =
   | "no_pending"
   | "nonce_mismatch"
   | "expired"
+  | "late"
   | "unknown_key"
   | "mismatch"
+  | "sealed_changed"
   | "wrong_origin"
   | "not_verified"
   | "bad"
@@ -25,43 +27,18 @@ export type CheckFailDetail =
 export function makeCheck(
   n: CheckResult["n"],
   passed: boolean,
-  opts: { detail?: CheckFailDetail; params?: Record<string, string | number> } = {},
+  opts: { detail?: CheckFailDetail; params?: Record<string, string | number>; skipped?: boolean } = {},
 ): CheckResult {
   const c: CheckResult = { n, key: CHECK_ORDER[n - 1]!, passed };
-  if (!passed && opts.detail) c.detail = opts.detail;
+  if (opts.detail && (!passed || opts.detail === "late")) c.detail = opts.detail;
   if (opts.params) c.params = opts.params;
+  if (opts.skipped) c.skipped = true;
   return c;
 }
 
 export function failedChecks(checks: CheckResult[]): number[] {
-  return checks.filter((c) => !c.passed).map((c) => c.n);
+  return checks.filter((c) => !c.passed && !c.skipped).map((c) => c.n);
 }
-
-/**
- * Picks the INVALID reason when checks fail. When several fail, the most specific cause wins:
- * a foreign key (forgery) first, then reuse/expiry, then a changed answer, and so on.
- */
-export function invalidReasonFor(checks: CheckResult[], expired: boolean): InvalidReason {
-  const failed = (n: number) => checks.find((c) => c.n === n)?.passed === false;
-  if (failed(2)) return "wrong_key";
-  if (failed(1) || failed(7)) return expired ? "expired" : "reused";
-  if (failed(3)) return "changed";
-  if (failed(4)) return "wrong_app";
-  if (failed(5)) return "not_unlocked";
-  return "bad_signature";
-}
-
-export function decideVerdict(
-  checks: CheckResult[],
-  decision: Decision,
-  expired: boolean,
-): { verdict: Verdict; invalidReason?: InvalidReason } {
-  const allPassed = checks.length === 7 && checks.every((c) => c.passed);
-  if (!allPassed) return { verdict: "INVALID", invalidReason: invalidReasonFor(checks, expired) };
-  return { verdict: decision === "ME" ? "VERIFIED" : "DENIED" };
-}
-
-// ─── The green guard ────────────────────────────────────────────────────────────
 
 const issued = new WeakSet<VerdictResult>();
 
@@ -72,7 +49,7 @@ export function finalizeVerdict(result: VerdictResult): VerdictResult {
 }
 
 export function isGreenAllowed(result: VerdictResult): boolean {
-  return result.checks.length === 7 && result.checks.every((c) => c.passed);
+  return result.checks.length === 7 && result.checks.every((c) => c.passed && !c.skipped);
 }
 
 /** Throws if someone tries to store a VERIFIED result that the verifier didn't produce. */

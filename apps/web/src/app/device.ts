@@ -1,9 +1,9 @@
-// Which "device" this browser tab is (spec B3, item 2).
+// Which "device" this browser tab is (frontend spec B3, item 2).
 //
-// In simulation mode, `?device=<name>` makes the tab its own phone: its own IndexedDB
-// database (`pehchaan-<name>`) and its own device id (`sim-<name>`, stable so the seeded
-// tabs can reach each other). The name sticks to the tab for the session, so navigating
-// or reloading keeps it. Without the parameter the tab is `pehchaan-default`.
+// With the simulated relay, `?device=<name>` makes the tab its own phone: its own IndexedDB database
+// (`pehchaan-<name>`) and so its own identity (the seeded names maa, arjun and priya get fixed keys, so the tabs can
+// reach each other). The name sticks to the tab for the session, so navigating or reloading keeps it. Without the
+// parameter, and always with the real relay, the tab is `pehchaan-default`.
 import { flags } from "./flags";
 
 const SESSION_KEY = "pehchaan:device";
@@ -12,8 +12,6 @@ export interface DeviceContext {
   /** e.g. "maa", "arjun"; null for the default device. */
   simName: string | null;
   dbName: string;
-  /** Known up front for named simulation devices; otherwise generated and stored in the DB. */
-  fixedDeviceId: string | null;
 }
 
 function sanitize(name: string): string | null {
@@ -25,8 +23,8 @@ function sanitize(name: string): string | null {
 }
 
 function resolve(): DeviceContext {
-  if (typeof window === "undefined" || !flags.SIMULATION) {
-    return { simName: null, dbName: "pehchaan-default", fixedDeviceId: null };
+  if (typeof window === "undefined" || !flags.SIM_RELAY) {
+    return { simName: null, dbName: "pehchaan-default" };
   }
   let name: string | null = null;
   try {
@@ -41,8 +39,8 @@ function resolve(): DeviceContext {
   } catch {
     // sessionStorage can be unavailable (private mode quirks); fall back to the URL only.
   }
-  if (!name || name === "default") return { simName: null, dbName: "pehchaan-default", fixedDeviceId: null };
-  return { simName: name, dbName: `pehchaan-${name}`, fixedDeviceId: `sim-${name}` };
+  if (!name || name === "default") return { simName: null, dbName: "pehchaan-default" };
+  return { simName: name, dbName: `pehchaan-${name}` };
 }
 
 export const device: DeviceContext = resolve();

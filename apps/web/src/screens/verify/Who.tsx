@@ -4,6 +4,7 @@
 //   - "Someone else" → E5 Can't verify (no network call)
 //   - "Police, bank or government" → D4
 //   - offline: an amber banner; tiles stay tappable (the flow ends in E3 "offline")
+//   - FC-17: a member whose phone the relay can't reach now gets a "may not get this" hint (still tappable)
 import { useMemo, type ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router";
 import * as m from "motion/react-m";
@@ -16,6 +17,7 @@ import { TopBar } from "@/components/screen/TopBar";
 import { useFamily } from "@/store/family";
 import { useConnection, useReachable, useReduced } from "@/app/session";
 import { recordUnknownPerson } from "@/app/verification";
+import { usePresence } from "@/app/presence";
 import { riseIn } from "@/design/motion";
 
 function WideTile({
@@ -67,6 +69,7 @@ export function Who() {
         .sort((a, b) => (b.lastCheckedAt ?? 0) - (a.lastCheckedAt ?? 0) || a.addedAt - b.addedAt),
     [family],
   );
+  const presence = usePresence(members.map((mem) => mem.deviceId));
 
   return (
     <>
@@ -106,6 +109,7 @@ export function Who() {
                 member={mem}
                 index={i + 1}
                 reachable={reachable.includes(mem.deviceId)}
+                hint={presence?.[mem.deviceId] === "offline" ? t("verify.mayNotGet", { name: mem.label }) : undefined}
                 onClick={() => navigate("/verify/what", { state: { memberId: mem.id, amountInr } })}
               />
             ))}

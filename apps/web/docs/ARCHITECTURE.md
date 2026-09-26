@@ -18,9 +18,10 @@ screens/  ──►  app/ controllers (verification.ts, answering.ts) ──► 
 
 ## Devices in simulation (spec B3 #1–2)
 
-`app/device.ts` reads `?device=<name>` once per tab (kept in `sessionStorage`): the tab uses DB
-`pehchaan-<name>` and device id `sim-<name>`. Seeds (`store/seed.ts`) create Maa, Arjun and Priya
-with matching device ids and keys, so tabs can verify each other immediately.
+With the simulated relay, `app/device.ts` reads `?device=<name>` once per tab (kept in `sessionStorage`): the tab
+uses DB `pehchaan-<name>`, and so its own identity. Device IDs always derive from the device's signing key
+(backend spec 5.2). Seeds (`store/seed.ts`, `store/seedKeys.ts`) give Maa, Arjun, Priya and Ramesh fixed test
+keys, so their IDs, cards and safety words match across tabs and they can verify each other immediately.
 
 ## The simulated relay (`services/sim/SimRelay.ts`, `sim/bus.ts`)
 

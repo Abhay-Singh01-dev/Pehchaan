@@ -27,6 +27,34 @@ export async function signAuth(priv: CryptoKey, msg: Uint8Array): Promise<string
   return b64url(new Uint8Array(sig)); // WebCrypto ECDSA output is raw r‖s, 64 bytes
 }
 
+/** The service worker's signed inbox fetch (11.4): purpose, relay host, device, message and time are all
+ *  signed, so a captured request can't be sent to another relay, for another message, or much later. */
+export function fetchMessage(relayHost: string, deviceId: string, msgId: string, ts: number): Uint8Array<ArrayBuffer> {
+  return utf8(`pehchaan-fetch-v1\n${relayHost}\n${deviceId}\n${msgId}\n${ts}`);
+}
+
+/** The service worker's signed re-subscription after `pushsubscriptionchange` (11.2), in the same shape. */
+export function resubscribeMessage(
+  relayHost: string,
+  deviceId: string,
+  endpoint: string,
+  ts: number,
+): Uint8Array<ArrayBuffer> {
+  return utf8(`pehchaan-resubscribe-v1\n${relayHost}\n${deviceId}\n${endpoint}\n${ts}`);
+}
+
+/** Relay side, for a signed HTTP request: the device's stored public key signed this exact message. The
+ *  caller checks the time window and that the device may act (not retired or blocked). */
+export async function verifyDeviceRequest(pubRaw: Uint8Array, msg: Uint8Array, sig: string): Promise<boolean> {
+  try {
+    if (!isRawP256(pubRaw)) return false; // 65 bytes, 0x04 prefix
+    const key = await crypto.subtle.importKey("raw", pubRaw as Uint8Array<ArrayBuffer>, ECDSA_P256, false, ["verify"]);
+    return await crypto.subtle.verify(ES256, key, b64urlDecode(sig), msg as Uint8Array<ArrayBuffer>);
+  } catch {
+    return false; // undecodable signature, or a key WebCrypto rejects (not on the curve)
+  }
+}
+
 /** Relay side: check that the device owns the key its ID was derived from, and signed this exact login. */
 export async function verifyAuth(
   b: { deviceId: string; devicePub: string; sig: string },

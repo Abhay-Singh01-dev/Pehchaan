@@ -4,10 +4,20 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import * as m from "motion/react-m";
 import { ArrowsClockwise, Broom, DownloadSimple, Ghost, Key, Skull, Swap } from "@phosphor-icons/react";
-import { loadLab } from "@/services";
-import type { AttackKind, InvalidReason, LabService, LabStatus, PeerInfo, RelayEvent } from "@/services/types";
+import { loadLab, services } from "@/services";
+import { isRelayError } from "@/services/errors";
+import type {
+  AttackKind,
+  ConnectionState,
+  InvalidReason,
+  LabService,
+  LabStatus,
+  PeerInfo,
+  RelayEvent,
+} from "@/services/types";
 import { Button } from "@/components/Button";
-import { Switch } from "@/components/controls";
+import { Switch, TextField } from "@/components/controls";
+import { flags } from "@/app/flags";
 import { ConnectionPill } from "@/components/ConnectionPill";
 import { RollingText } from "@/components/Rolling";
 import { VerdictChip, Chip } from "@/components/VerdictChip";
@@ -36,6 +46,13 @@ export function Lab() {
   rolesRef.current = { askerId, targetId };
   const manualRolesRef = useRef(false);
   const lastAttackRef = useRef<LabStatus["lastAttack"]>(null);
+  // The real relay's Lab (14.1): the Lab password first; the forger may copy the target's real key ID (14.3).
+  const [password, setPassword] = useState("");
+  const [joining, setJoining] = useState(false);
+  const [joinError, setJoinError] = useState<string | null>(null);
+  const [copyCredId, setCopyCredId] = useState(false);
+  const [relayState, setRelayState] = useState<ConnectionState>("reconnecting");
+  useEffect(() => (flags.SIM_RELAY ? undefined : services.relay.onState(setRelayState)), []);
 
   // Start the lab (own channel) once.
   useEffect(() => {
@@ -166,6 +183,29 @@ export function Lab() {
   );
 
   const la = status?.lastAttack ?? null;
+  const locked = Boolean(lab?.needsPassword && !status?.joined);
+  const join = async () => {
+    if (!lab?.join) return;
+    setJoining(true);
+    setJoinError(null);
+    try {
+      await lab.join(password);
+      setPassword("");
+    } catch (e) {
+      const reason = isRelayError(e) ? e.reason : undefined;
+      setJoinError(
+        reason === "lab_denied"
+          ? t("lab.join.wrong")
+          : reason === "rate_limited"
+            ? t("lab.join.limited")
+            : reason === "lab_disabled"
+              ? t("lab.join.off")
+              : t("conn.offline"),
+      );
+    } finally {
+      setJoining(false);
+    }
+  };
   const exportLog = async () => {
     if (!lab) return;
     const log = await lab.attackLog();
@@ -184,7 +224,8 @@ export function Lab() {
     <div className="frame-bg min-h-app">
       <LaptopHeader title={t("lab.title")} tag={t("lab.tag")} danger={status?.attackerMode}>
         <span className="flex items-center gap-2 text-caption text-muted">
-          {t("lab.relayStatus")} <ConnectionPill state={lab ? "connected" : "reconnecting"} />
+          {t("lab.relayStatus")}{" "}
+          <ConnectionPill state={flags.SIM_RELAY ? (lab ? "connected" : "reconnecting") : relayState} />
         </span>
         <label className="flex items-center gap-3 rounded-full bg-surface-2 py-1.5 pl-4 pr-1.5">
           <span className={cn("text-body-sm font-semibold", status?.attackerMode ? "text-chip-no" : "text-ink")}>
@@ -201,6 +242,38 @@ export function Lab() {
       <LaptopNarrowNote text={t("lab.wide")} />
 
       <main className="mx-auto flex max-w-[1280px] flex-col gap-6 px-6 py-6 lg:px-8">
+        {locked && (
+          <section className="card max-w-[560px] p-6" aria-labelledby="lab-join">
+            <h2 id="lab-join" className="font-display text-h2 font-semibold text-ink">
+              {t("lab.join.title")}
+            </h2>
+            <p className="mt-2 text-body-sm text-ink-2">{t("lab.join.body")}</p>
+            <div className="mt-4 flex flex-col gap-3">
+              <TextField
+                label={t("lab.join.password")}
+                type="password"
+                autoComplete="off"
+                value={password}
+                onChange={setPassword}
+                error={joinError}
+                onEnter={() => password && void join()}
+              />
+              <Button loading={joining} disabled={!password} onClick={join}>
+                {t("lab.join.cta")}
+              </Button>
+            </div>
+          </section>
+        )}
+        {!locked && lab?.needsPassword && peers.length === 0 && (
+          <p className="card p-4 text-body-sm text-ink-2" role="status">
+            {t("lab.noOptIns")}
+          </p>
+        )}
+        {status?.notice === "held_timeout" && (
+          <p className="text-body-sm font-medium text-ink-2" role="status">
+            {t("lab.heldTimeout")}
+          </p>
+        )}
         {status?.attackerMode && (
           <m.p
             initial={{ opacity: 0, y: -6 }}
@@ -239,7 +312,7 @@ export function Lab() {
           <div className="grid gap-4 md:grid-cols-3">
             {attacks.map((a) => {
               const armed = status?.armed === a.kind;
-              const disabled = a.kind === "replay" && !status?.canReplay;
+              const disabled = locked || (a.kind === "replay" && !status?.canReplay);
               return (
                 <m.div
                   key={a.kind}
@@ -274,14 +347,29 @@ export function Lab() {
                       {t("lab.armed", { name: askerLabel })}
                     </p>
                   )}
-                  {disabled && <p className="mt-3 text-caption text-muted">{t("lab.replay.disabled")}</p>}
+                  {!locked && a.kind === "replay" && !status?.canReplay && (
+                    <p className="mt-3 text-caption text-muted">{t("lab.replay.disabled")}</p>
+                  )}
+                  {a.kind === "forge" && !armed && (
+                    <label className="mt-3 flex items-center gap-2 text-caption text-ink-2">
+                      <input
+                        type="checkbox"
+                        checked={copyCredId}
+                        onChange={(e) => setCopyCredId(e.target.checked)}
+                        className="h-4 w-4 accent-[var(--brand)]"
+                      />
+                      {t("lab.forge.copy", { name: targetLabel })}
+                    </label>
+                  )}
                   <Button
                     className="mt-4"
                     full
                     size="md"
                     variant={armed ? "danger-outline" : "primary"}
                     disabled={disabled || !lab}
-                    onClick={() => (armed ? lab?.disarm() : lab?.arm(a.kind))}
+                    onClick={() =>
+                      armed ? lab?.disarm() : lab?.arm(a.kind, a.kind === "forge" ? { copyCredId } : undefined)
+                    }
                   >
                     {armed ? t("lab.disarm") : t("lab.arm")}
                   </Button>

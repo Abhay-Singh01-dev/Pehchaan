@@ -16,7 +16,17 @@ export function checkLabel(t: (k: string, o?: Record<string, unknown>) => string
   return t(`checks.${c.key}`, { n: c.params?.n ?? 0, name: c.params?.name ?? name });
 }
 
-function Mark({ passed, delay, play }: { passed: boolean; delay: number; play: boolean }) {
+function Mark({ passed, skipped, delay, play }: { passed: boolean; skipped?: boolean; delay: number; play: boolean }) {
+  // Not checked (an unreadable seal, backend spec 9.4): a grey dash, neither a pass nor a failure.
+  if (skipped) {
+    return (
+      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-surface-2" aria-hidden>
+        <svg viewBox="0 0 24 24" width="18" height="18">
+          <path d="M7 12 H17" fill="none" stroke="var(--muted)" strokeWidth={2.8} strokeLinecap="round" />
+        </svg>
+      </span>
+    );
+  }
   const color = passed ? "var(--chip-ok)" : "var(--chip-no)";
   const draw = (d = 0) =>
     play
@@ -92,27 +102,41 @@ export function ChecksList({
             key={c.n}
             className={cn(
               "flex items-start gap-3 rounded-[14px] px-3 py-2.5",
-              !c.passed && "bg-[color-mix(in_oklab,var(--no)_9%,transparent)]",
+              !c.passed && !c.skipped && "bg-[color-mix(in_oklab,var(--no)_9%,transparent)]",
             )}
             initial={play ? { opacity: 0, y: 6 } : false}
-            animate={play && !c.passed ? { opacity: 1, y: 0, x: [0, -4, 4, -2, 0] } : { opacity: 1, y: 0 }}
+            animate={
+              play && !c.passed && !c.skipped ? { opacity: 1, y: 0, x: [0, -4, 4, -2, 0] } : { opacity: 1, y: 0 }
+            }
             transition={{
               opacity: { duration: 0.2, delay: d },
               y: { duration: 0.24, delay: d, ease: ease.out },
               x: { duration: 0.28, delay: d + 0.22 },
             }}
           >
-            <Mark passed={c.passed} delay={d + 0.05} play={play} />
+            <Mark passed={c.passed} skipped={c.skipped} delay={d + 0.05} play={play} />
             <div className="min-w-0 flex-1 pt-1">
-              <p className={cn("text-body-sm font-medium", c.passed ? "text-ink" : "text-chip-no")}>
+              <p
+                className={cn(
+                  "text-body-sm font-medium",
+                  c.skipped ? "text-muted" : c.passed ? "text-ink" : "text-chip-no",
+                )}
+              >
                 <span className="mr-1.5 font-mono text-caption text-muted">{c.n}</span>
                 {checkLabel(t, c, name)}
               </p>
-              {!c.passed && c.detail && (
-                <p className="mt-0.5 text-caption text-ink-2">{t(`checks.fail.${c.detail}`, { name })}</p>
+              {c.skipped ? (
+                <p className="mt-0.5 text-caption text-muted">{t("checks.skipped")}</p>
+              ) : (
+                c.detail &&
+                (!c.passed || c.detail === "late") && (
+                  <p className="mt-0.5 text-caption text-ink-2">{t(`checks.fail.${c.detail}`, { name })}</p>
+                )
               )}
             </div>
-            <span className="sr-only">{c.passed ? t("checks.passed") : t("checks.failed")}</span>
+            <span className="sr-only">
+              {c.skipped ? t("checks.skipped") : c.passed ? t("checks.passed") : t("checks.failed")}
+            </span>
           </m.li>
         );
       })}
@@ -150,7 +174,7 @@ export function WhySheet({
   name: string;
 }) {
   const { t } = useTranslation();
-  const failed = result.checks.filter((c) => !c.passed).length;
+  const failed = result.checks.filter((c) => !c.passed && !c.skipped).length;
   const title = result.verdict === "INVALID" ? t("why.titleFail") : t("why.titleTrust");
   const seconds = (result.elapsedMs ?? 0) / 1000;
   return (

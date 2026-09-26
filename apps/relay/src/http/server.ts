@@ -1,9 +1,11 @@
 // The relay's few HTTP routes (spec 3.1, 18.9, 19): health, readiness, time and public config on PORT;
-// Prometheus metrics on METRICS_PORT (never published outside the private network).
+// the service worker's two signed routes (http/signed.ts); Prometheus metrics on METRICS_PORT (never published
+// outside the private network).
 // There are no admin HTTP endpoints: admin tasks run over SSH with dist/admin.js (16.4).
 import cors from "@fastify/cors";
 import Fastify, { type FastifyInstance } from "fastify";
 import type { Hub } from "../hub";
+import { registerSignedRoutes } from "./signed";
 
 export interface HttpOptions {
   /** Sockets currently open, including unauthenticated ones (for MAX_SOCKETS). */
@@ -40,6 +42,9 @@ export async function createHttpServer(hub: Hub, o: HttpOptions): Promise<Fastif
     vapidKeyId: hub.config.VAPID_KEY_ID,
     lab: hub.lab !== null,
   }));
+
+  // The service worker's signed routes (11.2, 11.4).
+  registerSignedRoutes(app, hub);
 
   return app;
 }

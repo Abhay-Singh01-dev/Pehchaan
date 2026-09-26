@@ -4,5 +4,5 @@
     "lib": ["ES2023", "DOM", "DOM.Iterable"],
     "types": ["node"]
   },
-  "include": ["e2e", "ops", "security", "chaos"]
+  "include": ["e2e", "unit", "ops", "security", "chaos", "../infra/scripts"]
 }

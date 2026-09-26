@@ -2,12 +2,16 @@
 // Device, connection (with ping), last verdict, tools, and — in simulation mode only — the
 // Simulation panel (auto-answer, forced connection state, key-creation outcome, example family,
 // "Open as Maa / Arjun").
+// Backend spec FC-20: relay environment and gateway, round trip, clock offset, push, storage and E2E state, the
+// build, raw presence states, and the Security Lab opt-in. "Reset used request numbers" only weakens replay
+// protection, so it is hidden in production (10.9).
 import { useEffect, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router";
 import * as m from "motion/react-m";
 import {
   ArrowSquareOut,
   ArrowsClockwise,
+  BellRinging,
   Broom,
   Copy,
   Flask,
@@ -29,8 +33,15 @@ import { TopBar } from "@/components/screen/TopBar";
 import { useProfile } from "@/store/profile";
 import { useLastResult } from "@/store/requests";
 import { clearRequestsAndHistory } from "@/store/maintenance";
-import { loadExampleFamily } from "@/store/seed";
+import { useFamily } from "@/store/family";
 import { APP_VERSION, flags } from "@/app/flags";
+import { appConfig } from "@/app/config";
+import { usePresence } from "@/app/presence";
+import { useAlertCheck } from "@/app/push";
+import { AlertCheckStatus } from "@/components/AlertCheckStatus";
+import { storageState, type StorageState } from "@/services/identity";
+import { LabOptIn } from "./LabOptIn";
+import { mayResetUsedNonces } from "./rules";
 import { device } from "@/app/device";
 import { useSession } from "@/app/session";
 import { toast } from "@/app/ui";
@@ -102,7 +113,10 @@ export function Diagnostics() {
   const navigate = useNavigate();
   const profile = useProfile();
   const last = useLastResult();
-  const { deviceId, connection, reachable, peers } = useSession();
+  const { deviceId, connection, reachable, peers, relayInfo } = useSession();
+  const family = useFamily();
+  const presence = usePresence((family ?? []).map((f) => f.deviceId));
+  const [storage, setStorage] = useState<StorageState | null>(null);
   const [rtt, setRtt] = useState<number | null>(null);
   const [pinging, setPinging] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
@@ -110,10 +124,12 @@ export function Diagnostics() {
   const [outcome, setOutcome] = useState<KeyOutcome | null>(null);
   const [forced, setForced] = useState<ConnectionState | null>(simControls?.forcedConnection() ?? null);
   const [, tick] = useState(0);
+  const alertCheck = useAlertCheck();
 
   useEffect(() => {
     void simControls?.getAutoAnswer().then(setAuto);
     void simControls?.getKeyOutcome().then(setOutcome);
+    void storageState().then(setStorage);
     const id = window.setInterval(() => tick((n) => n + 1), 2000);
     return () => window.clearInterval(id);
   }, []);
@@ -130,7 +146,17 @@ export function Diagnostics() {
         profile: profile
           ? { name: profile.name, role: profile.role, key: Boolean(profile.keyId), lang: profile.lang }
           : null,
-        connection: { state: connection, relay: services.relay.address(), rttMs: rtt, lastMessageAt: lastMsg },
+        build: appConfig.build,
+        env: appConfig.env,
+        connection: {
+          state: connection,
+          relay: services.relay.address(),
+          rttMs: rtt,
+          clockOffsetMs: services.relay.clockOffsetMs(),
+          lastMessageAt: lastMsg,
+          session: relayInfo,
+        },
+        storage,
         reachable,
         lastVerdict: last?.result
           ? { verdict: last.result.verdict, reason: last.result.invalidReason ?? last.result.noResponseReason }
@@ -173,6 +199,8 @@ export function Diagnostics() {
               value={profile?.keyId ? `${t("diag.keyReady")} · ${profile.keyId.slice(0, 14)}…` : t("diag.keyNone")}
             />
             <Row label={t("diag.version")} value={APP_VERSION} mono />
+            <Row label={t("diag.build")} value={appConfig.build} mono />
+            <Row label={t("diag.storage")} value={storage ? t(`diag.storageState.${storage}`) : "—"} />
             <Row
               label={t("diag.flags")}
               mono
@@ -188,6 +216,21 @@ export function Diagnostics() {
           <div className="card divide-y divide-line">
             <Row label={t("diag.state")} value={<ConnectionPill state={connection} />} />
             <Row label={t("diag.relay")} value={services.relay.address()} />
+            <Row label={t("diag.env")} value={relayInfo?.env ?? "—"} mono />
+            <Row label={t("diag.gateway")} value={relayInfo?.gatewayId ?? "—"} mono />
+            <Row
+              label={t("diag.clockOffset")}
+              value={`${services.relay.clockOffsetMs() >= 0 ? "+" : ""}${Math.round(services.relay.clockOffsetMs())} ms`}
+              mono
+            />
+            <Row
+              label={t("diag.push")}
+              value={relayInfo?.pushStatus ? t(`diag.pushState.${relayInfo.pushStatus}`) : "—"}
+            />
+            <Row
+              label={t("diag.e2e")}
+              value={relayInfo?.e2e ? (relayInfo.lab?.optedIn ? t("diag.e2eLab") : t("diag.e2eOn")) : t("diag.e2eSim")}
+            />
             <Row
               label={t("diag.rtt")}
               value={rtt !== null ? `${rtt} ms` : "—"}
@@ -221,8 +264,21 @@ export function Diagnostics() {
               label={t("diag.reachable")}
               value={reachable.length ? reachable.map(peerName).join(", ") : t("diag.none")}
             />
+            {(family ?? []).map((f) => (
+              <Row
+                key={f.id}
+                label={f.label}
+                value={presence?.[f.deviceId] ? t(`diag.presence.${presence[f.deviceId]}`) : "—"}
+              />
+            ))}
           </div>
         </Section>
+
+        {flags.ENABLE_LAB && !flags.SIM_RELAY && (
+          <Section title={t("diag.lab.title")}>
+            <LabOptIn />
+          </Section>
+        )}
 
         <Section title={t("diag.lastVerdict")}>
           {last?.result ? (
@@ -261,17 +317,19 @@ export function Diagnostics() {
                 toast(t("diag.cleared"), { tone: "success" });
               }}
             />
-            <Button
-              full
-              variant="secondary"
-              icon={<ShieldWarning size={20} />}
-              onClick={async () => {
-                await services.verifier.resetUsedNonces();
-                toast(t("diag.noncesReset"), { tone: "success" });
-              }}
-            >
-              {t("diag.resetNonces")}
-            </Button>
+            {mayResetUsedNonces(appConfig.env) && (
+              <Button
+                full
+                variant="secondary"
+                icon={<ShieldWarning size={20} />}
+                onClick={async () => {
+                  await services.verifier.resetUsedNonces();
+                  toast(t("diag.noncesReset"), { tone: "success" });
+                }}
+              >
+                {t("diag.resetNonces")}
+              </Button>
+            )}
             <Button
               full
               variant="secondary"
@@ -280,6 +338,21 @@ export function Diagnostics() {
             >
               {t("diag.reconnect")}
             </Button>
+            {/* 11.8: the relay pushes to this phone after 10 s (time to lock the screen); arrival time shown. */}
+            {!flags.SIM_RELAY && (
+              <div>
+                <Button
+                  full
+                  variant="secondary"
+                  icon={<BellRinging size={20} />}
+                  loading={alertCheck.check.status === "sending"}
+                  onClick={() => void alertCheck.send()}
+                >
+                  {t("diag.sendTestAlert")}
+                </Button>
+                <AlertCheckStatus check={alertCheck.check} />
+              </div>
+            )}
             <Button
               full
               variant="secondary"
@@ -358,6 +431,8 @@ export function Diagnostics() {
                 icon={<UsersThree size={20} />}
                 onClick={async () => {
                   if (!deviceId) return;
+                  // Seed data (and its fixed test keys) loads only here, never in a normal session.
+                  const { loadExampleFamily } = await import("@/store/seed");
                   const n = await loadExampleFamily(deviceId);
                   toast(t("diag.familyLoaded", { count: n }), { tone: "success" });
                 }}

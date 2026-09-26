@@ -1,4 +1,6 @@
 // C6 · Member details (spec B12 C6) and C7 · Remove (in-page InlineConfirm).
+// Backend spec 6.4, FC-19: Remove also blocks that device on the relay (contact.revoke), and by default resets my
+// code, so someone holding my old card can't reconnect from a new phone.
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import * as m from "motion/react-m";
@@ -15,6 +17,8 @@ import { VerdictChip } from "@/components/VerdictChip";
 import { PageBody, Section } from "@/components/screen/Page";
 import { TopBar } from "@/components/screen/TopBar";
 import { removeMember, updateMember, useMember } from "@/store/family";
+import { services } from "@/services";
+import { queueContactOp } from "@/app/contacts";
 import { useMemberHistory } from "@/store/history";
 import { useG } from "@/app/i18n";
 import { toast } from "@/app/ui";
@@ -36,6 +40,7 @@ export function MemberDetail() {
   const [editing, setEditing] = useState<"rename" | "relation" | null>(null);
   const [draftLabel, setDraftLabel] = useState("");
   const [confirmRemove, setConfirmRemove] = useState(false);
+  const [resetCode, setResetCode] = useState(true);
 
   if (member === undefined) return <PageSkeleton />;
   if (member === null) {
@@ -216,13 +221,26 @@ export function MemberDetail() {
             open={confirmRemove}
             danger
             message={t("member.removeConfirm", { label: member.label })}
+            detail={
+              <label className="mt-2 flex cursor-pointer items-start gap-3 text-left">
+                <input
+                  type="checkbox"
+                  checked={resetCode}
+                  onChange={(e) => setResetCode(e.target.checked)}
+                  className="mt-0.5 h-5 w-5 shrink-0 accent-[var(--brand)]"
+                />
+                <span>{t("member.resetCodeToo")}</span>
+              </label>
+            }
             confirmLabel={t("common.remove")}
             cancelLabel={t("common.cancel")}
             onCancel={() => setConfirmRemove(false)}
             onConfirm={async () => {
-              const label = member.label;
+              const { label, deviceId } = member;
               navigate("/family", { replace: true });
               await removeMember(member.id);
+              await queueContactOp("revoke", deviceId);
+              if (resetCode) await services.relay.rotateGrant().catch(() => undefined);
               toast(t("member.removed", { label }), { tone: "success" });
             }}
           />

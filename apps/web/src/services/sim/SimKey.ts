@@ -1,35 +1,31 @@
-// SimKey (spec B3): behaves like the real passkey-backed key, including every failure.
-//   - createKey waits 1.2 s (as if the fingerprint sheet were open), then returns a random
-//     keyId/publicKey and four safety words from SHA-256 of the public key.
-//   - signAnswer opens the simulated unlock sheet (F2) and then signs request + decision.
-//   - Failure states for A6 are forced from Diagnostics → Simulation panel ("Key creation").
-import type { Decision, KeyOutcome, KeyService, Profile, SignedAnswer, VerifyRequest } from "../types";
+// SimKey (frontend spec B3; backend D-008): behaves like the real passkey, including every failure, but the
+// key is a software P-256 key behind the simulated unlock sheet (F2). Its answers are genuine WebAuthn-format
+// assertions, so the one real verifier checks them.
+//   - createKey waits 1.2 s (as if the fingerprint sheet were open), then makes a software credential.
+//   - signAnswer opens the simulated unlock sheet, then signs request + decision (the challenge of 10.2).
+//   - Failures for A6 are forced from Diagnostics → Simulation panel ("Key creation").
+import { challengeFor } from "@pehchaan/crypto/canonical";
+import { createSoftCredential, softAnswer } from "@pehchaan/crypto/soft-authenticator";
+import { appConfig } from "@/app/config";
+import type { PehchaanDB } from "@/store/db";
+import type { KeyOutcome, KeyService } from "../types";
 import { KeyError } from "../errors";
-import { randomBytes, randomId, toBase64Url } from "../crypto";
-import { safetyWordsFor } from "../words";
-import { makeSignedAnswer } from "./simSign";
 import { requestUnlock } from "./unlockBridge";
+import { deleteVaultCred, putVaultCred } from "./vault";
 import { sleep } from "./bus";
 
 export interface SimKeyDeps {
-  getProfile: () => Promise<Profile | null>;
+  db: PehchaanDB;
   getOutcome: () => Promise<KeyOutcome>;
   setOutcome: (o: KeyOutcome) => Promise<void>;
-}
-
-async function newKeyMaterial() {
-  const keyId = randomId("key", 16);
-  // Shaped like an uncompressed P-256 public key (65 bytes), base64url.
-  const publicKey = toBase64Url(randomBytes(65));
-  return { keyId, publicKey, safetyWords: await safetyWordsFor(publicKey) };
 }
 
 export function createSimKey(deps: SimKeyDeps): KeyService {
   return {
     async checkSupport() {
       const outcome = await deps.getOutcome();
-      // Support problems are one-shot: after showing the error once, the next attempt succeeds,
-      // as if the person had fixed their phone's settings.
+      // Support problems are one-shot: after showing the error once, the next attempt succeeds, as if the
+      // person had fixed their phone's settings.
       if (outcome === "no_screen_lock" || outcome === "no_passkeys") await deps.setOutcome("success");
       return {
         passkeys: outcome !== "no_passkeys",
@@ -37,31 +33,51 @@ export function createSimKey(deps: SimKeyDeps): KeyService {
       };
     },
 
-    async createKey() {
+    async createKey({ deviceId }) {
       const outcome = await deps.getOutcome();
       await sleep(1200);
       if (outcome === "cancelled") {
         await deps.setOutcome("success");
         throw new KeyError("cancelled");
       }
-      return newKeyMaterial();
+      const cred = await createSoftCredential();
+      await deps.db.simKey.put({
+        id: "me",
+        credId: cred.credId,
+        publicKey: cred.publicKey,
+        privateKey: cred.privateKey,
+      });
+      await putVaultCred({ credId: cred.credId, deviceId, publicKey: cred.publicKey, privateKey: cred.privateKey });
+      return { keyId: cred.credId, publicKey: cred.publicKey };
     },
 
-    async createPinKey() {
-      await sleep(700);
-      return newKeyMaterial();
+    async prepareAnswer(req) {
+      // Nothing to precompute for a software key, but keep the timing identical to the real one.
+      await Promise.all([challengeFor(req, "ME"), challengeFor(req, "NOT_ME")]);
     },
 
-    async signAnswer(req: VerifyRequest, decision: Decision): Promise<SignedAnswer> {
-      const profile = await deps.getProfile();
-      if (!profile?.keyId) throw new KeyError("no_key");
-      // Every answer, including NO, NOT ME, needs an unlock (spec B9 #4).
+    async signAnswer(req, decision) {
+      const key = await deps.db.simKey.get("me");
+      if (!key) throw new KeyError("no_key");
+      // Every answer, including NO, NOT ME, needs an unlock (frontend spec B9 #4).
       await requestUnlock(req, decision);
-      return makeSignedAnswer({ keyId: profile.keyId, req, decision, fromDeviceId: profile.deviceId });
+      return softAnswer({
+        req,
+        decision,
+        credId: key.credId,
+        privateKey: key.privateKey,
+        // Signed like a real passkey: this page's origin, the configured rpId.
+        rpId: appConfig.rpId,
+        origin: location.origin,
+      });
     },
 
     async deleteKey() {
-      // The simulated key lives only in the profile record, which the caller clears.
+      const key = await deps.db.simKey.get("me");
+      if (key) {
+        await deps.db.simKey.delete("me");
+        await deleteVaultCred(key.credId);
+      }
     },
   };
 }

@@ -9,7 +9,7 @@ import { AnimatePresence } from "motion/react";
 import * as m from "motion/react-m";
 import { useTranslation } from "react-i18next";
 import { CellSignalFull, DeviceMobile, ShieldCheck, ShieldSlash } from "@phosphor-icons/react";
-import type { PeerInfo, RelayEvent, SignedAnswer, VerifyRequest, Verdict, InvalidReason } from "@/services/types";
+import type { PeerInfo, RelayEvent, WireAnswer, VerifyRequest, Verdict, InvalidReason } from "@/services/types";
 import { ease } from "@/design/motion";
 import { formatINR } from "@/lib/format";
 import { cn } from "@/lib/cn";
@@ -26,7 +26,7 @@ export interface CapsuleSpec {
 const NODE_X = [0.11, 0.5, 0.89];
 
 function capsuleLabel(e: RelayEvent): string {
-  if (e.kind === "answer") return (e.payload as SignedAnswer).decision === "ME" ? "ME" : "NOT ME";
+  if (e.kind === "answer") return (e.payload as WireAnswer).decision === "ME" ? "ME" : "NOT ME";
   if (e.kind === "request") {
     const r = e.payload as VerifyRequest;
     return r.amountInr ? formatINR(r.amountInr) : "request";

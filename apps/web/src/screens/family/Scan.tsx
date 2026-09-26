@@ -15,7 +15,8 @@ import { CardError, type FamilyCard, type FamilyMember } from "@/services/types"
 import { Button } from "@/components/Button";
 import { Sheet } from "@/components/Sheet";
 import { TopBar } from "@/components/screen/TopBar";
-import { getMemberByDeviceId } from "@/store/family";
+import { listFamily } from "@/store/family";
+import { CardWarning, type CardBlock } from "@/components/CardWarning";
 import { toast } from "@/app/ui";
 import { useReduced } from "@/app/session";
 import { haptic } from "@/design/haptics";
@@ -42,32 +43,13 @@ export function Scan() {
   const [pasteText, setPasteText] = useState("");
   const [shake, setShake] = useState(0);
   const [already, setAlready] = useState<FamilyMember | null>(null);
+  const [block, setBlock] = useState<CardBlock | null>(null);
   const [snap, setSnap] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
+  const reading = useRef(false);
 
-  const accept = useCallback(
-    async (data: string, corners?: QrScanner.Point[]) => {
-      let card: FamilyCard;
-      try {
-        card = services.card.fromLink(data);
-      } catch (e) {
-        const now = Date.now();
-        if (lastBad.current && lastBad.current.data === data && now - lastBad.current.at < 3000) return false;
-        lastBad.current = { data, at: now };
-        haptic("error");
-        setShake((s) => s + 1);
-        const code = e instanceof CardError ? e.code : "not_pehchaan";
-        toast(code === "own_card" ? t("scan.own") : code === "corrupt" ? t("scan.corrupt") : t("scan.notPehchaan"), {
-          tone: "error",
-        });
-        return false;
-      }
-      const existing = await getMemberByDeviceId(card.deviceId);
-      if (existing) {
-        scannerRef.current?.stop();
-        setAlready(existing);
-        return true;
-      }
-      // Success: snap the brackets to the code, burst a check, then move on.
+  /** Success: snap the brackets to the code, burst a check, then move on to C5. */
+  const found = useCallback(
+    (card: FamilyCard, corners?: QrScanner.Point[]) => {
       scannerRef.current?.stop();
       haptic("success");
       const origin = centre();
@@ -94,7 +76,53 @@ export function Scan() {
       );
       return true;
     },
-    [navigate, reduced, t],
+    [navigate, reduced],
+  );
+
+  const accept = useCallback(
+    async (data: string, corners?: QrScanner.Point[]) => {
+      // The scanner reports ~10 times a second, and reading a card takes a moment (its safety words are
+      // derived with PBKDF2): one at a time.
+      if (reading.current) return false;
+      reading.current = true;
+      try {
+        let card: FamilyCard;
+        try {
+          card = await services.card.fromLink(data);
+        } catch (e) {
+          const now = Date.now();
+          if (lastBad.current && lastBad.current.data === data && now - lastBad.current.at < 3000) return false;
+          lastBad.current = { data, at: now };
+          haptic("error");
+          setShake((s) => s + 1);
+          const code = e instanceof CardError ? e.code : "not_pehchaan";
+          toast(
+            code === "own_card"
+              ? t("scan.own")
+              : code === "corrupt"
+                ? t("scan.corrupt")
+                : code === "old_version"
+                  ? t("join.oldVersion", { name: (e instanceof CardError && e.cardName) || t("join.them") })
+                  : code === "altered"
+                    ? t("cardGuard.alteredTitle")
+                    : t("scan.notPehchaan"),
+            { tone: "error" },
+          );
+          return false;
+        }
+        // The new-phone guard (6.5): already saved, altered, or pretending to be someone saved.
+        const guard = services.card.guard(card, await listFamily());
+        if (guard.kind === "new") return found(card, corners);
+        scannerRef.current?.stop();
+        haptic("error");
+        if (guard.kind === "already") setAlready(guard.member);
+        else setBlock(guard);
+        return true;
+      } finally {
+        reading.current = false;
+      }
+    },
+    [found, t],
   );
 
   useEffect(() => {
@@ -131,6 +159,17 @@ export function Scan() {
   }, [accept]);
 
   const cameraBlocked = phase === "denied" || phase === "nocamera";
+
+  /** Back to scanning after a notice. The camera may have gone (unplugged, permission revoked): then the paste
+   *  option is what's left, as on first open. */
+  const resumeScanning = () => {
+    const scanner = scannerRef.current;
+    if (!scanner) return;
+    scanner.start().then(
+      () => setPhase("scanning"),
+      () => setPhase("denied"),
+    );
+  };
 
   return (
     <div className="relative min-h-app bg-[#05070F] text-white">
@@ -269,7 +308,7 @@ export function Scan() {
                   size="md"
                   onClick={() => {
                     setAlready(null);
-                    void scannerRef.current?.start();
+                    resumeScanning();
                   }}
                 >
                   {t("confirm.scanAgain")}
@@ -331,6 +370,17 @@ export function Scan() {
           {t("scan.pasteCta")}
         </Button>
       </Sheet>
+
+      {block && (
+        <CardWarning
+          block={block}
+          onDontAdd={() => {
+            setBlock(null);
+            setPasteOpen(false);
+            resumeScanning();
+          }}
+        />
+      )}
     </div>
   );
 }

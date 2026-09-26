@@ -5,7 +5,7 @@
   "type": "module",
   "description": "The Pehchaan relay: authenticates devices, routes sealed envelopes, holds them for up to 60 s, sends Web Push, runs the Security Lab. It never decides who anyone is.",
   "scripts": {
-    "dev": "tsx watch --clear-screen=false src/main.ts",
+    "dev": "tsx watch --clear-screen=false --env-file=.env.development src/main.ts",
     "build": "node scripts/build.mjs",
     "start": "node dist/main.js",
     "lint": "eslint . --max-warnings 0 && prettier --check . --ignore-path ../../.prettierignore",

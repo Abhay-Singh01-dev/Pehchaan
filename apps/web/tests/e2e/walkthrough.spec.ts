@@ -125,7 +125,8 @@ test.describe("Part D walkthrough", () => {
     const guard = await ctx.newPage();
     await guard.setViewportSize({ width: 1366, height: 900 });
     await guard.goto("/guard?device=guard");
-    await expect(guard.getByRole("combobox")).toHaveValue("sim-maa", { timeout: 15_000 });
+    // Maa's phone is picked by default (device IDs come from each phone's key, so match it by name).
+    await expect(guard.getByRole("combobox").locator("option:checked")).toHaveText(/Sunita/, { timeout: 15_000 });
     await guard.getByRole("button", { name: /^Start$/ }).click();
     for (let i = 0; i < 2; i++) {
       await guard.waitForTimeout(2800);

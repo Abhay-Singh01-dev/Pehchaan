@@ -14,11 +14,13 @@ import { haptic } from "@/design/haptics";
 import { flags } from "./flags";
 import { connectRelay } from "./bootstrap";
 import { installVerificationController } from "./verification";
-import { receiveRequest, sweepExpiredIncoming } from "./answering";
+import { installAnsweringController, receiveRequest, sweepExpiredIncoming } from "./answering";
+import { installContactSync } from "./contacts";
 import { showBanner, toast, dismissToast } from "./ui";
 import { useSession } from "./session";
 import { isTakeoverScreen } from "./transitions";
-import { applyUpdate } from "./pwa";
+import { applyUpdate, forceUpdate } from "./pwa";
+import { onServiceWorkerMessage } from "./push";
 import { getIncoming } from "@/store/requests";
 
 export function GlobalListeners() {
@@ -33,6 +35,8 @@ export function GlobalListeners() {
   useEffect(() => {
     const off = connectRelay();
     installVerificationController();
+    installAnsweringController();
+    installContactSync();
     return off;
   }, []);
 
@@ -47,9 +51,10 @@ export function GlobalListeners() {
 
   // Incoming requests open F1 from anywhere (queued one at a time).
   useEffect(() => {
-    return services.relay.onRequest(async (req) => {
+    return services.relay.onRequest(async (incoming) => {
       const myId = useSession.getState().deviceId;
-      if (!myId || !(await receiveRequest(req, myId))) return;
+      if (!myId || !(await receiveRequest(incoming, myId))) return;
+      const req = incoming.req;
       const current = pathRef.current.match(/^\/request\/([^/]+)$/)?.[1];
       if (current) {
         const open = await getIncoming(current);
@@ -77,6 +82,17 @@ export function GlobalListeners() {
     });
   }, []);
 
+  // A notification tap while the app was already open: the service worker focuses it and names the screen (11.5).
+  useEffect(
+    () =>
+      onServiceWorkerMessage((m) => {
+        const url = m.type === "navigate" ? m.url : null;
+        // Only this app's own paths, as the service worker already checks.
+        if (typeof url === "string" && url.startsWith("/") && !url.startsWith("//")) navigate(url);
+      }),
+    [navigate],
+  );
+
   // Expire old incoming requests.
   useEffect(() => {
     void sweepExpiredIncoming();
@@ -95,6 +111,17 @@ export function GlobalListeners() {
     });
     return () => dismissToast(id);
   }, [updateReady, busy, t]);
+
+  // FC-23: this version is too old for the relay. Nothing works until it updates, so the prompt stays.
+  const updateRequired = useSession((s) => s.updateRequired);
+  useEffect(() => {
+    if (!updateRequired) return;
+    const id = toast(t("pwa.updateRequired"), {
+      duration: 0,
+      action: { label: t("pwa.updateNow"), onClick: () => void forceUpdate() },
+    });
+    return () => dismissToast(id);
+  }, [updateRequired, t]);
 
   return null;
 }

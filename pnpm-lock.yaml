@@ -35,9 +35,15 @@ importers:
       globals:
         specifier: 17.12.0
         version: 17.12.0
+      hash-wasm:
+        specifier: 4.12.0
+        version: 4.12.0
       prettier:
         specifier: 3.9.9
         version: 3.9.9
+      tsx:
+        specifier: 4.23.15
+        version: 4.23.15
       turbo:
         specifier: 2.11.4
         version: 2.11.4
@@ -233,6 +239,15 @@ importers:
       react-router:
         specifier: ^7.18.4
         version: 7.18.4(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      workbox-core:
+        specifier: 7.4.1
+        version: 7.4.1
+      workbox-precaching:
+        specifier: 7.4.1
+        version: 7.4.1
+      workbox-routing:
+        specifier: 7.4.1
+        version: 7.4.1
       zustand:
         specifier: ^5.0.15
         version: 5.0.15(@types/react@19.3.0)(react@19.3.0)(use-sync-external-store@1.7.0(react@19.3.0))
@@ -273,6 +288,9 @@ importers:
       fake-indexeddb:
         specifier: ^6.2.5
         version: 6.2.5
+      fast-check:
+        specifier: 4.10.2
+        version: 4.10.2
       opentype.js:
         specifier: ^2.0.0
         version: 2.0.0

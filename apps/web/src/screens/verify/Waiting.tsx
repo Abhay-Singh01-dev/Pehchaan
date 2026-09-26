@@ -3,6 +3,7 @@
 // avatar pulses each time it lands; the countdown ring sits behind them (amber in the last 10 s).
 // When the answer arrives the dot travels back once, faster, and the verdict reveals from my
 // avatar. Wake lock on. Cancel (and the back gesture) ask "Stop waiting?" in-page.
+// FC-12: a status line follows the relay's receipts (Sending → Sent → Delivered → Seen).
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useBlocker, useNavigate, useParams } from "react-router";
 import { AnimatePresence } from "motion/react";
@@ -177,7 +178,7 @@ export function Waiting() {
           </div>
         </div>
 
-        <WaitingText label={label} expiresAt={expiresAt} />
+        <WaitingText label={label} expiresAt={expiresAt} delivery={record.delivery} />
 
         <div className="flex-1" />
         <div className="pb-2" style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 20px)" }}>
@@ -205,7 +206,15 @@ export function Waiting() {
   );
 }
 
-function WaitingText({ label, expiresAt }: { label: string; expiresAt: number }) {
+function WaitingText({
+  label,
+  expiresAt,
+  delivery,
+}: {
+  label: string;
+  expiresAt: number;
+  delivery?: "sent" | "pushed" | "queued" | "delivered" | "seen";
+}) {
   const { t } = useTranslation();
   const reduced = useReduced();
   const seconds = useSecondsLeft(expiresAt);
@@ -217,6 +226,9 @@ function WaitingText({ label, expiresAt }: { label: string; expiresAt: number })
       </m.h1>
       <p className="mt-2 font-mono text-mono-lg font-semibold tabular-nums text-white/90" aria-live="off">
         0:{String(seconds).padStart(2, "0")}
+      </p>
+      <p className="mt-1 text-caption font-semibold uppercase tracking-[0.08em] text-white/70" aria-live="polite">
+        {t(`wait.status.${delivery ?? "sending"}`, { name: label })}
       </p>
       <m.div
         className="mt-6 flex items-start gap-3 rounded-[20px] bg-white/[0.09] p-4 text-left shadow-[inset_0_0_0_1px_rgba(255,255,255,0.14)]"

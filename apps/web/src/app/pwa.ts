@@ -47,3 +47,15 @@ export function applyUpdate() {
   if (updateSW) void updateSW(true);
   else window.location.reload();
 }
+
+/** FC-23: the relay refused this version (close 4426). Fetch the new service worker now, then reload into it. */
+export async function forceUpdate() {
+  try {
+    const reg = await navigator.serviceWorker?.getRegistration();
+    await reg?.update();
+  } catch {
+    // No service worker (dev, or unsupported): a plain reload fetches the new version.
+  }
+  if (useSession.getState().updateReady && updateSW) return void updateSW(true);
+  window.location.reload();
+}

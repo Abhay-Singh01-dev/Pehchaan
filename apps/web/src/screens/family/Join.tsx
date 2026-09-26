@@ -6,15 +6,19 @@
 //   3  "Saved. You can now check {name} anytime." → Verify {name} now / Go to Home
 // Creates a minimal checks-only profile (setupComplete) if none exists, stores the member with
 // addedBy "family_link", and never asks to create a key. Words don't match → nothing is saved.
-import { useEffect, useMemo, useState } from "react";
+// Backend spec 6.5: a link can only add a NEW person, never replace one; a card that impersonates a saved member
+// (same name or phone, different device) or alters one (same device, different keys) is blocked outright.
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { AnimatePresence } from "motion/react";
 import * as m from "motion/react-m";
 import { useTranslation } from "react-i18next";
 import { CheckCircle, LinkBreak, WarningOctagon } from "@phosphor-icons/react";
 import { services } from "@/services";
-import { safetyWordsFor } from "@/services/words";
-import { CardError, type FamilyCard, type FamilyMember, type Lang } from "@/services/types";
+import { ownSafetyWords } from "@/services/card";
+import { ensureIdentity, persistStorage } from "@/services/identity";
+import { CardError, type CardGuard, type FamilyCard, type FamilyMember, type Lang } from "@/services/types";
+import { CardWarning, isBlocked } from "@/components/CardWarning";
 import { Avatar } from "@/components/Avatar";
 import { Button } from "@/components/Button";
 import { Segmented, TextField } from "@/components/controls";
@@ -22,21 +26,25 @@ import { RoleBadge } from "@/components/Member";
 import { SafetyWords } from "@/components/SafetyWords";
 import { Seal } from "@/components/Seal";
 import { BottomActions, PageBody } from "@/components/screen/Page";
-import { addMember, getMemberByDeviceId } from "@/store/family";
+import { AlreadyInFamilyError, addMember, listFamily } from "@/store/family";
 import { DEFAULT_PREFS, getPrefs, saveProfile, setPrefs, useProfile } from "@/store/profile";
 import { setMeta } from "@/store/meta";
 import { useSession, useReduced } from "@/app/session";
+import { detectPlatform, isStandalone } from "@/app/pwa";
 import { haptic } from "@/design/haptics";
 import { dur, ease } from "@/design/motion";
 
-type Parsed = { card: FamilyCard } | { error: "corrupt" | "not_pehchaan" | "own_card" | "old_browser" };
+type ParseError = "corrupt" | "not_pehchaan" | "own_card" | "old_browser" | "old_version" | "altered";
+type Parsed = { card: FamilyCard } | { error: ParseError; cardName?: string };
 
-function parse(): Parsed {
+/** Decodes the link and derives the safety words (PBKDF2, so it takes a moment). */
+async function parse(): Promise<Parsed> {
   if (typeof indexedDB === "undefined" || !globalThis.crypto?.subtle) return { error: "old_browser" };
   try {
-    return { card: services.card.fromLink(window.location.href) };
+    return { card: await services.card.fromLink(window.location.href) };
   } catch (e) {
-    return { error: e instanceof CardError ? e.code : "corrupt" };
+    if (e instanceof CardError) return { error: e.code, ...(e.cardName ? { cardName: e.cardName } : {}) };
+    return { error: "corrupt" };
   }
 }
 
@@ -46,20 +54,33 @@ export function Join() {
   const reduced = useReduced();
   const profile = useProfile();
   const deviceId = useSession((s) => s.deviceId);
-  const parsed = useMemo(parse, []);
+  const [parsed, setParsed] = useState<Parsed | null>(null);
+  const [guard, setGuard] = useState<CardGuard | null>(null);
   const [step, setStep] = useState<1 | 2 | 3 | "nomatch">(1);
   const [dir, setDir] = useState(1);
   const [name, setName] = useState("");
   const [saved, setSaved] = useState<FamilyMember | null>(null);
-  const [existing, setExisting] = useState<FamilyMember | null | undefined>(undefined);
   const [busy, setBusy] = useState(false);
 
-  const card = "card" in parsed ? parsed.card : null;
+  const card = parsed && "card" in parsed ? parsed.card : null;
   const first = card?.name.split(/\s+/)[0] ?? "";
+  /** undefined while the guard runs; the saved member when this person is already in the family. */
+  const existing = guard === null ? undefined : guard.kind === "already" ? guard.member : null;
 
   useEffect(() => {
-    if (card) void getMemberByDeviceId(card.deviceId).then((m) => setExisting(m ?? null));
-  }, [card]);
+    let live = true;
+    void parse().then(async (p) => {
+      if (!live) return;
+      setParsed(p);
+      if ("card" in p) {
+        const g = services.card.guard(p.card, await listFamily());
+        if (live) setGuard(g);
+      }
+    });
+    return () => {
+      live = false;
+    };
+  }, []);
 
   const go = (s: typeof step) => {
     setDir(s === 1 ? -1 : 1);
@@ -69,6 +90,14 @@ export function Join() {
   const save = async () => {
     if (!card || !deviceId) return;
     setBusy(true);
+    // The family may have changed since the link opened: guard again, right before saving.
+    const latest = services.card.guard(card, await listFamily());
+    if (latest.kind !== "new") {
+      setGuard(latest);
+      setBusy(false);
+      if (latest.kind === "already") go(1);
+      return;
+    }
     if (!profile) {
       const prefs = await getPrefs();
       await saveProfile({
@@ -78,13 +107,25 @@ export function Join() {
         name: name.trim() || t("join.guest"),
         color: "slate",
         role: "checks_only",
-        safetyWords: await safetyWordsFor(`checks-only:${deviceId}`),
+        safetyWords: await ownSafetyWords({ role: "checks_only" }, await ensureIdentity()),
         createdAt: Date.now(),
         setupComplete: true,
       });
       await setMeta("installDismissed", true);
+      void persistStorage();
     }
-    const member = await addMember(card, { label: first, relation: "other", addedBy: "family_link" });
+    let member: FamilyMember;
+    try {
+      member = await addMember(card, { label: first, relation: "other", addedBy: "family_link" });
+    } catch (e) {
+      setBusy(false);
+      if (e instanceof AlreadyInFamilyError) {
+        setGuard({ kind: "already", member: e.member });
+        go(1);
+        return;
+      }
+      throw e;
+    }
     haptic("success");
     setSaved(member);
     setBusy(false);
@@ -93,8 +134,20 @@ export function Join() {
     go(3);
   };
 
+  if (!parsed) {
+    return (
+      <PageBody noTopBar className="flex min-h-app flex-col">
+        <div className="flex flex-1 flex-col items-center justify-center text-center" aria-live="polite">
+          <Seal size={72} />
+          <p className="mt-6 text-body font-medium text-ink-2">{t("join.reading")}</p>
+        </div>
+      </PageBody>
+    );
+  }
+
   if (!card) {
     const err = "error" in parsed ? parsed.error : "corrupt";
+    const cardName = "cardName" in parsed ? parsed.cardName : undefined;
     return (
       <PageBody noTopBar className="flex min-h-app flex-col">
         <div className="flex flex-1 flex-col items-center justify-center text-center">
@@ -108,7 +161,11 @@ export function Join() {
                 ? t("join.own")
                 : err === "not_pehchaan"
                   ? t("join.notPehchaan")
-                  : t("join.corrupt")}
+                  : err === "old_version"
+                    ? t("join.oldVersion", { name: cardName ?? t("join.them") })
+                    : err === "altered"
+                      ? t("cardGuard.alteredTitle")
+                      : t("join.corrupt")}
           </p>
         </div>
         <BottomActions>
@@ -184,6 +241,10 @@ export function Join() {
 
             {step === 2 && (
               <div>
+                <p className="mb-4 flex items-start gap-2 rounded-[14px] bg-surface-2 p-3 text-body-sm font-medium text-ink-2">
+                  <WarningOctagon size={20} weight="duotone" className="mt-0.5 shrink-0 text-chip-amber" aria-hidden />
+                  {t("join.onlyMet")}
+                </p>
                 <h1 className="font-display text-h1 font-semibold text-ink">{t("join.wordsAsk", { name: first })}</h1>
                 <SafetyWords words={card.safetyWords} size="lg" className="mt-6" delay={0.15} />
               </div>
@@ -207,6 +268,10 @@ export function Join() {
                 <h1 className="mt-6 font-display text-h1 font-semibold text-ink">
                   {t("join.saved", { name: saved.label })}
                 </h1>
+                {/* FC-10: iPhone alerts need the app on the Home Screen. */}
+                {detectPlatform() === "ios" && !isStandalone() && (
+                  <p className="card mt-6 p-4 text-left text-body-sm text-ink-2">{t("join.iosInstall")}</p>
+                )}
               </div>
             )}
           </m.section>
@@ -263,6 +328,8 @@ export function Join() {
           </>
         )}
       </BottomActions>
+
+      {guard && isBlocked(guard) && <CardWarning block={guard} onDontAdd={() => navigate("/", { replace: true })} />}
     </PageBody>
   );
 }

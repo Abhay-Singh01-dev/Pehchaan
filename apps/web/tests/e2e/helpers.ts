@@ -41,6 +41,8 @@ export async function answer(page: Page, decision: "yes" | "no") {
 export async function verdict(page: Page): Promise<string> {
   await page.waitForURL("**/verify/result/**");
   await page.bringToFront();
+  // The outgoing screen is still animating out for a moment: wait until the verdict's heading is the only one.
+  await expect(page.locator("h1")).toHaveCount(1);
   const h1 = page.locator("h1").first();
   await expect(h1).toBeVisible();
   return (await h1.textContent())?.trim() ?? "";

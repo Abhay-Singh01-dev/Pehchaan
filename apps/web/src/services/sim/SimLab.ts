@@ -1,13 +1,18 @@
-// SimLab (spec B3 item 7, B12 J1): plays an attacker who controls the relay.
+// SimLab (frontend spec B3 item 7, B12 J1): plays an attacker who controls the relay.
 //
-// It listens to the same BroadcastChannel and shows every message. In attacker mode it
-// announces itself, phones route their messages "up" to it, and it forwards each one on —
-// or, when an attack is armed, rewrites the next matching message:
-//   change  flips the decision of the next answer (NOT ME → ME) on the way
-//   replay  holds the next request back and returns the person's earlier genuine "Yes"
-//   forge   holds the next request and answers "Yes" with the attacker's own key
-// After Maa's phone verifies, it reports the verdict it showed; the Lab records the outcome
-// in an all-time attack log (IndexedDB) and counts false greens (which must stay 0).
+// It listens to the same BroadcastChannel and shows every message. In attacker mode it announces itself, phones
+// route their requests and answers "up" to it, and it forwards each one on, or, when an attack is armed,
+// rewrites the next matching message:
+//   change  flips the decision of the next answer (NOT ME → ME) on the way           → INVALID changed
+//   replay  holds the next request back and returns the person's earlier genuine "Yes" → INVALID reused
+//   forge   holds the next request and answers "Yes" with the attacker's own key       → INVALID wrong_key
+//           (or with the person's real credential ID copied: still INVALID, bad_signature)
+// After Maa's phone verifies, it reports the verdict it showed; the Lab records the outcome in an all-time attack
+// log (IndexedDB) and counts false greens, which must stay 0. Maa's phone runs the normal verifier: nothing here
+// can influence what it decides.
+import { createSoftCredential, softAnswer } from "@pehchaan/crypto/soft-authenticator";
+import { ulid } from "@pehchaan/protocol";
+import { appConfig } from "@/app/config";
 import type {
   AttackKind,
   LabAttackRecord,
@@ -15,65 +20,38 @@ import type {
   LabStatus,
   PeerInfo,
   RelayEvent,
-  SignedAnswer,
   Unsubscribe,
   VerifyRequest,
-  FamilyAlert,
-  GuardPrompt,
+  WireAnswer,
 } from "../types";
 import type { PehchaanDB } from "@/store/db";
-import { randomId } from "../crypto";
-import { openBus, type Bus, type Wire, type WireMsg } from "./bus";
-import { makeSignedAnswer } from "./simSign";
+import { summarize } from "../labSummary";
+import { openBus, type Bus, type MsgKind, type Wire, type WireMsg } from "./bus";
 
 type Listener<T> = (v: T) => void;
+type EventKind = RelayEvent["kind"];
 
-const inr = (n?: number) =>
-  n ? new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(n) : "";
-
-const REASON_EN: Record<string, string> = {
-  money: "Money",
-  otp: "OTP or code",
-  bank_details: "Bank or card details",
-  install_app: "Install an app",
-  nothing_yet: "Nothing yet",
+const EVENT_KIND: Partial<Record<MsgKind, EventKind>> = {
+  request: "request",
+  answer: "answer",
+  alert: "alert",
+  guard: "guard",
 };
-
-export function summarize(kind: RelayEvent["kind"], payload: unknown): string {
-  if (kind === "request") {
-    const r = payload as VerifyRequest;
-    const what = r.reason
-      ? `${REASON_EN[r.reason] ?? r.reason}${r.amountInr ? " " + inr(r.amountInr) : ""}`
-      : "No reason";
-    return `request · ${what} · nonce ${r.nonce.slice(0, 4)}…`;
-  }
-  if (kind === "answer") {
-    const a = payload as SignedAnswer;
-    return `answer · ${a.decision === "ME" ? "ME" : "NOT ME"} · key ${a.keyId.slice(0, 10)}… · nonce ${a.nonce.slice(0, 4)}…`;
-  }
-  if (kind === "alert") {
-    const a = payload as FamilyAlert;
-    return `alert · ${a.type === "impersonation" ? "impersonation" : "check on"} · about ${a.aboutLabel}`;
-  }
-  if (kind === "guard") {
-    const g = payload as GuardPrompt;
-    return `call guard · claims ${g.claimedLabel}${g.amountInr ? " · " + inr(g.amountInr) : ""}`;
-  }
-  return kind;
-}
 
 export class SimLab implements LabService {
   private bus: Bus | null = null;
   private attackerMode = false;
   private armed: AttackKind | null = null;
+  private copyCredId = false;
   private roles: { askerDeviceId?: string; targetDeviceId?: string } = {};
   private peers = new Map<string, PeerInfo>();
-  private lastYes: Record<string, SignedAnswer> = {};
+  /** The last genuine "Yes" each device sent, and each device's credential ID, as seen in traffic. */
+  private lastYes: Record<string, WireAnswer> = {};
+  private credIds: Record<string, string> = {};
   private since = Date.now();
   private attacks: LabAttackRecord[] = [];
   private lastAttack: LabAttackRecord | null = null;
   private events = new Map<string, RelayEvent>();
-  private labKeyId = randomId("key_attacker", 16);
   private timers: number[] = [];
 
   private ls = {
@@ -120,7 +98,8 @@ export class SimLab implements LabService {
     ]);
     if (typeof since?.value === "number") this.since = since.value;
     else await this.db.meta.put({ key: "lab:since", value: this.since });
-    this.lastYes = (lastYes?.value as Record<string, SignedAnswer>) ?? {};
+    this.lastYes = (lastYes?.value as Record<string, WireAnswer>) ?? {};
+    for (const [d, a] of Object.entries(this.lastYes)) this.credIds[d] ??= a.credId;
     this.attacks = attacks;
     this.lastAttack = attacks.at(-1) ?? null;
     this.emitCounters();
@@ -140,10 +119,11 @@ export class SimLab implements LabService {
     this.emitStatus();
   }
 
-  arm(attack: AttackKind): void {
+  arm(attack: AttackKind, opts: { copyCredId?: boolean } = {}): void {
     if (!this.attackerMode) this.setAttackerMode(true);
     if (attack === "replay" && !this.replayCandidate()) return;
     this.armed = attack;
+    this.copyCredId = attack === "forge" && opts.copyCredId === true;
     this.emitStatus();
   }
 
@@ -232,11 +212,11 @@ export class SimLab implements LabService {
   }
 
   /** The genuine "Yes" a replay would send: the target's own, else the most recent seen. */
-  private replayCandidate(): SignedAnswer | null {
+  private replayCandidate(): { from: string; ans: WireAnswer } | null {
     const target = this.roles.targetDeviceId;
-    if (target && this.lastYes[target]) return this.lastYes[target];
-    const all = Object.values(this.lastYes);
-    return all.sort((a, b) => b.answeredAt - a.answeredAt)[0] ?? null;
+    if (target && this.lastYes[target]) return { from: target, ans: this.lastYes[target] };
+    const all = Object.entries(this.lastYes).sort((a, b) => b[1].answeredAt - a[1].answeredAt);
+    return all[0] ? { from: all[0][0], ans: all[0][1] } : null;
   }
 
   // ─── Traffic ─────────────────────────────────────────────────────────────
@@ -251,8 +231,8 @@ export class SimLab implements LabService {
   private onWire(w: Wire) {
     switch (w.t) {
       case "presence":
-        // Reply to presence (event-driven, so it works even when this tab's timers are throttled
-        // in the background): a new or reloaded phone learns who controls the relay within ~0.5 s.
+        // Reply to presence (event-driven, so it works even when this tab's timers are throttled in the
+        // background): a new or reloaded phone learns who controls the relay within about 0.5 s.
         if (this.attackerMode || !this.peers.has(w.from)) this.heartbeat();
         this.peers.set(w.from, {
           deviceId: w.from,
@@ -278,14 +258,15 @@ export class SimLab implements LabService {
   }
 
   private toEvent(m: WireMsg, extra: Partial<RelayEvent> = {}): RelayEvent {
+    const kind = EVENT_KIND[m.kind]!;
     const payload = m.payload as { requestId?: string };
     return {
       id: m.id,
       at: Date.now(),
-      kind: m.kind,
+      kind,
       from: m.from,
       to: m.to,
-      summary: summarize(m.kind, m.payload),
+      summary: summarize(kind, m.payload),
       payload: m.payload,
       requestId: payload?.requestId,
       ...(m.tampered ? { tampered: m.tampered } : {}),
@@ -295,20 +276,22 @@ export class SimLab implements LabService {
 
   private captureYes(m: WireMsg) {
     if (m.kind !== "answer" || m.tampered || m.injected) return;
-    const a = m.payload as SignedAnswer;
+    const a = m.payload as WireAnswer;
+    this.credIds[m.from] = a.credId;
     if (a.decision !== "ME") return;
-    this.lastYes[a.fromDeviceId] = a;
+    this.lastYes[m.from] = a;
     void this.db.meta.put({ key: "lab:lastYes", value: this.lastYes });
     this.emitStatus();
   }
 
   private onMsg(m: WireMsg) {
+    if (!EVENT_KIND[m.kind]) return; // receipts and notices aren't shown in the traffic log
     if (m.hop === "deliver") {
       // Direct traffic we only observe…
       this.captureYes(m);
       this.emitEvent(this.toEvent(m));
-      // …except that an armed replay/forge still answers a check that slipped past the relay
-      // (a phone that hadn't yet heard the Lab took over): the attacker races the real answer.
+      // …except that an armed replay/forge still answers a check that slipped past the relay (a phone that
+      // hadn't yet heard the Lab took over): the attacker races the real answer.
       if (m.kind === "request" && this.attackerMode && (this.armed === "replay" || this.armed === "forge")) {
         const attack = this.armed;
         this.armed = null;
@@ -338,14 +321,12 @@ export class SimLab implements LabService {
 
     if (m.kind === "answer" && this.armed === "change") {
       this.armed = null;
-      const ans = m.payload as SignedAnswer;
-      const flipped: SignedAnswer = { ...ans, decision: ans.decision === "NOT_ME" ? "ME" : "NOT_ME" };
-      void this.recordAttack("change", { requestId: ans.requestId, toDeviceId: ans.fromDeviceId, fromDeviceId: m.to });
+      const ans = m.payload as WireAnswer;
+      const flipped: WireAnswer = { ...ans, decision: ans.decision === "NOT_ME" ? "ME" : "NOT_ME" };
+      void this.recordAttack("change", { requestId: ans.requestId, toDeviceId: m.from, fromDeviceId: m.to });
       this.forward(
         { ...m, payload: flipped, tampered: "change" },
-        {
-          summary: `answer · ${ans.decision === "NOT_ME" ? "NOT ME → ME" : "ME → NOT ME"} · changed by attacker`,
-        },
+        { summary: `answer · ${ans.decision === "NOT_ME" ? "NOT ME → ME" : "ME → NOT ME"} · changed by attacker` },
       );
       this.emitStatus();
       return;
@@ -362,23 +343,32 @@ export class SimLab implements LabService {
   }
 
   private async inject(attack: AttackKind, req: VerifyRequest) {
-    let ans: SignedAnswer;
+    let ans: WireAnswer;
+    let summary: string;
     if (attack === "replay") {
-      const old = this.lastYes[req.toDeviceId] ?? this.replayCandidate();
+      const old = this.lastYes[req.toDeviceId] ?? this.replayCandidate()?.ans;
       if (!old) return;
       // The genuine old answer, re-labelled as the answer to the new request.
       ans = { ...old, requestId: req.requestId };
+      summary = `answer · ME (replayed from ${new Date(old.answeredAt).toLocaleTimeString("en-IN")}) · nonce ${ans.nonce.slice(0, 4)}…`;
     } else {
-      ans = await makeSignedAnswer({
-        keyId: this.labKeyId,
+      // A perfect-looking "Yes": right rpId hash, UP+UV, the right challenge for ME, the right origin, signed
+      // with the attacker's own fresh key (and optionally the victim's real credential ID).
+      const attacker = await createSoftCredential();
+      const credId = this.copyCredId && this.credIds[req.toDeviceId] ? this.credIds[req.toDeviceId]! : attacker.credId;
+      ans = await softAnswer({
         req,
         decision: "ME",
-        fromDeviceId: req.toDeviceId,
+        credId,
+        privateKey: attacker.privateKey,
+        rpId: appConfig.rpId,
+        origin: location.origin,
       });
+      summary = `answer · ME · forged with attacker key ${attacker.credId.slice(0, 10)}…${credId !== attacker.credId ? " (copied credential ID)" : ""}`;
     }
     const m: WireMsg = {
       t: "msg",
-      id: randomId("msg", 9),
+      id: ulid(),
       kind: "answer",
       from: req.toDeviceId,
       to: req.fromDeviceId,
@@ -389,15 +379,7 @@ export class SimLab implements LabService {
       injected: true,
     };
     this.bus?.post(m);
-    this.emitEvent(
-      this.toEvent(m, {
-        from: "relay",
-        summary:
-          attack === "replay"
-            ? `answer · ME (replayed from ${new Date(ans.answeredAt).toLocaleTimeString("en-IN")}) · nonce ${ans.nonce.slice(0, 4)}…`
-            : `answer · ME · forged with attacker key ${this.labKeyId.slice(0, 14)}…`,
-      }),
-    );
+    this.emitEvent(this.toEvent(m, { from: "relay", summary }));
   }
 
   private async recordAttack(
@@ -405,13 +387,14 @@ export class SimLab implements LabService {
     req: Pick<VerifyRequest, "requestId" | "toDeviceId" | "fromDeviceId">,
   ) {
     const rec: LabAttackRecord = {
-      id: randomId("atk", 9),
+      id: ulid(),
       at: Date.now(),
       attack,
       requestId: req.requestId,
       targetDeviceId: req.toDeviceId,
       askerDeviceId: req.fromDeviceId,
       falseGreen: false,
+      ...(attack === "forge" && this.copyCredId ? { copiedCredId: true } : {}),
     };
     this.attacks.push(rec);
     this.lastAttack = rec;

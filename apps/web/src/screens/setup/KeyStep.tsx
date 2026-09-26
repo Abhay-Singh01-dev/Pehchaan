@@ -3,10 +3,11 @@
 //   success          key slides into the vault ring; the ring locks with a 30° click and a light
 //                    haptic; the check draws; the four safety words flip in one by one
 //   no screen lock   "Set a screen lock…" → "I've set it, try again" / "Skip for now"
-//   no passkeys      "This phone can't create a key here." → 6-digit Pehchaan PIN (twice) / Skip
+//   no passkeys      FC-24 (backend 10.3): "This phone can't create a key, so family can't verify you yet. You
+//                    can still check others." → continue as checks-only (the PIN fallback is P2, not built)
 //   cancelled        "Key not created. Tap to try again."
 // Error states can be forced from Diagnostics → Simulation panel → "Next key creation".
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { AnimatePresence } from "motion/react";
 import * as m from "motion/react-m";
@@ -15,6 +16,8 @@ import { DeviceMobile, Fingerprint, LockKey, UsersThree, WarningCircle } from "@
 import { services } from "@/services";
 import { isKeyError } from "@/services/errors";
 import type { SafetyWordsT } from "@/services/types";
+import { ownSafetyWords } from "@/services/card";
+import { ensureIdentity } from "@/services/identity";
 import { Button } from "@/components/Button";
 import { SafetyWords } from "@/components/SafetyWords";
 import { KeyVault } from "@/components/illustrations";
@@ -26,9 +29,8 @@ import { useReduced } from "@/app/session";
 import { toast } from "@/app/ui";
 import { haptic } from "@/design/haptics";
 import { dur, ease, riseIn } from "@/design/motion";
-import { cn } from "@/lib/cn";
 
-type Phase = "intro" | "waiting" | "done" | "noLock" | "noPasskey" | "cancelled" | "pin" | "pinConfirm" | "creatingPin";
+type Phase = "intro" | "waiting" | "done" | "noLock" | "noPasskey" | "cancelled";
 
 export function KeyStep() {
   const { t } = useTranslation();
@@ -39,23 +41,23 @@ export function KeyStep() {
   const reduced = useReduced();
   const [phase, setPhase] = useState<Phase>("intro");
   const [words, setWords] = useState<SafetyWordsT | null>(null);
-  const [pinError, setPinError] = useState<string | null>(null);
-  const firstPin = useRef("");
   useRecordSetupStep();
 
-  const finishKey = async (
-    k: { keyId: string; publicKey: string; safetyWords: SafetyWordsT },
-    kind: "passkey" | "pin",
-  ) => {
+  const finishKey = async (k: { keyId: string; publicKey: string }) => {
+    // The safety words cover the whole card (device keys and passkey, 6.3), exactly as family will derive them.
+    const safetyWords = await ownSafetyWords(
+      { role: "can_be_verified", keyId: k.keyId, publicKey: k.publicKey },
+      await ensureIdentity(),
+    );
     await updateProfile({
       role: "can_be_verified",
       keyId: k.keyId,
       publicKey: k.publicKey,
-      safetyWords: k.safetyWords,
+      safetyWords,
       keyCreatedAt: Date.now(),
-      keyKind: kind,
+      keyKind: "passkey",
     });
-    setWords(k.safetyWords);
+    setWords(safetyWords);
     setPhase("done");
     window.setTimeout(() => haptic("success"), reduced ? 0 : 260);
   };
@@ -68,42 +70,24 @@ export function KeyStep() {
     setPhase("waiting");
     try {
       const k = await services.key.createKey({ deviceId: profile.deviceId, name: profile.name });
-      await finishKey(k, "passkey");
+      await finishKey(k);
     } catch (e) {
       haptic("error");
-      setPhase(isKeyError(e, "cancelled") ? "cancelled" : "cancelled");
+      // A6 has one retry state for every failure (cancelled, timed out, or refused by the phone).
+      setPhase(isKeyError(e, "no_passkeys") ? "noPasskey" : isKeyError(e, "no_screen_lock") ? "noLock" : "cancelled");
     }
   };
 
   const skip = async () => {
-    await updateProfile({ role: "checks_only" });
+    const id = await ensureIdentity();
+    await updateProfile({ role: "checks_only", safetyWords: await ownSafetyWords({ role: "checks_only" }, id) });
     toast(t("key.skipNote"), { duration: 5000 });
     navigate(fromSettings ? "/settings" : "/setup/done");
   };
 
-  const onPin = async (pin: string) => {
-    if (phase === "pin") {
-      firstPin.current = pin;
-      setPinError(null);
-      setPhase("pinConfirm");
-      return;
-    }
-    if (pin !== firstPin.current) {
-      haptic("error");
-      setPinError(t("key.pinMismatch"));
-      firstPin.current = "";
-      setPhase("pin");
-      return;
-    }
-    if (!profile || !services.key.createPinKey) return;
-    setPhase("creatingPin");
-    const k = await services.key.createPinKey({ deviceId: profile.deviceId, name: profile.name, pin });
-    await finishKey(k, "pin");
-  };
-
   const next = () => navigate(fromSettings ? "/settings/key" : "/setup/done");
 
-  const vaultPhase = phase === "done" ? "locked" : phase === "waiting" || phase === "creatingPin" ? "waiting" : "idle";
+  const vaultPhase = phase === "done" ? "locked" : phase === "waiting" ? "waiting" : "idle";
   const isError = phase === "noLock" || phase === "noPasskey" || phase === "cancelled";
 
   return (
@@ -116,7 +100,7 @@ export function KeyStep() {
 
         <AnimatePresence mode="wait" initial={false}>
           <m.div
-            key={phase === "pinConfirm" ? "pin" : phase}
+            key={phase}
             initial={{ opacity: 0, y: reduced ? 0 : 8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: reduced ? 0 : -6 }}
@@ -131,14 +115,6 @@ export function KeyStep() {
                 </p>
                 <SafetyWords words={words} size="lg" className="mt-2" delay={reduced ? 0 : 0.55} />
                 <p className="mt-3 text-body-sm text-ink-2">{t("key.wordsCaption")}</p>
-              </div>
-            ) : phase === "pin" || phase === "pinConfirm" || phase === "creatingPin" ? (
-              <div className="text-center">
-                <h1 className="font-display text-h2 font-semibold text-ink">
-                  {phase === "pin" ? t("key.pinTitle") : t("key.pinConfirm")}
-                </h1>
-                <p className="mt-2 text-body-sm text-ink-2">{t("key.pinHint")}</p>
-                <PinBoxes key={phase} onComplete={onPin} disabled={phase === "creatingPin"} error={pinError} />
               </div>
             ) : isError ? (
               <div className="card p-5">
@@ -220,85 +196,13 @@ export function KeyStep() {
           )}
           {phase === "noPasskey" && (
             <>
-              <Button full onClick={() => setPhase("pin")}>
-                {t("key.usePin")}
-              </Button>
-              <Button full variant="ghost" onClick={skip}>
-                {t("key.skip")}
+              <Button full onClick={skip}>
+                {t("common.continue")}
               </Button>
             </>
           )}
         </BottomActions>
       </PageBody>
     </>
-  );
-}
-
-/** Six PIN boxes over a hidden numeric input. */
-function PinBoxes({
-  onComplete,
-  disabled,
-  error,
-}: {
-  onComplete: (pin: string) => void;
-  disabled?: boolean;
-  error?: string | null;
-}) {
-  const { t } = useTranslation();
-  const [pin, setPin] = useState("");
-  const inputRef = useRef<HTMLInputElement>(null);
-  const reduced = useReduced();
-  return (
-    <div className="mt-6">
-      <div
-        className="relative mx-auto flex max-w-[320px] justify-center gap-2"
-        onClick={() => inputRef.current?.focus()}
-      >
-        {Array.from({ length: 6 }, (_, i) => {
-          const filled = i < pin.length;
-          const active = i === pin.length;
-          return (
-            <span
-              key={i}
-              aria-label={t("key.pinDigit", { n: i + 1 })}
-              className={cn(
-                "grid h-14 w-11 place-items-center rounded-[12px] bg-surface-2 transition-shadow duration-150",
-                active ? "shadow-[inset_0_0_0_2px_var(--brand)]" : "shadow-[inset_0_0_0_1px_var(--line)]",
-              )}
-            >
-              {filled && (
-                <m.span
-                  className="h-3 w-3 rounded-full bg-ink"
-                  initial={reduced ? false : { scale: 0.3 }}
-                  animate={{ scale: 1 }}
-                  transition={{ type: "spring", stiffness: 520, damping: 22 }}
-                />
-              )}
-            </span>
-          );
-        })}
-        <input
-          ref={inputRef}
-          autoFocus
-          inputMode="numeric"
-          pattern="[0-9]*"
-          autoComplete="one-time-code"
-          aria-label={t("key.pinTitle")}
-          disabled={disabled}
-          value={pin}
-          onChange={(e) => {
-            const v = e.target.value.replace(/\D/g, "").slice(0, 6);
-            setPin(v);
-            if (v.length === 6) window.setTimeout(() => onComplete(v), 120);
-          }}
-          className="absolute inset-0 h-full w-full cursor-text opacity-0"
-        />
-      </div>
-      {error && (
-        <p role="alert" className="mt-3 text-body-sm font-medium text-chip-no">
-          {error}
-        </p>
-      )}
-    </div>
   );
 }

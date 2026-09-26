@@ -15,7 +15,7 @@ export function alertLabels(alert: FamilyAlert, family: FamilyMember[] | undefin
   const victim = find(alert.victimDeviceId);
   return {
     about: about?.label ?? alert.aboutLabel,
-    victim: victim?.label ?? alert.victimLabel,
+    victim: victim?.label ?? alert.victimName,
     aboutPhone: about?.phone ?? alert.aboutPhone,
     victimPhone: victim?.phone ?? alert.victimPhone,
   };

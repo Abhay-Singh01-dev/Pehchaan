@@ -2,7 +2,7 @@
 // Home load with the app. Lab and Guard are laptop pages mounted outside the family shell.
 import { Navigate, Route } from "react-router";
 import { flags } from "./flags";
-import { lazyNamed } from "./lazy";
+import { lazyNamed, markCritical } from "./lazy";
 import { Splash } from "@/screens/setup/Splash";
 import { Home } from "@/screens/home/Home";
 
@@ -13,6 +13,8 @@ const myCode = () => import("@/screens/family/MyCode");
 const verify = () => import("@/screens/verify");
 const result = () => import("@/screens/verify/Result");
 const answer = () => import("@/screens/answer");
+// Asking, the verdict and answering must open even if the network drops mid-check (fail closed, never blank).
+markCritical(verify, result, answer);
 const alerts = () => import("@/screens/alerts/Alerts");
 const history = () => import("@/screens/history");
 const settings = () => import("@/screens/settings");
@@ -57,6 +59,9 @@ const MyKey = lazyNamed(settings, "MyKey");
 const Display = lazyNamed(settings, "Display");
 const LanguageSettings = lazyNamed(settings, "LanguageSettings");
 const DeleteAll = lazyNamed(settings, "DeleteAll");
+const PrivacyNotice = lazyNamed(settings, "PrivacyNotice");
+const WhoCanReach = lazyNamed(settings, "WhoCanReach");
+const AlertsSettings = lazyNamed(settings, "AlertsSettings");
 
 const HowItWorks = lazyNamed(help, "HowItWorks");
 const Limits = lazyNamed(help, "Limits");
@@ -77,7 +82,8 @@ export function familyRoutes() {
       <Route path="/setup/role" element={<RoleStep />} />
       <Route path="/setup/key" element={<KeyStep />} />
       <Route path="/setup/done" element={<Done />} />
-      {X && <Route path="/setup/notifications" element={<Notifications />} />}
+      {/* A8 is no longer an extra (backend spec 22, FC-8). */}
+      <Route path="/setup/notifications" element={<Notifications />} />
 
       <Route path="/home" element={<Home />} />
       <Route path="/alerts" element={<Alerts />} />
@@ -110,6 +116,9 @@ export function familyRoutes() {
       <Route path="/settings/display" element={<Display />} />
       <Route path="/settings/language" element={<LanguageSettings />} />
       <Route path="/settings/delete" element={<DeleteAll />} />
+      <Route path="/settings/privacy" element={<PrivacyNotice />} />
+      <Route path="/settings/reach" element={<WhoCanReach />} />
+      <Route path="/settings/alerts" element={<AlertsSettings />} />
 
       <Route path="/help/how-it-works" element={<HowItWorks />} />
       <Route path="/help/limits" element={<Limits />} />

@@ -29,11 +29,14 @@ export function MemberTile({
   reachable,
   onClick,
   index = 0,
+  hint,
 }: {
   member: FamilyMember;
   reachable: boolean;
   onClick: () => void;
   index?: number;
+  /** A small note under the name, e.g. the "may not get this" presence hint (backend spec 12). */
+  hint?: string;
 }) {
   const { t } = useTranslation();
   const reduced = useReduced();
@@ -55,6 +58,7 @@ export function MemberTile({
       <span className="w-full min-w-0">
         <span className="block truncate font-display text-h3 font-semibold text-ink">{member.label}</span>
         <span className="block truncate text-body-sm text-muted">{t(`relation.${member.relation}`)}</span>
+        {hint && <span className="mt-1.5 block text-caption font-medium text-chip-amber">{hint}</span>}
       </span>
     </m.button>
   );

@@ -97,6 +97,8 @@ const jobs = [
   // Maskable: keep the seal inside the 80% safe zone.
   ["icon-512-maskable.png", sealSvg({ size: 512, ...brand, pad: 0.2 })],
   ["apple-touch-icon.png", sealSvg({ size: 180, ...dark, pad: 0.12 })],
+  // Android's status-bar badge for notifications (11.5): one colour on transparent; the system tints it.
+  ["badge-72.png", sealSvg({ size: 72, bg: "none", ring: "#FFFFFF", inner: "#FFFFFF", letter: "#FFFFFF", pad: 0.04 })],
 ];
 for (const [name, svg] of jobs) {
   await sharp(Buffer.from(svg)).png({ compressionLevel: 9 }).toFile(join(iconDir, name));

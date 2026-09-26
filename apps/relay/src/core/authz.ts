@@ -79,10 +79,11 @@ export async function labAvailable(hub: Hub): Promise<void> {
 }
 
 /** Row 11 · lab.inject: both `as` and `to` are opted in; an injected answer still goes through the
- *  request-record script (row 3). */
-export async function mayInject(hub: Hub, as: string, to: string): Promise<void> {
+ *  request-record script (row 3): `as` must be a target of the open request `re`, and `to` its asker. */
+export async function mayInject(hub: Hub, as: string, to: string, re: string, now: number) {
   await labAvailable(hub);
   if (!(await hub.lab!.isOptedIn(as)) || !(await hub.lab!.isOptedIn(to))) refuse("not_allowed");
+  return hub.requests.answer(re, as, to, now);
 }
 
 /** Row 12 · lab.report: the sender is the request record's `from` (the asker). */

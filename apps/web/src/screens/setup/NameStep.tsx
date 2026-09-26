@@ -5,7 +5,8 @@ import { AnimatePresence } from "motion/react";
 import * as m from "motion/react-m";
 import { useTranslation } from "react-i18next";
 import type { AvatarColor, HindiForm, Profile } from "@/services/types";
-import { safetyWordsFor } from "@/services/words";
+import { ownSafetyWords } from "@/services/card";
+import { ensureIdentity } from "@/services/identity";
 import { Avatar } from "@/components/Avatar";
 import { Button } from "@/components/Button";
 import { ChipGroup, TextField } from "@/components/controls";
@@ -202,7 +203,7 @@ export function NameStep() {
         color: draft.color,
         role: "checks_only",
         // Checks-only people still have safety words, so family can confirm their card in person.
-        safetyWords: await safetyWordsFor(`checks-only:${deviceId}`),
+        safetyWords: await ownSafetyWords({ role: "checks_only" }, await ensureIdentity()),
         ...prefs,
         hindiForm: draft.hindiForm,
         createdAt: Date.now(),

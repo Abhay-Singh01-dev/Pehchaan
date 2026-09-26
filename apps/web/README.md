@@ -1,27 +1,42 @@
-# Pehchaan · पहचान — frontend
+# Pehchaan · पहचान — the app
 
 **Two-factor authentication for humans.** During a suspicious call, one tap asks the claimed
 person's *own phone* whether it's really them. They unlock with their fingerprint or PIN, their
-key signs the answer, and the parent's phone runs 7 checks before it shows a verdict:
+passkey signs the answer, and the parent's phone runs 7 checks before it shows a verdict:
 **green** (really them), **red** (not them, or a fake answer), **amber** (no answer yet / can't check).
 
-This is the complete frontend described in `../Pehchaan_Frontend_Build_Prompt.md` (Part B, phases 0–10):
-the family app (A0–I6), the Security Lab (`/lab`), Call Guard (`/guard`) and Diagnostics
-(`/diagnostics`). There is **no backend**: every network and crypto call goes through
-`src/services`, which currently uses **simulated** implementations. The team replaces them with
-the real ones without touching any screen — see [`docs/HANDOVER.md`](docs/HANDOVER.md).
+This is the installable PWA: the family app (A0–I6), the Security Lab (`/lab`), Call Guard (`/guard`) and
+Diagnostics (`/diagnostics`). It talks to the Pehchaan relay (`apps/relay`) through `src/services`; each
+service can also run **simulated**, so the whole app works in one browser with no backend. See
+[`docs/HANDOVER.md`](docs/HANDOVER.md) for which file implements which backend rule.
 
-> ⚠️ While `VITE_SIMULATION=true` a **“Simulated network”** badge shows on every screen.
+> ⚠️ While anything is simulated a **“Simulated: …”** badge shows on every screen.
 > Never show judges a build with that badge.
 
 ## Quick start
 
+From the repository root:
+
 ```bash
-npm install
-npm run dev            # http://localhost:5180
+pnpm install
+pnpm db:up             # Valkey + Postgres in Docker (127.0.0.1 only)
+pnpm dev               # the relay on :8080 and this app on http://localhost:5180 (Vite proxies /relay)
 ```
 
-Open these as separate tabs **in the same browser window** (they talk over a BroadcastChannel):
+That runs against the **real relay**. For real passkeys and the real verifier, set in `apps/web/.env.local`:
+
+```bash
+VITE_SIM_RELAY=false
+VITE_SIM_KEY=false
+VITE_SIM_VERIFIER=false
+```
+
+(`localhost` is a secure context, so passkeys work there; for real phones use a tunnel, backend spec 18.12.)
+
+### Fully simulated (no backend)
+
+With `VITE_SIMULATION=true` (the default in `.env`), open these as tabs **in the same browser window**; they
+talk over a BroadcastChannel:
 
 | Tab | URL | Plays |
 | --- | --- | --- |
@@ -31,34 +46,41 @@ Open these as separate tabs **in the same browser window** (they talk over a Bro
 | Lab | `http://localhost:5180/lab?device=lab` | Security Lab (laptop) |
 | Guard | `http://localhost:5180/guard?device=guard` | Call Guard (laptop) |
 
-`?device=<name>` gives a tab its own IndexedDB (`pehchaan-<name>`) and device id (`sim-<name>`);
-the tab remembers it for the session. Any other name starts a fresh, un-set-up phone.
-On a single phone, use **Settings → tap the version 5× → Diagnostics → Simulation panel →
-Auto-answer** to test every verdict without a second tab.
+`?device=<name>` gives a tab its own IndexedDB (`pehchaan-<name>`), and so its own device identity; the tab
+remembers it for the session. The seeded names have fixed test keys, so they can verify each other at once.
+Any other name starts a fresh, un-set-up phone. On a single phone, use **Settings → tap the version 5× →
+Diagnostics → Simulation panel → Auto-answer** to test every verdict without a second tab.
 
 ## Scripts
 
 | Command | What it does |
 | --- | --- |
-| `npm run dev` | Dev server on :5180 |
-| `npm run build` | Typecheck, then production build (PWA + service worker) into `dist/` |
-| `npm run preview` | Serve `dist/` on :4180 (the service worker only runs here, not in dev) |
-| `npm run check` | Typecheck + i18n parity + WCAG contrast + unit tests |
-| `npm test` | Unit tests (Vitest): the 7 checks and every INVALID reason, cards, Guard rules, words |
-| `npm run e2e` | The Part D walkthrough end to end (Playwright). `PW_CHANNEL=msedge npm run e2e` uses an installed Edge/Chrome; otherwise run `npx playwright install chromium` once |
-| `npm run budget` | After a build: initial JS must be < 250 KB gzipped (spec B15) |
-| `npm run contrast` | Every token text/background pair against WCAG 2.2 AA |
-| `npm run i18n` | en/hi key parity, and every key used in code exists |
-| `npm run fonts` / `npm run brand` | Re-copy self-hosted fonts / regenerate the seal glyph and PWA icons |
+| `pnpm dev` (here) | This app only, on :5180 |
+| `pnpm build` | Production build (PWA + service worker) into `dist/` |
+| `pnpm preview` | Serve `dist/` on :4180 (the service worker only runs here, not in dev) |
+| `pnpm test` | i18n parity, WCAG contrast, then the unit tests with the `services/real` coverage thresholds |
+| `pnpm e2e` | The Part D walkthrough, fully simulated (its own server on :5190). The real-backend journeys are `pnpm test:e2e:real` at the root |
+| `pnpm budget` | After a build: initial JS must be < 250 KB gzipped (spec B15) |
+| `pnpm contrast` | Every token text/background pair against WCAG 2.2 AA |
+| `pnpm i18n` | en/hi key parity, and every key used in code exists |
+| `pnpm fonts` / `pnpm brand` | Re-copy self-hosted fonts / regenerate the seal glyph and PWA icons |
 
-## Feature flags
+`PW_CHANNEL=msedge` makes Playwright use an installed Edge/Chrome; otherwise run
+`pnpm exec playwright install chromium` once.
 
-Set in `.env` (see `.env.example`), read by `src/app/flags.ts`:
+## Settings
 
-| Flag | Default | Effect |
+Set in `.env.local` (see `.env.example`), read by `src/app/flags.ts` and `src/app/config.ts`:
+
+| Variable | Default | Effect |
 | --- | --- | --- |
-| `VITE_SIMULATION` | `true` | Simulated services + the “Simulated network” badge |
-| `VITE_ENABLE_LAB` | `true` | `/lab` exists |
+| `VITE_SIMULATION` | `true` | Default for the three below |
+| `VITE_SIM_RELAY` / `VITE_SIM_KEY` / `VITE_SIM_VERIFIER` | `VITE_SIMULATION` | Simulate the relay / the passkey / the verifier's expected address, independently |
+| `VITE_ORIGIN`, `VITE_RP_ID` | this page's own | The address passkeys sign for; the rpId never changes after launch |
+| `VITE_RELAY_URL` | `ws(s)://<this host>/relay/v1/ws` | The relay |
+| `VITE_ENV` | `development` in dev | `production` hides "Reset used request numbers" |
+| `VITE_PRIVACY_CONTACT` | none | The grievance contact on the privacy notice |
+| `VITE_ENABLE_LAB` | `true` | `/lab` exists, and Diagnostics offers the Lab opt-in when the relay is real |
 | `VITE_ENABLE_GUARD` | `true` | `/guard` and the Call Guard banner exist |
 | `VITE_ENABLE_EXTRAS` | `false` | Optional screens A8, C9, D5, I6 (entry points appear in Settings → Help and Add family) |
 
@@ -78,8 +100,8 @@ src/
   components/   shared UI (Seal, VerdictScreen, ChecksList, Sheet, Button, Avatar, QRCard…)
   screens/      one folder per area: setup home family verify answer alerts history
                 settings help lab guard diagnostics
-  services/     types.ts (all interfaces), index.ts (sim/real switch), verdict.ts (7 checks → verdict),
-                card.ts, requests.ts, words.ts, guard/rules.ts, sim/*, real/* (team-owned stubs)
+  services/     types.ts (all interfaces), index.ts (sim/real switch), identity.ts, verifier.ts (the 7 checks),
+                verdict.ts (the green guard), card.ts, requests.ts, guard/rules.ts, sim/*, real/* (relay, passkey)
   store/        Dexie database, repositories, seed data
   i18n/         en.json, hi.json   (hi.json: have a native speaker review it)
 tests/unit      Vitest     tests/e2e   Playwright (Part D)

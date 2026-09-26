@@ -11,12 +11,21 @@ import { Switch } from "@/components/controls";
 import { PageBody, PageTitle, Section } from "@/components/screen/Page";
 import { TopBar } from "@/components/screen/TopBar";
 import { updateProfile, useProfile } from "@/store/profile";
+import { ownSafetyWords } from "@/services/card";
+import { ensureIdentity } from "@/services/identity";
+import type { Profile, Role } from "@/services/types";
 import { useG } from "@/app/i18n";
 import { toast } from "@/app/ui";
 import { useReduced } from "@/app/session";
 import { formatDateShort } from "@/lib/format";
 import { riseIn } from "@/design/motion";
 import { PageSkeleton } from "@/components/Skeleton";
+
+/** A role change changes my card (6.1), so it changes my safety words too: family re-check them. */
+async function setRole(profile: Profile, role: Role) {
+  const safetyWords = await ownSafetyWords({ ...profile, role }, await ensureIdentity());
+  await updateProfile({ role, safetyWords });
+}
 
 export function MyKey() {
   const { t, lang } = useG();
@@ -49,11 +58,7 @@ export function MyKey() {
               <span className="grid h-12 w-12 place-items-center rounded-[14px] bg-brand-soft text-brand-ink">
                 <SealCheck size={28} weight="duotone" aria-hidden />
               </span>
-              <p className="text-body font-medium text-ink">
-                {profile.keyKind === "pin"
-                  ? t("myKey.statusPin", { date: created })
-                  : t("myKey.status", { date: created })}
-              </p>
+              <p className="text-body font-medium text-ink">{t("myKey.status", { date: created })}</p>
             </m.div>
 
             <m.div {...riseIn(2, reduced)}>
@@ -73,7 +78,7 @@ export function MyKey() {
                   label={t("myKey.toggle")}
                   onChange={async (on) => {
                     if (!on) return setConfirmOff(true);
-                    await updateProfile({ role: "can_be_verified" });
+                    await setRole(profile, "can_be_verified");
                     toast(t("myKey.onDone"), { tone: "success" });
                   }}
                 />
@@ -88,7 +93,7 @@ export function MyKey() {
               danger
               onCancel={() => setConfirmOff(false)}
               onConfirm={async () => {
-                await updateProfile({ role: "checks_only" });
+                await setRole(profile, "checks_only");
                 setConfirmOff(false);
                 toast(t("myKey.offDone"));
               }}

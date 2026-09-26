@@ -58,7 +58,7 @@ Paths: `crypto` = `packages/crypto/test`, `protocol` = `packages/protocol/test`,
 | REL-09 | 8.1 | Record created; duplicate_request; deadline on relay clock clamped 10–60 s; record TTL | relay/requests.int.test.ts › REL-09 · request records | integration | 3 | ✅ |
 | REL-10 | 8.6, 8.8 | Answer authorisation; not_allowed/already_answered/cancelled/expired; ok_late with late:true; 50-way race → one ok | relay/requests.int.test.ts › REL-10 · answers (incl. the 50-way race) | integration | 3 | ✅ |
 | REL-11 | 8.6 | Cancel only by asker; targets get verify.cancel; state cancelled | relay/requests.int.test.ts › REL-11 · cancel | integration | 3 | ✅ |
-| REL-12 | 8.3 | No ack in 1.5 s → push, only for kinds that allow it | relay/push-fallback.int.test.ts | integration | 6 | ⏳ |
+| REL-12 | 8.3 | No ack in 1.5 s → push, only for kinds that allow it | relay/push.int.test.ts › REL-12 | integration | 6 | ✅ |
 | REL-13 | 18.9 | Drain: /readyz 503 → 6 s → spread reconnect → 1012; zero envelopes lost | relay/drain.int.test.ts › REL-13 · drain | integration | 3 | ✅ |
 | REL-14 | 7.5 | Every error code produced by a test | relay/errors.int.test.ts (+ aggregation) | integration | 3, 7, 8 | ⏳ |
 | REL-15 | 16.3 | One test per authorisation row | relay/authz.int.test.ts | integration | 3, 7, 8 | ⏳ |
@@ -83,7 +83,7 @@ Paths: `crypto` = `packages/crypto/test`, `protocol` = `packages/protocol/test`,
 | C-B5a | B5 | Every Lua script in its own file with a header comment, loaded with defineCommand | relay/unit/lua.test.ts › C-B5a · Lua scripts | unit | 3 | ✅ |
 | C-B5b | B5 | Authorisation lives in core/authz.ts, one function per 16.3 row | relay/errors.int.test.ts › REL-15 / C-B5b · one function per row | unit | 3 | ✅ |
 | C-4b | 4 | The relay never imports crypto/verifier or crypto/e2e (depcruise) | relay/unit/depcruise.test.ts › fails when the relay imports packages/crypto/verifier | static | 1 | ✅ |
-| C-7.6a | 7.6 | Outbound notices: the app ignores unknown fields | web/relay-frames.test.ts › lenient outbound | unit | 5 | ⏳ |
+| C-7.6a | 7.6 | Outbound notices: the app ignores unknown fields | web/real-relay.test.ts › ignores unknown fields in the relay's notices | unit | 5 | ✅ |
 
 ## CON · contacts, devices, data
 
@@ -110,70 +110,74 @@ Paths: `crypto` = `packages/crypto/test`, `protocol` = `packages/protocol/test`,
 
 | ID | Spec § | Rule | Test | Type | Phase | Status |
 |---|---|---|---|---|---|---|
-| PSH-01 | 11.3 | Allowlisted hosts accepted; http:, localhost, 169.254.169.254, internal names rejected | relay/push.int.test.ts › allowlist | integration | 6 | ⏳ |
-| PSH-02 | 11.3 | TTL, Urgency high, Topic only with re (≤32 url-safe); VAPID JWT valid; payload decrypts (RFC 8291) | relay/push.int.test.ts › headers | integration | 6 | ⏳ |
-| PSH-03 | 11.3 | 201, 404/410, 413 (wake), 429 (Retry-After), 403, 400, 5xx/timeout handled per table | relay/push.int.test.ts › responses | integration | 6 | ⏳ |
-| PSH-04 | 11.4 | ≤3,000 B inside push; larger → wake; /v1/inbox/fetch signed, fresh, rate-limited, CORS app origin only | relay/push.int.test.ts › wake + fetch | integration | 6 | ⏳ |
-| PSH-05 | 11.8 | push.test arrives after 10 s; 4th in an hour refused | relay/push.int.test.ts › push.test | integration | 6 | ⏳ |
-| PSH-06 | 11.9 | Each subscription pushed with its own VAPID key; mismatch → re-subscribe | relay/push.int.test.ts › rotation + web/push.test.ts | integration | 6 | ⏳ |
-| PSH-07 | 11.5–11.6 | SW notification options per kind; silent and vibrate never together; tag and URL | web/sw-describe.test.ts | unit | 6 | ⏳ |
-| PSH-08 | 11.6 | Lock-screen text never contains an amount or reason | web/sw-describe.test.ts › no amounts | property | 6 | ⏳ |
-| C-11.2a | 11.2 | auth.ok pushStatus expired/missing + permission granted → silent re-subscribe | web/push.test.ts › refresh | unit | 6 | ⏳ |
-| C-11.2b | 11.2 | pushsubscriptionchange → POST /v1/push/resubscribe (signed) | relay/push.int.test.ts › resubscribe | integration | 6 | ⏳ |
-| C-11.5a | 11.5 | Every push shows a notification; the app closes it once F1 is shown | web/sw-describe.test.ts › always notify | unit | 6 | ⏳ |
-| C-11.3a | 11.3 | topicFor = first 32 chars of b64url(SHA-256(requestId)); cancel shares the request's topic | relay/push.int.test.ts › topic | integration | 6 | ⏳ |
+| PSH-01 | 11.3 | Allowlisted hosts accepted; http:, localhost, 169.254.169.254, internal names rejected | relay/push.int.test.ts › PSH-01 | integration | 6 | ✅ |
+| PSH-02 | 11.3 | TTL, Urgency high, Topic only with re (≤32 url-safe); VAPID JWT valid; payload decrypts (RFC 8291) | relay/push.int.test.ts › PSH-02 | integration | 6 | ✅ |
+| PSH-03 | 11.3 | 201, 404/410, 413 (wake), 429 (Retry-After), 403, 400, 5xx/timeout handled per table | relay/push.int.test.ts › PSH-03 | integration | 6 | ✅ |
+| PSH-04 | 11.4 | ≤3,000 B inside push; larger → wake; /v1/inbox/fetch signed, fresh, rate-limited, CORS app origin only | relay/push.int.test.ts › PSH-04 | integration | 6 | ✅ |
+| PSH-05 | 11.8 | push.test arrives after 10 s; 4th in an hour refused | relay/push.int.test.ts › PSH-05 | integration | 6 | ✅ |
+| PSH-06 | 11.9 | Each subscription pushed with its own VAPID key; mismatch → re-subscribe | relay/push.int.test.ts › PSH-06 + web/push.test.ts › PSH-06 | integration | 6 | ✅ |
+| PSH-07 | 11.5–11.6 | SW notification options per kind; silent and vibrate never together; tag and URL | web/sw.test.ts › PSH-07 | unit | 6 | ✅ |
+| PSH-08 | 11.6 | Lock-screen text never contains an amount or reason | web/sw.test.ts › PSH-08 (fast-check) | property | 6 | ✅ |
+| C-11.2a | 11.2 | auth.ok pushStatus expired/missing + permission granted → silent re-subscribe | web/push.test.ts › C-11.2a (refresh) | unit | 6 | ✅ |
+| C-11.2b | 11.2 | pushsubscriptionchange → POST /v1/push/resubscribe (signed) | relay/push.int.test.ts › C-11.2b + web/sw.test.ts › re-subscription | integration | 6 | ✅ |
+| C-11.5a | 11.5 | Every push shows a notification; the app closes it once F1 is shown | web/sw.test.ts › C-11.5a + web/push.test.ts › C-11.5a | unit | 6 | ✅ |
+| C-11.3a | 11.3 | topicFor = first 32 chars of b64url(SHA-256(requestId)); cancel shares the request's topic | relay/push.int.test.ts › PSH-02 › C-11.3a + topicFor | integration | 6 | ✅ |
 
 ## APP · frontend with the real backend
 
 | ID | Spec § | Rule | Test | Type | Phase | Status |
 |---|---|---|---|---|---|---|
-| APP-01 | 22 FC-1 | Every SIM_RELAY/SIM_KEY/SIM_VERIFIER combination works | web/services-matrix.test.ts + e2e/combinations.spec.ts | unit+e2e | 5 | ⏳ |
-| APP-02 | 5.1–5.4 | deviceId derived from key; keys non-extractable, persisted; storage.persist() called | web/identity.test.ts | unit | 5 | ⏳ |
-| APP-03 | 6.1 | Card v2 QR/link round trip; each validation error message; words derived locally | web/card.test.ts + e2e/cards.spec.ts | unit+e2e | 5 | ⏳ |
-| APP-04 | 6.5 | Every new-phone guard row in the UI | e2e/new-phone.spec.ts | e2e | 5 | ⏳ |
-| APP-05 | 10.3–10.4 | Passkey created (virtual authenticator); UV required; errors map to A6/F5; no await before credentials.get | web/real-key.test.ts + e2e/passkey.spec.ts | unit+e2e | 5 | ⏳ |
-| APP-06 | 10.5, 9.4 | Every verdict and reason reachable; skipped checks for an unreadable seal (Phase 8) | web/verification.test.ts + e2e/verdicts.spec.ts | unit+e2e | 5, 8 | ⏳ |
-| APP-07 | 10.5, 10.9 | Nonce marked right after verdict/cancel; after timeout only when the late window closes; pruned after 30 days | web/nonces.test.ts | unit | 5 | ⏳ |
-| APP-08 | 8.4–8.10 | Backoff with jitter; outbox same id; sendRequest resolves on accepted / rejects after 5 s; receipts drive D3 and "Family alerted"; tombstones; dedupe; push inbox; clock offset display-only | web/real-relay.test.ts | unit | 5, 6, 7 | ⏳ |
-| APP-09 | 22.1 | Every new state: D3 status line, not_allowed ending, F1 skew, F1 cancelled, E3 late line, E2 late meta, D1 hint, Privacy, C7 revoke/reset, Diagnostics fields, 4426 update prompt, A6 checks-only, F1 drops mis-addressed | e2e/states.spec.ts + web units | e2e | 5 | ⏳ |
-| APP-10 | 10.8 | Confirmation words identical on both phones | e2e/journeys.spec.ts › J-02 | e2e | 5 | ⏳ |
-| APP-11 | B0 | Every i18n key in en and hi; no banned word | web/i18n.test.ts + scripts/check-banned-words.mjs | unit | 5 | ⏳ |
+| APP-01 | 22 FC-1 | Every SIM_RELAY/SIM_KEY/SIM_VERIFIER combination works | web/services-matrix.test.ts (all 8) · tests/e2e (all real) · apps/web e2e (all simulated) | unit+e2e | 5 | ✅ |
+| APP-02 | 5.1–5.4 | deviceId derived from key; keys non-extractable, persisted; storage.persist() called | web/identity.test.ts | unit | 5 | ✅ |
+| APP-03 | 6.1 | Card v2 QR/link round trip; each validation error message; words derived locally | web/card.test.ts + e2e/journeys.spec.ts › J-01, J-09 | unit+e2e | 5 | ✅ |
+| APP-04 | 6.5 | Every new-phone guard row in the UI | e2e/new-phone.spec.ts (already, altered, name, phone) | e2e | 5 | ✅ |
+| APP-05 | 10.3–10.4 | Passkey created (virtual authenticator); UV required; errors map to A6/F5; no await before credentials.get | web/real-key.test.ts + web/real-key-extra.test.ts + e2e/webauthn.spec.ts + every journey (virtual authenticator) | unit+e2e | 5 | ✅ |
+| APP-06 | 10.5, 9.4 | Every verdict and reason reachable; skipped checks for an unreadable seal (Phase 8) | web/verifier.test.ts + web/verification.test.ts (unreadable seal in e2e: Phase 8) | unit+e2e | 5, 8 | ⏳ |
+| APP-07 | 10.5, 10.9 | Nonce marked right after verdict/cancel; after timeout only when the late window closes; pruned after 30 days | web/verification.test.ts › the late window, cancel and the used-nonce store | unit | 5 | ✅ |
+| APP-08 | 8.4–8.10 | Backoff with jitter; outbox same id; sendRequest resolves on accepted / rejects after 5 s; receipts drive D3 and "Family alerted"; tombstones; dedupe; push inbox; clock offset display-only | web/real-relay.test.ts + real-relay-extra.test.ts + socket.test.ts + outbox.test.ts; push inbox: sw.test.ts › C-11.5a + real-relay-extra.test.ts › drainPushInbox (Lab plain: Phase 7) | unit | 5, 6, 7 | ✅ |
+| APP-09 | 22.1 | Every new state: D3 status line, not_allowed ending, F1 skew, F1 cancelled, E3 late line, E2 late meta, D1 hint, Privacy, C7 revoke/reset, Diagnostics fields, 4426 update prompt, A6 checks-only, F1 drops mis-addressed | e2e/states.spec.ts + journeys/failures/late + web/answering.test.ts | e2e | 5 | ✅ |
+| APP-10 | 10.8 | Confirmation words identical on both phones | e2e/journeys.spec.ts › J-02 | e2e | 5 | ✅ |
+| APP-11 | B0 | Every i18n key in en and hi; no banned word | web/i18n.test.ts + tests/unit/banned-words.test.ts | unit | 5 | ✅ |
 | APP-12 | 16.5 | Security headers; meta CSP names the relay; fonts self-hosted; no third-party requests except relay + Sentry | web/headers.test.ts + e2e/third-party.spec.ts | unit+e2e | 9 | ⏳ |
 | APP-13 | 16.7 | Sentry scrubber removes every 16.7 field | web/sentry.test.ts | unit | 9 | ⏳ |
-| APP-14 | 21.3 | The whole frontend Part D walkthrough against the real backend | e2e/walkthrough.spec.ts | e2e | 5 | ⏳ |
-| C-5.4a | 5.4 | "Delete my key" calls signalUnknownCredential where supported | web/real-key.test.ts › signalUnknownCredential | unit | 5 | ⏳ |
-| C-8.9a | 8.9 | Reconnect immediately on online, visibility visible, notification click; reconnect{afterMs} honoured | web/real-relay.test.ts › reconnect triggers | unit | 5 | ⏳ |
-| C-8.9b | 8.9 | After auth.ok: grant.set + push.subscribe, then outbox flush | web/real-relay.test.ts › after login | unit | 5 | ⏳ |
-| C-8.9c | 8.9 | connected / reconnecting (<30 s) / offline (onLine false or ≥30 s) | web/real-relay.test.ts › states | unit | 5 | ⏳ |
-| C-7.1b | 7.1 | App ping every 25 s in foreground; no pong in 10 s → reconnect | web/real-relay.test.ts › heartbeat | unit | 5 | ⏳ |
-| C-10.4a | 10.4 | Challenges precomputed when F1 opens | web/real-key.test.ts › precompute | unit | 5 | ⏳ |
-| C-10.5a | 10.5 | The verifier runs only for a waiting request or one timed out <30 s ago | web/verification.test.ts › window | unit | 5 | ⏳ |
-| C-10.5b | 10.5 | Member card looked up by req.toDeviceId, never the sender | web/verification.test.ts › member lookup | unit | 5 | ⏳ |
-| C-10.9a | 10.9 | "Reset used request numbers" hidden in production | web/diagnostics.test.ts | unit | 5 | ⏳ |
-| C-12a | 12 | Presence asked on demand, at most every 30 s per screen | web/presence.test.ts | unit | 5 | ⏳ |
-| C-9.5a | 9.5 | The app refuses incoming plain unless its own Lab opt-in is on | web/envelope.test.ts › refuse plain | unit | 8 | ⏳ |
+| APP-14 | 21.3 | The whole frontend Part D walkthrough against the real backend | e2e/walkthrough.spec.ts + journeys (Lab and Guard steps against the relay: Phase 7) | e2e | 5 | ⏳ |
+| C-5.4a | 5.4 | "Delete my key" calls signalUnknownCredential where supported | web/real-key-extra.test.ts › deleteKey and signalUnknownCredential | unit | 5 | ✅ |
+| C-8.9a | 8.9 | Reconnect immediately on online, visibility visible, notification click; reconnect{afterMs} honoured | web/socket.test.ts › reconnect triggers (online, visible, reconnect{afterMs}) | unit | 5 | ✅ |
+| C-8.9b | 8.9 | After auth.ok: grant.set + push.subscribe, then outbox flush | web/real-relay-extra.test.ts › after a login, grant.set and push.subscribe go out before the outbox is flushed | unit | 5 | ✅ |
+| C-8.9c | 8.9 | connected / reconnecting (<30 s) / offline (onLine false or ≥30 s) | web/socket.test.ts › connection states | unit | 5 | ✅ |
+| C-7.1b | 7.1 | App ping every 25 s in foreground; no pong in 10 s → reconnect | web/socket.test.ts › heartbeat | unit | 5 | ✅ |
+| C-10.4a | 10.4 | Challenges precomputed when F1 opens | web/real-key.test.ts › needs prepareAnswer first; calls get() synchronously with the precomputed challenge | unit | 5 | ✅ |
+| C-10.5a | 10.5 | The verifier runs only for a waiting request or one timed out <30 s ago | web/verification.test.ts › the late window (10.7) | unit | 5 | ✅ |
+| C-10.5b | 10.5 | Member card looked up by req.toDeviceId, never the sender | web/verification.test.ts › an answer relayed from someone else's device is INVALID | unit | 5 | ✅ |
+| C-10.9a | 10.9 | "Reset used request numbers" hidden in production | web/diagnostics.test.ts | unit | 5 | ✅ |
+| C-12a | 12 | Presence asked on demand, at most every 30 s per screen | web/presence.test.ts | unit | 5 | ✅ |
+| C-9.5a | 9.5 | The app refuses incoming plain unless its own Lab opt-in is on | web/envelope.test.ts › refuse plain (+ real-relay.test.ts › refuses a readable envelope) | unit | 8 | ✅ |
+| C-11.2c | 11.2, FC-8, FC-10 | A8: permission asked first, inside the tap; granted → subscribe (userVisibleOnly, this build's key) + push.subscribe; refused → remembered, Settings → Alerts; iPhone Safari tab → install first | web/push.test.ts › 11.2 · turning alerts on + e2e/push.spec.ts › J-06 | unit+e2e | 6 | ✅ |
+| C-11.2d | 11.2 | A subscription the relay reports expired is not re-sent at login; the push controller replaces it | web/real-relay-extra.test.ts › an expired subscription isn't re-sent at login | unit | 6 | ✅ |
+| C-11.8a | 11.8, FC-9 | Battery guidance by maker (user agent, or the client-hint model); Autostart only for Xiaomi | web/phone-brand.test.ts | unit | 6 | ✅ |
+| C-11.8b | 11.8 | Alert check: arrival = service-worker receive time − tap time (this phone's clock); a limit that outlasts the message is reported at once | web/push.test.ts › the alert check's arrival time + web/real-relay-extra.test.ts › a rate limit that outlasts the message | unit | 6 | ✅ |
 
 ## J · end-to-end journeys (Playwright; Maa, Arjun, Papa, judge/Lab)
 
 | ID | Spec § | Journey | Test | Type | Phase | Status |
 |---|---|---|---|---|---|---|
-| J-01 | 6 | Set up both; add each other in person; words identical | e2e/journeys.spec.ts › J-01 | e2e | 5 | ⏳ |
-| J-02 | 10 | Genuine YES → VERIFIED, same two confirmation words | e2e/journeys.spec.ts › J-02 | e2e | 5 | ⏳ |
-| J-03 | 13.1 | NOT ME → DENIED; Papa receives G1 | e2e/journeys.spec.ts › J-03 | e2e | 5, 7 | ⏳ |
-| J-04 | 13.1 | No answer → NO_RESPONSE at 60 s; Ask family → Papa gets G2 | e2e/journeys.spec.ts › J-04 | e2e | 5, 7 | ⏳ |
-| J-05 | 23 | Maa offline / relay down → offline / relay_unreachable | e2e/journeys.spec.ts › J-05 | e2e | 5 | ⏳ |
-| J-06 | 11 | Arjun's page closed → mock push → notification URL → answer | e2e/push.spec.ts › J-06 | e2e | 6 | ⏳ |
-| J-07 | 8.6 | Maa cancels → "Maa stopped waiting" | e2e/journeys.spec.ts › J-07 | e2e | 5 | ⏳ |
-| J-08 | 10.7 | Late NOT ME → DENIED (late); late YES → Not confirmed yet + late line | e2e/late.spec.ts › J-08 | e2e | 5 | ⏳ |
-| J-09 | 6.4 | The judge opens Arjun's family link and checks him | e2e/journeys.spec.ts › J-09 | e2e | 5 | ⏳ |
-| J-10 | 6.5 | A "new phone" link with Arjun's name → red warning | e2e/new-phone.spec.ts › J-10 | e2e | 5 | ⏳ |
-| J-11 | 6.4 | Arjun removes Maa (+ reset) → "isn't accepting checks"; new person with old card refused | e2e/journeys.spec.ts › J-11 | e2e | 5 | ⏳ |
-| J-12 | 14.3 | 50 Lab attacks (change, replay, forge, forge with copied credId) → all INVALID, 0 false greens | e2e/lab.spec.ts › J-12 | e2e | 7 | ⏳ |
-| J-13 | 13.2 | Call Guard scripted call → prompt → D2 prefilled | e2e/guard.spec.ts › J-13 | e2e | 7 | ⏳ |
+| J-01 | 6 | Set up both; add each other in person; words identical | e2e/journeys.spec.ts › J-01 | e2e | 5 | ✅ |
+| J-02 | 10 | Genuine YES → VERIFIED, same two confirmation words | e2e/journeys.spec.ts › J-02 | e2e | 5 | ✅ |
+| J-03 | 13.1 | NOT ME → DENIED; Papa receives G1 | e2e/journeys.spec.ts › J-03 | e2e | 5, 7 | ✅ |
+| J-04 | 13.1 | No answer → NO_RESPONSE at 60 s; Ask family → Papa gets G2 | e2e/failures.spec.ts › J-04 | e2e | 5, 7 | ✅ |
+| J-05 | 23 | Maa offline / relay down → offline / relay_unreachable | e2e/failures.spec.ts › J-05 | e2e | 5 | ✅ |
+| J-06 | 11 | Arjun's page closed → mock push → notification URL → answer | e2e/push.spec.ts › J-06 | e2e | 6 | ✅ |
+| J-07 | 8.6 | Maa cancels → "Maa stopped waiting" | e2e/journeys.spec.ts › J-07 | e2e | 5 | ✅ |
+| J-08 | 10.7 | Late NOT ME → DENIED (late); late YES → Not confirmed yet + late line | e2e/late.spec.ts › J-08a, J-08b | e2e | 5 | ✅ |
+| J-09 | 6.4 | The judge opens Arjun's family link and checks him | e2e/journeys.spec.ts › J-09 | e2e | 5 | ✅ |
+| J-10 | 6.5 | A "new phone" link with Arjun's name → red warning | e2e/new-phone.spec.ts › J-10 | e2e | 5 | ✅ |
+| J-11 | 6.4 | Arjun removes Maa (+ reset) → "isn't accepting checks"; new person with old card refused | e2e/failures.spec.ts › J-11 | e2e | 5 | ✅ |
+| J-12 | 14.3 | 50 Lab attacks (change, replay, forge, forge with copied credId) → all INVALID, 0 false greens | e2e/lab.spec.ts › J-12 (50 attacks through the real relay; log in docs/lab-log-phase7.json) | e2e | 7 | ✅ |
+| J-13 | 13.2 | Call Guard scripted call → prompt → D2 prefilled | e2e/guard.spec.ts › J-13 (pairing by card, scripted call, B2 banner, real check) | e2e | 7 | ✅ |
 | J-14 | 18.9 | relay-a killed while a request is pending (through Caddy) → relay-b takes over | ops/failover.spec.ts › J-14 | e2e | 10 | ⏳ |
-| J-15 | 8.6 | Double tap on NOT ME → one answer, no duplicate verdict | e2e/journeys.spec.ts › J-15 | e2e | 5 | ⏳ |
+| J-15 | 8.6 | Double tap on NOT ME → one answer, no duplicate verdict | e2e/journeys.spec.ts › J-15 | e2e | 5 | ✅ |
 | J-16 | 9 | Every journey with E2E_REQUIRED=true; captured frames hold no personal data | e2e (E2E_REQUIRED=true) + relay/frame-capture.int.test.ts | e2e | 8 | ⏳ |
-| J-17 | 7.1 | Arjun open in two tabs; answering in one closes the other | e2e/journeys.spec.ts › J-17 | e2e | 5 | ⏳ |
+| J-17 | 7.1 | Arjun open in two tabs; answering in one closes the other | e2e/failures.spec.ts › J-17 | e2e | 5 | ✅ |
 
 ## OPS · infrastructure (local)
 
@@ -213,47 +217,51 @@ Paths: `crypto` = `packages/crypto/test`, `protocol` = `packages/protocol/test`,
 | SEC-06 | 16.2 | Oversized and binary frames handled | relay/upgrade.int.test.ts › binary 1003, too_large, 1009 | security | 9 | ✅ |
 | SEC-07 | 16.2 | Never-login sockets close at 10 s; pending unauthenticated per IP capped | sec/attacks.test.ts › slowloris | security | 9 | ⏳ |
 | SEC-08 | 11.3 | SSRF push subscriptions refused | sec/attacks.test.ts › ssrf | security | 9 | ⏳ |
-| SEC-09 | 14.1 | Lab off → lab.* refused; not opted in → not intercepted; password attempts limited | relay/lab.int.test.ts › safety | security | 7 | ⏳ |
+| SEC-09 | 14.1 | Lab off → lab.* refused; not opted in → not intercepted; password attempts limited | relay/lab.int.test.ts › SEC-09 (7 tests: module off, switch off, password + shared IP limit, Lab page only, layers 3–4, opt-out, audit) | security | 7 | ✅ |
 | SEC-10 | 16.4 | gitleaks: no secrets in the repo or history | sec/gitleaks (CI + local) | security | 9 | ⏳ |
 | SEC-11 | 21.7 | pnpm audit and Trivy: no critical/high | sec/audit (CI) | security | 9 | ⏳ |
 | SEC-12 | 12 | Presence never reveals strangers | relay/data.int.test.ts › CON-06 / SEC-12 · presence | security | 9 | ✅ |
-| C-14.3a | 14.3 | Held message: 10 s without Lab reply → original forwarded, disarmed, "Lab didn't respond" | relay/lab.int.test.ts › hold timeout | integration | 7 | ⏳ |
-| C-14.1a | 14.1 | cfg:lab expires after 12 h; opt-ins and sessions after 4 h | relay/lab.int.test.ts › ttls | integration | 7 | ⏳ |
-| C-14.4a | 14.4 | Every attack written to lab_attacks; false_green counter stays 0 | relay/lab.int.test.ts › records | integration | 7 | ⏳ |
+| C-14.3a | 14.3 | Held message: 10 s without Lab reply → original forwarded, disarmed, "Lab didn't respond" | relay/lab.int.test.ts › 14.3 › the Lab page doesn't answer in 10 s | integration | 7 | ✅ |
+| C-14.1a | 14.1 | cfg:lab expires after 12 h; opt-ins and sessions after 4 h | relay/lab.int.test.ts › C-14.1a + 14.2 › opt-ins last 4 h | integration | 7 | ✅ |
+| C-14.3b | 14.3, FC-21 | The Lab page's attacks, built in WebCrypto, checked by the real verifier: change → changed, replay → reused, forge → wrong_key, forge with copied credId → bad_signature; a sealed message is released unchanged | web/real-lab.test.ts › 14.3 | unit | 7 | ✅ |
+| C-14.2a | 14.2 | Lab sessions survive a reconnect; arming reaches every Lab page and opted-in phone on every gateway; traffic is readable only between opted-in phones | relay/lab.int.test.ts › 14.2 | integration | 7 | ✅ |
+| C-14.1b | 14.1, 18.7 | infra/scripts/lab-password-hash.ts prints only an Argon2id hash (new salt each time, ≥ 12 characters) | tests/unit/lab-password-hash.test.ts | unit | 7 | ✅ |
+| C-13.2a | 13.2, FC-22 | Call Guard pairs with a phone by card after comparing the safety words, sends sealed prompts to it; consent line shown | e2e/guard.spec.ts › J-13 | e2e | 7 | ✅ |
+| C-14.4a | 14.4 | Every attack written to lab_attacks; false_green counter stays 0 | relay/lab.int.test.ts › 14.3–14.4 (lab_attacks rows, metric, false green logged) + web/real-lab.test.ts › 14.4 | integration | 7 | ✅ |
 
 ## Failure modes (section 23) → proving test
 
 | ID | Situation | Test | Phase | Status |
 |---|---|---|---|---|
-| F-01 | Arjun's phone off / no data → Not confirmed yet at 60 s | J-04 | 5 | ⏳ |
-| F-02 | Arjun's app closed → notification | J-06 | 6 | ⏳ |
+| F-01 | Arjun's phone off / no data → Not confirmed yet at 60 s | J-04 | 5 | ✅ |
+| F-02 | Arjun's app closed → notification | J-06 | 6 | ✅ |
 | F-03 | Battery saver delays push | manual: E4 step 12 | 6 | manual |
-| F-04 | iPhone not installed / alerts refused → reachability hint | APP-09 (D1 hint), FC-10 | 5 | ⏳ |
-| F-05 | Maa offline → relay_unreachable | J-05 | 5 | ⏳ |
+| F-04 | iPhone not installed / alerts refused → reachability hint | APP-09 (D1 hint: states.spec.ts › FC-17), FC-10 | 5 | ✅ |
+| F-05 | Maa offline → relay_unreachable | J-05 | 5 | ✅ |
 | F-06 | Network flicker while waiting → reconnect + drain | CHAOS-05 | 11 | ⏳ |
-| F-07 | Maa backgrounded when answer arrives → push to Maa | REL-06 + PSH-02 | 6 | ⏳ |
+| F-07 | Maa backgrounded when answer arrives → push to Maa | REL-06 + PSH-02 + web/sw.test.ts (answer notification) | 6 | ✅ |
 | F-08 | Relay container crash / deploy mid-check | J-14, OPS-03 | 10 | ⏳ |
 | F-09 | Whole VM down → Not confirmed yet; restart | OPS-06 | 10 | ⏳ |
 | F-10 | Redis unavailable → fail closed | REL-19 | relay/health.int.test.ts › REL-19 (Valkey down → unavailable) | ✅ |
 | F-11 | Redis restarted → routes self-heal | REL-05, CON-11 | relay/delivery.int.test.ts › REL-05 (Valkey wipe) + data.int.test.ts › CON-11 | ✅ |
 | F-12 | Postgres unavailable → warm caches keep working | REL-19, CON-08 | relay/health.int.test.ts › REL-19 (warm caches keep working) | ✅ |
-| F-13 | Push service outage → failed receipts | PSH-03, CHAOS-04 | 6 | ⏳ |
-| F-14 | Push subscription expired → deleted, re-subscribed | PSH-03 | 6 | ⏳ |
-| F-15 | Wrong phone clock → nothing | APP-09 (F1 skew) | 5 | ⏳ |
-| F-16 | Duplicate delivery → nothing | REL-08, APP-08 | 5 | ⏳ |
-| F-17 | Double tap / two devices → first answer counts | J-15, J-17, REL-10 | 5 | ⏳ |
-| F-18 | Maa cancels → Arjun sees "stopped waiting" | J-07 | 5 | ⏳ |
-| F-19 | Arjun answers after 60 s → late policy | J-08 | 5 | ⏳ |
-| F-20 | Arjun cancels the fingerprint prompt → F5 | APP-05 | 5 | ⏳ |
-| F-21 | Passkey deleted from the password manager → F5 then "key is missing" | APP-05 | 5 | ⏳ |
-| F-22 | Storage cleared → fresh start | APP-02 | 5 | ⏳ |
+| F-13 | Push service outage → failed receipts | PSH-03 (5xx/timeout → failed); CHAOS-04 in phase 11 | 6 | ✅ |
+| F-14 | Push subscription expired → deleted, re-subscribed | PSH-03 (404/410 → expired) + C-11.2a (re-subscribe) | 6 | ✅ |
+| F-15 | Wrong phone clock → nothing | states.spec.ts › F-15 | 5 | ✅ |
+| F-16 | Duplicate delivery → nothing | REL-08, real-relay.test.ts › drops duplicates | 5 | ✅ |
+| F-17 | Double tap / two devices → first answer counts | J-15, J-17, REL-10 | 5 | ✅ |
+| F-18 | Maa cancels → Arjun sees "stopped waiting" | J-07 | 5 | ✅ |
+| F-19 | Arjun answers after 60 s → late policy | J-08 | 5 | ✅ |
+| F-20 | Arjun cancels the fingerprint prompt → F5 | real-key.test.ts › a cancelled prompt, answering.test.ts | 5 | ✅ |
+| F-21 | Passkey deleted from the password manager → F5 then "key is missing" | states.spec.ts › F-21 | 5 | ✅ |
+| F-22 | Storage cleared → fresh start | states.spec.ts › F-22, identity.test.ts | 5 | ✅ |
 | F-23 | Phone lost → UV required | CRY-07 (check 5) | 2 | ✅ |
-| F-24 | Family link leaks → rate limits, Remove, Reset my code | REL-16, J-11 | 5 | ⏳ |
-| F-25 | Scammer's "new phone" link → red warning | J-10 | 5 | ⏳ |
-| F-26 | Relay compromised → never a false green | J-12, CRY-09 | 7 | ⏳ |
+| F-24 | Family link leaks → rate limits, Remove, Reset my code | REL-16, J-11 | 5 | ✅ |
+| F-25 | Scammer's "new phone" link → red warning | J-10 | 5 | ✅ |
+| F-26 | Relay compromised → never a false green | J-12 (0 false greens) + CRY-09 | 7 | ✅ |
 | F-27 | Vercel down → installed app opens from cache | web e2e offline start | 5 | ⏳ |
-| F-28 | App too old → "Update Pehchaan" (4426) | APP-09 | 5 | ⏳ |
-| F-29 | Lab left on → only opted-in phones, banner; TTLs | C-14.1a, SEC-09 | 7 | ⏳ |
+| F-28 | App too old → "Update Pehchaan" (4426) | states.spec.ts › FC-23 | 5 | ✅ |
+| F-29 | Lab left on → only opted-in phones, banner; TTLs | C-14.1a, SEC-09 | 7 | ✅ |
 
 ## Manual (E4, real phones)
 

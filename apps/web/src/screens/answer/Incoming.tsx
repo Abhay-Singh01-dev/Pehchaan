@@ -2,11 +2,15 @@
 // Opens automatically from any screen as a takeover. Deep ink in both themes, so it feels
 // urgent and distinct from verdicts. The safest answer, NO, NOT ME, sits in the most reachable
 // spot. Answering always needs an unlock (F2), including for NO, NOT ME.
+// Backend spec: the time left is the relay's ttlMs counted on THIS phone's clock (8.7, FC-14); the passkey
+// challenges are prepared when F1 opens so the tap can start the prompt at once (10.4); "{asker} stopped
+// waiting" and "answered on another device" close it (FC-15).
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { AnimatePresence } from "motion/react";
 import * as m from "motion/react-m";
-import { Fingerprint, HourglassLow, Stack, WarningCircle, WifiSlash } from "@phosphor-icons/react";
+import { Fingerprint, HandPalm, HourglassLow, Stack, WarningCircle, WifiSlash } from "@phosphor-icons/react";
+import { services } from "@/services";
 import type { Decision, FamilyMember, VerifyRequest } from "@/services/types";
 import { cancelUnlock } from "@/services/sim/unlockBridge";
 import { Avatar } from "@/components/Avatar";
@@ -18,6 +22,7 @@ import { useFamily } from "@/store/family";
 import { answerRequest, expireIncoming, nextPendingRequestId, type AnswerPhase } from "@/app/answering";
 import { useG } from "@/app/i18n";
 import { flags } from "@/app/flags";
+import { push } from "@/app/push";
 import { useReduced } from "@/app/session";
 import { useWakeLock } from "@/design/wakeLock";
 import { hapticLoop } from "@/design/haptics";
@@ -26,7 +31,8 @@ import { dur, riseIn, spring } from "@/design/motion";
 import { formatINR, mmss } from "@/lib/format";
 import { cn } from "@/lib/cn";
 
-type UiPhase = "idle" | "unlocking" | "sending" | "retrying" | "cancelled" | "expired" | "no_key";
+type UiPhase =
+  "idle" | "unlocking" | "sending" | "retrying" | "cancelled" | "expired" | "no_key" | "answered_elsewhere";
 
 export function questionKey(req: Pick<VerifyRequest, "reason" | "amountInr">): string {
   switch (req.reason) {
@@ -53,6 +59,9 @@ export function Incoming() {
   const family = useFamily();
   const [phase, setPhase] = useState<UiPhase>("idle");
   const [chosen, setChosen] = useState<Decision | null>(null);
+  /** Unlocks that didn't complete for this request (F5). A deleted passkey looks exactly like a cancelled
+   *  prompt to the app, so after the second one F1 says the key may be missing (spec 23, D-041). */
+  const [failedUnlocks, setFailedUnlocks] = useState(0);
   const alive = useRef(true);
   useEffect(() => {
     alive.current = true;
@@ -62,13 +71,23 @@ export function Incoming() {
   }, []);
 
   const req = record?.request;
-  const seconds = useSecondsLeft(req?.expiresAt ?? 0);
+  const deadline = record?.localDeadline ?? 0;
+  const seconds = useSecondsLeft(deadline);
+  const sendingNow = phase === "sending" || phase === "retrying";
+  /** FC-15: the asker stopped waiting, or another of my devices answered first. */
+  const closed =
+    phase === "answered_elsewhere"
+      ? "answered_elsewhere"
+      : record?.status === "cancelled"
+        ? (record.cancelReason ?? "asker_cancelled")
+        : null;
   const expired =
-    phase === "expired" ||
-    record?.status === "expired" ||
-    (req !== undefined && seconds <= 0 && record?.status === "pending");
+    !closed &&
+    (phase === "expired" ||
+      record?.status === "expired" ||
+      (req !== undefined && seconds <= 0 && record?.status === "pending" && !sendingNow));
   const ringing =
-    Boolean(req) && record?.status === "pending" && !expired && (phase === "idle" || phase === "cancelled");
+    Boolean(req) && record?.status === "pending" && !expired && !closed && (phase === "idle" || phase === "cancelled");
 
   useWakeLock(Boolean(req) && !expired && record?.status === "pending");
 
@@ -83,14 +102,30 @@ export function Incoming() {
     };
   }, [ringing]);
 
-  // Expiry → F4.
+  // When F1 opens: prepare both passkey challenges (10.4), tell the asker "Seen" (FC-12), and close the request's
+  // notification, which has done its job (11.5).
+  const openedFor = useRef<string | null>(null);
   useEffect(() => {
-    if (req && record?.status === "pending" && seconds <= 0) {
+    if (!record || record.status !== "pending" || openedFor.current === record.requestId) return;
+    openedFor.current = record.requestId;
+    void services.key.prepareAnswer(record.request, record.localDeadline).catch(() => {});
+    services.relay.markSeen(record.requestId);
+    void push.closeNotifications(`req-${record.requestId}`);
+  }, [record]);
+
+  // Expiry → F4. An answer already signed and on its way is left to the relay, which allows 30 s of grace.
+  useEffect(() => {
+    if (req && record?.status === "pending" && seconds <= 0 && !sendingNow) {
       cancelUnlock();
       void expireIncoming(req.requestId);
       setPhase("expired");
     }
-  }, [seconds, req, record?.status]);
+  }, [seconds, req, record?.status, sendingNow]);
+
+  // Closed from the other side while the unlock sheet is up: take it down.
+  useEffect(() => {
+    if (closed) cancelUnlock();
+  }, [closed]);
 
   // Already answered (e.g. after a reload): show the sent screen.
   useEffect(() => {
@@ -101,13 +136,16 @@ export function Incoming() {
   const onPhase = useCallback((p: AnswerPhase) => {
     if (!alive.current) return;
     if (p.kind === "sent") return;
-    setPhase(p.kind === "sending" ? "sending" : p.kind === "retrying" ? "retrying" : p.kind);
+    if (p.kind === "cancelled") setFailedUnlocks((n) => n + 1);
+    setPhase(p.kind);
   }, []);
 
   const answer = async (decision: Decision) => {
-    if (!requestId || (phase !== "idle" && phase !== "cancelled")) return;
+    if (!record || !requestId || (phase !== "idle" && phase !== "cancelled")) return;
+    // The passkey prompt starts inside answerRequest's first line: nothing is awaited before it (10.4).
+    const pending = answerRequest(record, decision, onPhase, () => alive.current);
     setChosen(decision);
-    const result = await answerRequest(requestId, decision, onPhase, () => alive.current);
+    const result = await pending;
     if (!alive.current) return;
     if (result === "sent") navigate(`/request/${requestId}/sent`, { replace: true });
     if (result === "cancelled") setChosen(null);
@@ -147,7 +185,7 @@ export function Incoming() {
         className="sticky top-0 z-10 mx-auto w-full max-w-[480px] px-5"
         style={{ paddingTop: `calc(env(safe-area-inset-top) + ${SIM_OFFSET + 6}px)` }}
       >
-        {!expired && <CountdownBar expiresAt={req.expiresAt} />}
+        {!expired && !closed && <CountdownBar expiresAt={deadline} />}
       </div>
 
       <div className="relative mx-auto flex w-full max-w-[480px] flex-1 flex-col px-6 pt-6">
@@ -166,7 +204,7 @@ export function Incoming() {
 
         <m.div
           className="mt-6 flex flex-col items-center text-center"
-          animate={{ opacity: expired ? 0.4 : 1 }}
+          animate={{ opacity: expired || closed ? 0.4 : 1 }}
           transition={{ duration: dur.slow }}
         >
           <Avatar name={asker} color={askerMember?.color ?? "slate"} size={88} pulse={ringing ? "heartbeat" : null} />
@@ -191,7 +229,7 @@ export function Incoming() {
               </span>
             ))}
           </m.h1>
-          {!expired && (
+          {!expired && !closed && (
             <p
               className="mt-4 inline-flex items-center gap-1.5 font-mono text-body font-semibold tabular-nums text-[#C3C8E8]"
               aria-label={t("a11y.secondsLeft", { count: seconds })}
@@ -205,7 +243,28 @@ export function Incoming() {
 
         <div className="pb-2" style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 16px)" }}>
           <AnimatePresence mode="wait" initial={false}>
-            {expired ? (
+            {closed ? (
+              // FC-15 · Closed by the asker, or answered on another device
+              <m.div
+                key="closed"
+                className="rounded-[22px] bg-white/[0.08] p-5 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.12)]"
+                initial={{ opacity: 0, y: reduced ? 0 : 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                role="alert"
+              >
+                <p className="flex items-center gap-2 text-body font-semibold text-white">
+                  <HandPalm size={22} weight="duotone" aria-hidden />
+                  {closed === "answered_elsewhere"
+                    ? t("ask.answeredElsewhere")
+                    : closed === "expired"
+                      ? t("ask.expired", { asker })
+                      : t("ask.stoppedWaiting", { asker })}
+                </p>
+                <Button className="mt-4" full variant="on-verdict" onClick={done}>
+                  {t("common.done")}
+                </Button>
+              </m.div>
+            ) : expired ? (
               // F4 · Expired
               <m.div
                 key="expired"
@@ -263,6 +322,26 @@ export function Incoming() {
                       )}
                       {phase === "retrying" ? t("ask.sendFailed") : t("ask.notConfirmed")}
                     </m.p>
+                  )}
+                  {phase === "cancelled" && failedUnlocks >= 2 && (
+                    <m.div
+                      key="key-missing"
+                      role="status"
+                      className="rounded-[18px] bg-white/[0.08] p-4 text-center"
+                      initial={{ opacity: 0, y: reduced ? 0 : 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0 }}
+                    >
+                      <p className="text-body-sm font-semibold text-[#FDB022]">{t("ask.keyMaybeMissing")}</p>
+                      <Button
+                        className="mt-3"
+                        size="md"
+                        variant="on-verdict-ghost"
+                        onClick={() => navigate("/settings/key", { replace: true })}
+                      >
+                        {t("ask.setUpAgain")}
+                      </Button>
+                    </m.div>
                   )}
                 </AnimatePresence>
 

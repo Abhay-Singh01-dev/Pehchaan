@@ -6,7 +6,7 @@ Questions the specification and the code couldn't answer. Answered ones stay her
 
 | ID | Question | Answer (2026-09-26) |
 |---|---|---|
-| Q-1 | The spec puts the frontend at `apps/web`, but the build session runs inside `frontend/`, which Windows can't move while it's in use. | Copy it into `apps/web`; the team deletes the old folder afterwards (D-001). |
+| Q-1 | The spec puts the frontend at `apps/web`, but the build session runs inside `frontend/`, which Windows can't move while it's in use. | Copied into `apps/web`; the old folder was deleted in Phase 5 (D-001). |
 | Q-2 | `scripts/banned-words.txt` is "the team's list", which isn't in the codebase. What does it contain? | The eight words and phrases now in `scripts/banned-words.txt`. Whole words, case-insensitive; "test", "mock" and "safe" are banned on family screens only (D-004). |
 | Q-3 | `Pehchaan/` wasn't its own git repository. | `git init`, with one commit per phase after its gate passes (D-006). |
 | Q-4 | Is the production domain known? Passkeys are bound to it forever. | Not yet: use `yourdomain.in` placeholders, and rpId `localhost` locally (D-005). |

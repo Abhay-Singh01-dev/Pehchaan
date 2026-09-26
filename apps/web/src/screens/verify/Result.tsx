@@ -23,8 +23,10 @@ import { Sheet } from "@/components/Sheet";
 import { WhySheet } from "@/components/ChecksList";
 import { VerdictAction, VerdictScreen, safeVerdict, VERDICT_TONE } from "@/components/VerdictScreen";
 import { useOutgoing } from "@/store/requests";
+import type { AlertDelivery } from "@/store/db";
 import { useMember } from "@/store/family";
 import { askFamilyToReach, checkAgain } from "@/app/verification";
+import { push } from "@/app/push";
 import { useG } from "@/app/i18n";
 import { joinNames, relativeTime } from "@/lib/format";
 import { useReduced } from "@/app/session";
@@ -64,6 +66,12 @@ export function Result() {
     }
   }, [blocker]);
 
+  // "{label} answered" has done its job once the verdict is on screen (11.5).
+  const decided = Boolean(record?.result);
+  useEffect(() => {
+    if (requestId && decided) void push.closeNotifications(`ans-${requestId}`);
+  }, [requestId, decided]);
+
   if (record === null) return <Navigate to="/home" replace />;
   if (!record) return <div className="min-h-app bg-[#0A0E1F]" />;
   if (record.status === "pending") return <Navigate to={`/verify/waiting/${record.requestId}`} replace />;
@@ -87,10 +95,13 @@ export function Result() {
     }
   };
 
+  // E2's meta line: when the answer was made, or (FC-16) that it arrived after the timer ended.
   const keyAgo =
-    result.answeredAt && (result.verdict === "VERIFIED" || result.verdict === "DENIED")
-      ? t("v.keyAgo", { name: label, ago: relativeTime(result.answeredAt, lang, now) })
-      : undefined;
+    result.verdict === "DENIED" && result.late
+      ? t("v.denied.late", { name: label })
+      : result.answeredAt && (result.verdict === "VERIFIED" || result.verdict === "DENIED")
+        ? t("v.keyAgo", { name: label, ago: relativeTime(result.answeredAt, lang, now) })
+        : undefined;
 
   const doneBtn = (i: number, primary = false) => (
     <VerdictAction index={i} key="done">
@@ -159,7 +170,6 @@ export function Result() {
           {t("v.denied.body", { name: label })} <strong className="font-bold">{t("v.denied.warn")}</strong>
         </>
       );
-      const status = record.alertStatus;
       content = (
         <div className="flex flex-col gap-2.5">
           <VerdictAction index={0}>
@@ -179,30 +189,7 @@ export function Result() {
             </VerdictAction>
           )}
           <VerdictAction index={2}>
-            <div
-              className="flex min-h-14 items-center gap-3 rounded-[18px] bg-white/10 px-4 py-3 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.16)]"
-              aria-live="polite"
-            >
-              {status === "sent" ? (
-                <CheckCircle size={24} weight="fill" className="shrink-0" aria-hidden />
-              ) : status === "sending" || status === undefined ? (
-                <span
-                  className="h-5 w-5 shrink-0 animate-spin rounded-full border-2 border-white border-t-transparent"
-                  aria-hidden
-                />
-              ) : (
-                <UsersThree size={24} weight="duotone" className="shrink-0" aria-hidden />
-              )}
-              <span className="text-body-sm font-medium">
-                {status === "sent"
-                  ? t("v.familyAlerted", { names: joinNames(record.alertedLabels ?? [], lang) })
-                  : status === "none"
-                    ? t("v.familyNone")
-                    : status === "failed"
-                      ? t("v.familyFailed")
-                      : t("v.familyAlerting")}
-              </span>
-            </div>
+            <FamilyAlertRows status={record.alertStatus} alerts={record.alerts} />
           </VerdictAction>
           <VerdictAction index={3}>
             <a
@@ -220,24 +207,38 @@ export function Result() {
     case "NO_RESPONSE": {
       title = t("v.none.title");
       body = bodyText = t("v.none.body", { name: label });
-      const network = result.noResponseReason === "offline" || result.noResponseReason === "relay_unreachable";
+      const why = result.noResponseReason;
+      // Why it wasn't confirmed, when there's more to say than "no answer" (E3, FC-13, FC-16).
+      const line =
+        why === "offline" || why === "relay_unreachable"
+          ? t("v.none.network")
+          : why === "not_allowed"
+            ? t("v.none.notAllowed", { name: label })
+            : why === "late"
+              ? t("v.none.late", { name: label })
+              : null;
       content = (
         <div className="flex flex-col gap-2.5">
-          {network && (
+          {line && (
             <VerdictAction index={0}>
               <p className="flex items-center justify-center gap-2 rounded-[14px] bg-black/[0.08] px-4 py-3 text-center text-body font-semibold">
-                <WarningCircle size={22} weight="bold" aria-hidden /> {t("v.none.network")}
+                <WarningCircle size={22} weight="bold" className="shrink-0" aria-hidden /> {line}
               </p>
             </VerdictAction>
           )}
           <VerdictAction index={1}>
-            {record.checkOnSentTo ? (
+            {record.checkOnAlerts ? (
               <p
                 className="flex min-h-14 items-center gap-3 rounded-[18px] bg-black/[0.08] px-4 py-3 text-body-sm font-semibold"
                 aria-live="polite"
               >
                 <CheckCircle size={22} weight="fill" aria-hidden />
-                {t("v.askFamilySent", { names: joinNames(record.checkOnSentTo, lang) })}
+                {t("v.askFamilySent", {
+                  names: joinNames(
+                    record.checkOnAlerts.map((a) => a.label),
+                    lang,
+                  ),
+                })}
               </p>
             ) : (
               <Button
@@ -355,6 +356,52 @@ export function Result() {
         </Button>
       </Sheet>
     </>
+  );
+}
+
+/** "Family alerted: …" (13.1): each recipient's receipts decide their line. */
+function FamilyAlertRows({ status, alerts }: { status?: string; alerts?: AlertDelivery[] }) {
+  const { t, lang } = useG();
+  const names = (pick: (a: AlertDelivery) => boolean) =>
+    joinNames(
+      (alerts ?? []).filter(pick).map((a) => a.label),
+      lang,
+    );
+  const reached = names((a) => a.state === "delivered" || a.state === "pushed" || a.state === "seen");
+  const queued = names((a) => a.state === "queued");
+  const failed = names((a) => a.state === "failed" || a.state === "rejected");
+  const sending = names((a) => a.state === "sending" || a.state === "accepted");
+  const rows: Array<{ icon: "ok" | "wait" | "off"; text: string }> = [];
+  if (status === "none") rows.push({ icon: "off", text: t("v.familyNone") });
+  else if (status === "failed") rows.push({ icon: "off", text: t("v.familyFailed") });
+  else if (!alerts || status === "sending") rows.push({ icon: "wait", text: t("v.familyAlerting") });
+  else {
+    if (reached) rows.push({ icon: "ok", text: t("v.familyAlerted", { names: reached }) });
+    if (sending) rows.push({ icon: "wait", text: t("v.familySending", { names: sending }) });
+    if (queued) rows.push({ icon: "wait", text: t("v.familyQueued", { names: queued }) });
+    if (failed) rows.push({ icon: "off", text: t("v.familyUnreached", { names: failed }) });
+  }
+  return (
+    <div
+      className="flex min-h-14 flex-col justify-center gap-2 rounded-[18px] bg-white/10 px-4 py-3 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.16)]"
+      aria-live="polite"
+    >
+      {rows.map((r) => (
+        <p key={r.text} className="flex items-center gap-3 text-body-sm font-medium">
+          {r.icon === "ok" ? (
+            <CheckCircle size={24} weight="fill" className="shrink-0" aria-hidden />
+          ) : r.icon === "wait" ? (
+            <span
+              className="mx-0.5 h-5 w-5 shrink-0 animate-spin rounded-full border-2 border-white border-t-transparent"
+              aria-hidden
+            />
+          ) : (
+            <UsersThree size={24} weight="duotone" className="shrink-0" aria-hidden />
+          )}
+          {r.text}
+        </p>
+      ))}
+    </div>
   );
 }
 

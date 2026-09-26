@@ -50,10 +50,11 @@ export async function updateIncoming(requestId: string, patch: Partial<IncomingR
   await db.incoming.update(requestId, patch);
 }
 
-/** Pending, unexpired incoming requests, oldest first (F1 handles them one at a time). */
+/** Pending, unexpired incoming requests, oldest first (F1 handles them one at a time). Time left is counted on
+ *  this phone's clock from when it received the request (8.7). */
 export async function pendingIncoming(now = Date.now()): Promise<IncomingRecord[]> {
   const rows = await db.incoming.where("status").equals("pending").toArray();
-  return rows.filter((r) => r.request.expiresAt > now).sort((a, b) => a.createdAt - b.createdAt);
+  return rows.filter((r) => r.localDeadline > now).sort((a, b) => a.createdAt - b.createdAt);
 }
 
 export function useIncoming(requestId: string | undefined): IncomingRecord | null | undefined {

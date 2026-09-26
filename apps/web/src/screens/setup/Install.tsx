@@ -110,6 +110,8 @@ export function Install() {
               </span>
             </li>
           </ol>
+          {/* FC-10: on iPhone, alerts reach only the app added to the Home Screen. */}
+          <p className="mt-4 border-t border-line pt-3 text-body-sm text-ink-2">{t("install.iosAlertsNote")}</p>
         </m.div>
       ) : (
         <m.p className="mx-auto max-w-[32ch] text-center text-body text-ink-2" {...riseIn(2, reduced)}>

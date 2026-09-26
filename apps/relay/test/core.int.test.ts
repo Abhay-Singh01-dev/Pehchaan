@@ -30,13 +30,19 @@ describe("16.3 rows 10–13 (the Lab and plain)", () => {
     h.lab = null;
   });
 
-  it("row 11 · lab.inject needs both ends opted in", async () => {
+  it("row 11 · lab.inject needs both ends opted in, and goes through the request record like any answer", async () => {
     const h = hub();
+    const now = Date.now();
+    const re = ulid();
+    await h.requests.create(re, "b", ["a"], now + 60_000, now); // b asked a
     h.lab = labStandIn(true, ["a"]);
-    await expect(mayInject(h, "a", "b")).rejects.toMatchObject({ code: "not_allowed" });
-    await expect(mayInject(h, "b", "a")).rejects.toMatchObject({ code: "not_allowed" });
+    await expect(mayInject(h, "a", "b", re, now)).rejects.toMatchObject({ code: "not_allowed" });
+    await expect(mayInject(h, "b", "a", re, now)).rejects.toMatchObject({ code: "not_allowed" });
     h.lab = labStandIn(true, ["a", "b"]);
-    await expect(mayInject(h, "a", "b")).resolves.toBeUndefined();
+    await expect(mayInject(h, "b", "a", re, now)).rejects.toMatchObject({ code: "not_allowed" }); // b isn't a target
+    await expect(mayInject(h, "a", "b", re, now)).resolves.toMatchObject({ late: false });
+    await expect(mayInject(h, "a", "b", re, now)).rejects.toMatchObject({ code: "already_answered" });
+    await expect(mayInject(h, "a", "b", ulid(), now)).rejects.toBeTruthy(); // no such request
     h.lab = null;
   });
 

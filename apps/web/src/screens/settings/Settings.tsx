@@ -1,12 +1,16 @@
 // I1 · Settings (spec B12 I1): a grouped list with icons and chevrons. Tapping the version five
 // times shows "Diagnostics unlocked" and adds a Diagnostics row.
+// Privacy (backend spec FC-18): what's stored, Reset my code, Who can reach me, the privacy notice, Delete my data.
 import { useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { AnimatePresence } from "motion/react";
 import * as m from "motion/react-m";
 import { useTranslation } from "react-i18next";
 import {
+  ArrowsCounterClockwise,
   Bank,
+  FileText,
+  UsersFour,
   Waveform,
   BellSimple,
   Books,
@@ -24,10 +28,13 @@ import {
 import { Avatar } from "@/components/Avatar";
 import { ListGroup, ListRow } from "@/components/List";
 import { PageBody } from "@/components/screen/Page";
+import { InlineConfirm } from "@/components/InlineConfirm";
+import { services } from "@/services";
 import { TopBar } from "@/components/screen/TopBar";
 import { useProfile } from "@/store/profile";
 import { setMeta, useMeta } from "@/store/meta";
 import { APP_VERSION, flags } from "@/app/flags";
+import { useAlertsState } from "@/app/push";
 import { toast } from "@/app/ui";
 import { useReduced } from "@/app/session";
 import { dur, riseIn, spring } from "@/design/motion";
@@ -40,7 +47,10 @@ export function Settings() {
   const profile = useProfile();
   const reduced = useReduced();
   const diagnostics = useMeta<boolean>("diagnosticsUnlocked");
+  const alerts = useAlertsState();
   const [storedOpen, setStoredOpen] = useState(false);
+  const [confirmReset, setConfirmReset] = useState(false);
+  const [resetting, setResetting] = useState(false);
   const taps = useRef<{ n: number; at: number }>({ n: 0, at: 0 });
 
   const tapVersion = () => {
@@ -118,7 +128,13 @@ export function Settings() {
                 chevron
                 onClick={() => navigate("/settings/language")}
               />
-              <ListRow icon={<BellSimple size={22} />} label={t("settings.notifications")} />
+              <ListRow
+                icon={<BellSimple size={22} />}
+                label={t("settings.alerts")}
+                value={alerts ? t(`alertsSettings.state.${alerts === "install_first" ? "off" : alerts}`) : undefined}
+                chevron
+                onClick={() => navigate("/settings/alerts")}
+              />
             </ListGroup>
           </m.div>
 
@@ -186,6 +202,48 @@ export function Settings() {
                   </m.p>
                 )}
               </AnimatePresence>
+              {!confirmReset && (
+                <ListRow
+                  icon={<ArrowsCounterClockwise size={22} />}
+                  label={t("settings.resetCode")}
+                  sub={t("settings.resetCodeHint")}
+                  onClick={() => setConfirmReset(true)}
+                />
+              )}
+              <InlineConfirm
+                className="mx-3 mb-3"
+                open={confirmReset}
+                busy={resetting}
+                message={t("settings.resetCodeConfirm")}
+                detail={t("settings.resetCodeDetail")}
+                confirmLabel={t("settings.resetCodeCta")}
+                cancelLabel={t("common.cancel")}
+                onCancel={() => setConfirmReset(false)}
+                onConfirm={async () => {
+                  setResetting(true);
+                  try {
+                    await services.relay.rotateGrant();
+                    toast(t("settings.resetCodeDone"), { tone: "success" });
+                  } catch {
+                    toast(t("settings.resetCodeFailed"), { tone: "error" });
+                  } finally {
+                    setResetting(false);
+                    setConfirmReset(false);
+                  }
+                }}
+              />
+              <ListRow
+                icon={<UsersFour size={22} />}
+                label={t("settings.whoCanReach")}
+                chevron
+                onClick={() => navigate("/settings/reach")}
+              />
+              <ListRow
+                icon={<FileText size={22} />}
+                label={t("settings.privacyNotice")}
+                chevron
+                onClick={() => navigate("/settings/privacy")}
+              />
               <ListRow
                 icon={<Trash size={22} />}
                 label={t("settings.delete")}

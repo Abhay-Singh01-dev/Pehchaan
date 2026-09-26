@@ -51,6 +51,10 @@ const schema = z
     VAPID_PUBLIC_KEY: z.string().optional(),
     VAPID_PRIVATE_KEY: z.string().optional(),
     VAPID_KEY_ID: z.string().default("v1"),
+    /** During a VAPID key rotation (11.9): the previous pair, so older subscriptions keep working for 30 days. */
+    VAPID_PREVIOUS_KEY_ID: z.string().optional(),
+    VAPID_PREVIOUS_PUBLIC_KEY: z.string().optional(),
+    VAPID_PREVIOUS_PRIVATE_KEY: z.string().optional(),
     VAPID_SUBJECT: z.string().default("mailto:security@yourdomain.in"),
     E2E_REQUIRED: bool.default(false),
     LAB_ENABLED: bool.default(false),
@@ -114,6 +118,19 @@ const schema = z
     if (c.LAB_ENABLED) need("LAB_PASSWORD_HASH", "when LAB_ENABLED=true");
     if (c.LAB_PASSWORD_HASH && !c.LAB_PASSWORD_HASH.startsWith("$argon2id$")) {
       ctx.addIssue({ code: "custom", path: ["LAB_PASSWORD_HASH"], message: "must be an Argon2id hash" });
+    }
+    const previous = [c.VAPID_PREVIOUS_KEY_ID, c.VAPID_PREVIOUS_PUBLIC_KEY, c.VAPID_PREVIOUS_PRIVATE_KEY].filter(
+      Boolean,
+    );
+    if (previous.length !== 0 && previous.length !== 3) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["VAPID_PREVIOUS_PRIVATE_KEY"],
+        message: "the previous VAPID key needs its ID, public key and private key together",
+      });
+    }
+    if (c.VAPID_PREVIOUS_KEY_ID && c.VAPID_PREVIOUS_KEY_ID === c.VAPID_KEY_ID) {
+      ctx.addIssue({ code: "custom", path: ["VAPID_PREVIOUS_KEY_ID"], message: "must differ from VAPID_KEY_ID" });
     }
     if (Boolean(c.VAPID_PUBLIC_KEY) !== Boolean(c.VAPID_PRIVATE_KEY)) {
       ctx.addIssue({ code: "custom", path: ["VAPID_PRIVATE_KEY"], message: "VAPID keys come as a pair" });
