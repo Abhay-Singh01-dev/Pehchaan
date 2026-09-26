@@ -29,8 +29,7 @@ export const spring = {
 /** 45 ms between list items; at most 8 items are staggered, the rest appear together. */
 export const STAGGER = 0.045;
 export const MAX_STAGGERED = 8;
-export const staggerDelay = (index: number, base = 0) =>
-  base + Math.min(index, MAX_STAGGERED - 1) * STAGGER;
+export const staggerDelay = (index: number, base = 0) => base + Math.min(index, MAX_STAGGERED - 1) * STAGGER;
 
 export const reducedFade: Transition = { duration: dur.reduced, ease: "linear" };
 

@@ -18,10 +18,7 @@ export function EmptyState({
 }) {
   const reduced = useReduced();
   return (
-    <m.div
-      className={cn("card flex flex-col items-center px-6 py-8 text-center", className)}
-      {...riseIn(0, reduced)}
-    >
+    <m.div className={cn("card flex flex-col items-center px-6 py-8 text-center", className)} {...riseIn(0, reduced)}>
       <div className="mb-4 text-brand">{illustration}</div>
       <p className="max-w-[28ch] text-body text-ink-2">{text}</p>
       {action && <div className="mt-5 w-full">{action}</div>}

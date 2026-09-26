@@ -80,7 +80,9 @@ export function Settings() {
           <Avatar name={profile.name} color={profile.color} size={56} />
           <span className="min-w-0 flex-1">
             <span className="block truncate font-display text-h2 font-semibold text-ink">{profile.name}</span>
-            <span className="block text-body-sm text-muted">{t(`settings.role.${hasKey ? "can_be_verified" : "checks_only"}`)}</span>
+            <span className="block text-body-sm text-muted">
+              {t(`settings.role.${hasKey ? "can_be_verified" : "checks_only"}`)}
+            </span>
           </span>
         </m.button>
 
@@ -88,9 +90,19 @@ export function Settings() {
           <m.div {...riseIn(2, reduced)}>
             <ListGroup>
               {hasKey ? (
-                <ListRow icon={<Key size={22} />} label={t("settings.myKey")} chevron onClick={() => navigate("/settings/key")} />
+                <ListRow
+                  icon={<Key size={22} />}
+                  label={t("settings.myKey")}
+                  chevron
+                  onClick={() => navigate("/settings/key")}
+                />
               ) : (
-                <ListRow icon={<Key size={22} />} label={t("settings.letVerify")} chevron onClick={() => navigate("/setup/key?from=settings")} />
+                <ListRow
+                  icon={<Key size={22} />}
+                  label={t("settings.letVerify")}
+                  chevron
+                  onClick={() => navigate("/setup/key?from=settings")}
+                />
               )}
               <ListRow
                 icon={<Palette size={22} />}
@@ -112,13 +124,38 @@ export function Settings() {
 
           <m.div {...riseIn(3, reduced)}>
             <ListGroup title={t("settings.help")}>
-              <ListRow icon={<Books size={22} />} label={t("settings.howItWorks")} chevron onClick={() => navigate("/help/how-it-works")} />
-              <ListRow icon={<ShieldWarning size={22} />} label={t("settings.limits")} chevron onClick={() => navigate("/help/limits")} />
-              <ListRow icon={<PhoneCall size={22} />} label={t("settings.suspicious")} chevron onClick={() => navigate("/help/suspicious-call")} />
+              <ListRow
+                icon={<Books size={22} />}
+                label={t("settings.howItWorks")}
+                chevron
+                onClick={() => navigate("/help/how-it-works")}
+              />
+              <ListRow
+                icon={<ShieldWarning size={22} />}
+                label={t("settings.limits")}
+                chevron
+                onClick={() => navigate("/help/limits")}
+              />
+              <ListRow
+                icon={<PhoneCall size={22} />}
+                label={t("settings.suspicious")}
+                chevron
+                onClick={() => navigate("/help/suspicious-call")}
+              />
               {flags.ENABLE_EXTRAS && (
                 <>
-                  <ListRow icon={<Waveform size={22} />} label={t("practice.title")} chevron onClick={() => navigate("/help/practice")} />
-                  <ListRow icon={<Bank size={22} />} label={t("payment.title")} chevron onClick={() => navigate("/verify/payment")} />
+                  <ListRow
+                    icon={<Waveform size={22} />}
+                    label={t("practice.title")}
+                    chevron
+                    onClick={() => navigate("/help/practice")}
+                  />
+                  <ListRow
+                    icon={<Bank size={22} />}
+                    label={t("payment.title")}
+                    chevron
+                    onClick={() => navigate("/verify/payment")}
+                  />
                 </>
               )}
             </ListGroup>
@@ -149,15 +186,30 @@ export function Settings() {
                   </m.p>
                 )}
               </AnimatePresence>
-              <ListRow icon={<Trash size={22} />} label={t("settings.delete")} danger chevron onClick={() => navigate("/settings/delete")} />
+              <ListRow
+                icon={<Trash size={22} />}
+                label={t("settings.delete")}
+                danger
+                chevron
+                onClick={() => navigate("/settings/delete")}
+              />
             </ListGroup>
           </m.div>
 
           <m.div {...riseIn(5, reduced)}>
             <ListGroup title={t("settings.about")}>
-              <ListRow icon={<Info size={22} />} label={t("settings.version", { v: APP_VERSION })} onClick={tapVersion} />
+              <ListRow
+                icon={<Info size={22} />}
+                label={t("settings.version", { v: APP_VERSION })}
+                onClick={tapVersion}
+              />
               {diagnostics && (
-                <ListRow icon={<Stethoscope size={22} />} label={t("settings.diagnostics")} chevron onClick={() => navigate("/diagnostics")} />
+                <ListRow
+                  icon={<Stethoscope size={22} />}
+                  label={t("settings.diagnostics")}
+                  chevron
+                  onClick={() => navigate("/diagnostics")}
+                />
               )}
             </ListGroup>
           </m.div>

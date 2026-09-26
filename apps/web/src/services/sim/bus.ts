@@ -4,12 +4,7 @@
 // Routing: a message is posted with hop "deliver" (straight to its recipient) — unless the Lab
 // has taken control of the relay (attacker mode), in which case phones post hop "up" and only
 // the Lab forwards it on as "deliver", possibly after tampering with it.
-import type {
-  AttackKind,
-  InvalidReason,
-  PeerInfo,
-  Verdict,
-} from "../types";
+import type { AttackKind, InvalidReason, PeerInfo, Verdict } from "../types";
 
 export const CHANNEL_NAME = "pehchaan-sim";
 

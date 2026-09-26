@@ -57,7 +57,17 @@ function Particles({ x, y }: { x: number; y: number }) {
   );
 }
 
-function Capsule({ spec, width, onDone, reasonText }: { spec: CapsuleSpec; width: number; onDone: (id: string) => void; reasonText: (r?: InvalidReason) => string }) {
+function Capsule({
+  spec,
+  width,
+  onDone,
+  reasonText,
+}: {
+  spec: CapsuleSpec;
+  width: number;
+  onDone: (id: string) => void;
+  reasonText: (r?: InvalidReason) => string;
+}) {
   const { t } = useTranslation();
   const [x0, x1, x2] = NODE_X.map((f) => f * width) as [number, number, number];
   const e = spec.event;
@@ -147,7 +157,11 @@ function Capsule({ spec, width, onDone, reasonText }: { spec: CapsuleSpec; width
               scale: spec.path === "held" && phase === "arrived" ? 0.2 : 1,
             }}
             exit={{ opacity: 0, scale: 0.8 }}
-            transition={{ x: { duration, times, ease: ease.inOut }, opacity: { duration: 0.2 }, scale: { duration: 0.3 } }}
+            transition={{
+              x: { duration, times, ease: ease.inOut },
+              opacity: { duration: 0.2 },
+              scale: { duration: 0.3 },
+            }}
             onAnimationComplete={() => phase === "travel" && setPhase("arrived")}
           >
             <m.span
@@ -156,7 +170,11 @@ function Capsule({ spec, width, onDone, reasonText }: { spec: CapsuleSpec; width
                 colour,
                 spec.path === "inject" && e.tampered === "replay" && "opacity-80",
               )}
-              animate={spec.path === "change" && flipped ? { x: [0, -3, 3, -2, 0], filter: ["none", "hue-rotate(90deg)", "none"] } : {}}
+              animate={
+                spec.path === "change" && flipped
+                  ? { x: [0, -3, 3, -2, 0], filter: ["none", "hue-rotate(90deg)", "none"] }
+                  : {}
+              }
               transition={{ duration: 0.25 }}
             >
               {e.tampered === "forge" && <span aria-hidden className="h-2 w-2 rounded-full bg-[#1F1300]" />}
@@ -207,7 +225,10 @@ function Node({
 }) {
   const { t } = useTranslation();
   return (
-    <div className="absolute top-1/2 z-20 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center" style={{ left: x }}>
+    <div
+      className="absolute top-1/2 z-20 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center"
+      style={{ left: x }}
+    >
       <div
         className={cn(
           "relative grid h-20 w-20 place-items-center overflow-hidden rounded-[24px] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.12)] transition-colors duration-500",
@@ -218,7 +239,11 @@ function Node({
           <span
             aria-hidden
             className="absolute -inset-8 opacity-40 mix-blend-screen"
-            style={{ backgroundImage: "var(--noise)", backgroundSize: "90px 90px", animation: "static-noise 1.2s steps(4) infinite" }}
+            style={{
+              backgroundImage: "var(--noise)",
+              backgroundSize: "90px 90px",
+              animation: "static-noise 1.2s steps(4) infinite",
+            }}
           />
         )}
         <span className="relative">{icon}</span>
@@ -226,13 +251,20 @@ function Node({
           {shield && (
             <m.span
               key={shield}
-              className={cn("absolute inset-0 grid place-items-center", shield === "block" ? "bg-[#C4291C]" : "bg-[#087A45]")}
+              className={cn(
+                "absolute inset-0 grid place-items-center",
+                shield === "block" ? "bg-[#C4291C]" : "bg-[#087A45]",
+              )}
               initial={{ opacity: 0, scale: 1.3 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.25 }}
             >
-              {shield === "block" ? <ShieldSlash size={36} weight="duotone" color="#fff" /> : <ShieldCheck size={36} weight="duotone" color="#fff" />}
+              {shield === "block" ? (
+                <ShieldSlash size={36} weight="duotone" color="#fff" />
+              ) : (
+                <ShieldCheck size={36} weight="duotone" color="#fff" />
+              )}
             </m.span>
           )}
         </AnimatePresence>
@@ -315,8 +347,26 @@ export function Pipeline({
         <div className="relative h-0">
           {/* The two wires */}
           <svg className="absolute left-0 top-0 overflow-visible" width={width} height="1" aria-hidden>
-            <line x1={x0 + 44} x2={x1 - 44} y1={0} y2={0} stroke="var(--line)" strokeWidth={3} strokeDasharray="2 8" strokeLinecap="round" />
-            <line x1={x1 + 44} x2={x2 - 44} y1={0} y2={0} stroke="var(--line)" strokeWidth={3} strokeDasharray="2 8" strokeLinecap="round" />
+            <line
+              x1={x0 + 44}
+              x2={x1 - 44}
+              y1={0}
+              y2={0}
+              stroke="var(--line)"
+              strokeWidth={3}
+              strokeDasharray="2 8"
+              strokeLinecap="round"
+            />
+            <line
+              x1={x1 + 44}
+              x2={x2 - 44}
+              y1={0}
+              y2={0}
+              stroke="var(--line)"
+              strokeWidth={3}
+              strokeDasharray="2 8"
+              strokeLinecap="round"
+            />
           </svg>
           {capsules.map((c) => (
             <Capsule key={c.id} spec={c} width={width} onDone={onCapsuleDone} reasonText={reasonText} />

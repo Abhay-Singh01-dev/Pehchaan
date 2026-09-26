@@ -58,7 +58,14 @@ export function MemberDetail() {
       <PageBody>
         {/* Header (shared-element avatar from the list) */}
         <div className="flex flex-col items-center text-center">
-          <Avatar name={member.label} color={member.color} size={88} reachable={isReachable} showPresence layoutId={`avatar-${member.id}`} />
+          <Avatar
+            name={member.label}
+            color={member.color}
+            size={88}
+            reachable={isReachable}
+            showPresence
+            layoutId={`avatar-${member.id}`}
+          />
           <m.h1 className="mt-4 font-display text-h1 font-semibold text-ink" {...riseIn(1, reduced)}>
             {member.label}
           </m.h1>
@@ -92,7 +99,11 @@ export function MemberDetail() {
           <ListGroup>
             <ListRow
               label={t("member.addedOn")}
-              sub={member.addedBy === "in_person" ? t("member.addedInPerson", { date: added }) : t("member.addedByLink", { date: added })}
+              sub={
+                member.addedBy === "in_person"
+                  ? t("member.addedInPerson", { date: added })
+                  : t("member.addedByLink", { date: added })
+              }
             />
             <ListRow label={t("member.key")} sub={member.canBeVerified ? t("member.keyYes") : t("member.keyNo")} />
             {!member.phone && <ListRow label={t("member.phone")} sub={t("member.noPhone")} />}
@@ -112,7 +123,9 @@ export function MemberDetail() {
                 >
                   <span className="min-w-0 flex-1">
                     <span className="block break-words text-body font-medium text-ink">
-                      {e.kind === "answered" ? t("history.answered", { name: e.personLabel }) : reasonLabel(t, e.reason, e.amountInr)}
+                      {e.kind === "answered"
+                        ? t("history.answered", { name: e.personLabel })
+                        : reasonLabel(t, e.reason, e.amountInr)}
                     </span>
                     <span className="block text-caption text-muted">{relativeTime(e.at, lang)}</span>
                   </span>
@@ -145,7 +158,13 @@ export function MemberDetail() {
             />
             {editing === "rename" && (
               <div className="px-4 py-4">
-                <TextField label={t("member.renameLabel")} value={draftLabel} onChange={(v) => setDraftLabel(v.slice(0, 30))} autoFocus maxLength={30} />
+                <TextField
+                  label={t("member.renameLabel")}
+                  value={draftLabel}
+                  onChange={(v) => setDraftLabel(v.slice(0, 30))}
+                  autoFocus
+                  maxLength={30}
+                />
                 <Button
                   className="mt-3"
                   size="md"
@@ -184,7 +203,12 @@ export function MemberDetail() {
               </div>
             )}
             {!confirmRemove && (
-              <ListRow icon={<Trash size={20} />} label={t("member.remove")} danger onClick={() => setConfirmRemove(true)} />
+              <ListRow
+                icon={<Trash size={20} />}
+                label={t("member.remove")}
+                danger
+                onClick={() => setConfirmRemove(true)}
+              />
             )}
           </ListGroup>
           <InlineConfirm

@@ -45,11 +45,7 @@ export function TopBar({ title, backTo, hideBack, right, titleAlways, tone = "de
       style={{ paddingTop: `calc(env(safe-area-inset-top) + ${SIM_OFFSET}px)` }}
     >
       {tone === "default" && (
-        <m.div
-          aria-hidden
-          className="absolute inset-0 border-b border-line bg-bg"
-          style={{ opacity: barOpacity }}
-        />
+        <m.div aria-hidden className="absolute inset-0 border-b border-line bg-bg" style={{ opacity: barOpacity }} />
       )}
       <div className="relative flex h-14 items-center gap-1 px-2">
         <div className="flex w-14 shrink-0 justify-start">

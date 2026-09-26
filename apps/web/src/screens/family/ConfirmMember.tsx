@@ -163,7 +163,9 @@ export function ConfirmMember() {
               transition={{ duration: dur.base, ease: ease.out }}
             >
               <div>
-                <p className="mb-3 font-display text-h3 font-semibold text-ink">{t("confirm.relationQ", { name: firstName })}</p>
+                <p className="mb-3 font-display text-h3 font-semibold text-ink">
+                  {t("confirm.relationQ", { name: firstName })}
+                </p>
                 <ChipGroup
                   label={t("confirm.relationQ", { name: firstName })}
                   value={relation}
@@ -195,16 +197,24 @@ export function ConfirmMember() {
               <Button full onClick={() => setStep("label")}>
                 {t("family.wordsYes")}
               </Button>
-              <Button full variant="secondary" onClick={() => {
-                haptic("error");
-                setStep("mismatch");
-              }}>
+              <Button
+                full
+                variant="secondary"
+                onClick={() => {
+                  haptic("error");
+                  setStep("mismatch");
+                }}
+              >
                 {t("common.no")}
               </Button>
             </>
           )}
           {step === "mismatch" && (
-            <Button full icon={<ArrowCounterClockwise size={20} />} onClick={() => navigate("/family/scan", { replace: true })}>
+            <Button
+              full
+              icon={<ArrowCounterClockwise size={20} />}
+              onClick={() => navigate("/family/scan", { replace: true })}
+            >
               {t("confirm.scanAgain")}
             </Button>
           )}

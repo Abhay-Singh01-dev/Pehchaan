@@ -244,7 +244,10 @@ export class SimRelay implements RelayService {
 
   private restoreLabRouting() {
     try {
-      const saved = JSON.parse(sessionStorage.getItem(LAB_ROUTING_KEY) ?? "null") as { mode: boolean; at: number } | null;
+      const saved = JSON.parse(sessionStorage.getItem(LAB_ROUTING_KEY) ?? "null") as {
+        mode: boolean;
+        at: number;
+      } | null;
       if (saved && Date.now() - saved.at < LAB_STALE_MS) {
         this.labMode = saved.mode;
         this.labAt = saved.at;

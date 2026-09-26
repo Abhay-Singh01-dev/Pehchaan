@@ -99,15 +99,46 @@ export function Waiting() {
 
   return (
     <div className="v-wait relative flex min-h-app flex-col overflow-hidden">
-      <div aria-hidden className="pointer-events-none absolute inset-0 bg-[radial-gradient(90%_50%_at_50%_0%,rgba(255,255,255,0.14),transparent_60%)]" />
-      <div className="relative mx-auto flex w-full max-w-[480px] flex-1 flex-col px-6" style={{ paddingTop: `calc(env(safe-area-inset-top) + ${SIM_OFFSET + 28}px)` }}>
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(90%_50%_at_50%_0%,rgba(255,255,255,0.14),transparent_60%)]"
+      />
+      <div
+        className="relative mx-auto flex w-full max-w-[480px] flex-1 flex-col px-6"
+        style={{ paddingTop: `calc(env(safe-area-inset-top) + ${SIM_OFFSET + 28}px)` }}
+      >
         {/* The arc */}
         <div className="relative mx-auto" style={{ width: W, height: H }}>
-          <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} className="absolute inset-0" aria-hidden style={{ overflow: "visible" }}>
-            <path d={arcPath(ME, THEM, LIFT)} fill="none" stroke="rgba(217,184,116,0.75)" strokeWidth={2} strokeDasharray="1 8" strokeLinecap="round" />
-            {!returning && !reduced && <ArcTraveler from={ME} to={THEM} lift={LIFT} duration={1.1} color="#FFFFFF" onArrive={onArrive} />}
+          <svg
+            viewBox={`0 0 ${W} ${H}`}
+            width={W}
+            height={H}
+            className="absolute inset-0"
+            aria-hidden
+            style={{ overflow: "visible" }}
+          >
+            <path
+              d={arcPath(ME, THEM, LIFT)}
+              fill="none"
+              stroke="rgba(217,184,116,0.75)"
+              strokeWidth={2}
+              strokeDasharray="1 8"
+              strokeLinecap="round"
+            />
+            {!returning && !reduced && (
+              <ArcTraveler from={ME} to={THEM} lift={LIFT} duration={1.1} color="#FFFFFF" onArrive={onArrive} />
+            )}
             {returning && (
-              <ArcTraveler from={ME} to={THEM} lift={LIFT} duration={0.55} color="#FFFFFF" loop={false} reverse onArrive={goToResult} />
+              <ArcTraveler
+                from={ME}
+                to={THEM}
+                lift={LIFT}
+                duration={0.55}
+                color="#FFFFFF"
+                loop={false}
+                reverse
+                onArrive={goToResult}
+              />
             )}
           </svg>
           <div ref={meRef} className="absolute -translate-x-1/2 -translate-y-1/2" style={{ left: ME[0], top: ME[1] }}>

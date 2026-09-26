@@ -95,7 +95,11 @@ export function Sent() {
   const rise = (i: number) =>
     reduced
       ? { initial: { opacity: 0 }, animate: { opacity: 1 }, transition: { duration: 0.12 } }
-      : { initial: { opacity: 0, y: 12 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.42, delay: 0.1 + i * 0.07, ease: ease.out } };
+      : {
+          initial: { opacity: 0, y: 12 },
+          animate: { opacity: 1, y: 0 },
+          transition: { duration: 0.42, delay: 0.1 + i * 0.07, ease: ease.out },
+        };
 
   return (
     <div className="v-ink relative flex min-h-app flex-col overflow-hidden">
@@ -133,7 +137,10 @@ export function Sent() {
               </m.p>
             )}
             {!notMe && record.words && (
-              <m.div className="mt-6 rounded-[20px] bg-white/[0.08] p-5 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.12)]" {...rise(2)}>
+              <m.div
+                className="mt-6 rounded-[20px] bg-white/[0.08] p-5 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.12)]"
+                {...rise(2)}
+              >
                 <p className="text-body font-medium text-[#C3C8E8]">{t("sent.yes.words", { asker })}</p>
                 <p className="mt-3 font-mono text-[1.75rem] font-semibold tracking-[0.06em] text-white">
                   {record.words[0]} <span className="text-[#D9B874]">·</span> {record.words[1]}
@@ -153,11 +160,19 @@ export function Sent() {
           >
             {notMe && phone && <PhoneNumber number={phone} label={t("sent.call", { asker })} tone="light" />}
             {next ? (
-              <Button full variant="on-verdict" onClick={() => navigate(`/request/${next.requestId}`, { replace: true })}>
+              <Button
+                full
+                variant="on-verdict"
+                onClick={() => navigate(`/request/${next.requestId}`, { replace: true })}
+              >
                 {t("sent.next")}
               </Button>
             ) : null}
-            <Button full variant={next ? "on-verdict-ghost" : "on-verdict"} onClick={() => navigate("/home", { replace: true })}>
+            <Button
+              full
+              variant={next ? "on-verdict-ghost" : "on-verdict"}
+              onClick={() => navigate("/home", { replace: true })}
+            >
               {t("common.done")}
             </Button>
           </m.div>

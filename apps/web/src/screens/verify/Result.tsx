@@ -101,14 +101,26 @@ export function Result() {
   );
   const whyBtn = (i: number, primary = false) => (
     <VerdictAction index={i} key="why">
-      <Button full variant={primary ? "on-verdict" : "on-verdict-ghost"} tone={onTone} icon={<Info size={20} weight="bold" />} onClick={() => setWhy(true)}>
+      <Button
+        full
+        variant={primary ? "on-verdict" : "on-verdict-ghost"}
+        tone={onTone}
+        icon={<Info size={20} weight="bold" />}
+        onClick={() => setWhy(true)}
+      >
         {t("v.why")}
       </Button>
     </VerdictAction>
   );
   const againBtn = (i: number, key = "v.checkAgain", primary = false) => (
     <VerdictAction index={i} key="again">
-      <Button full variant={primary ? "on-verdict" : "on-verdict-ghost"} tone={onTone} icon={<ArrowClockwise size={20} weight="bold" />} onClick={again}>
+      <Button
+        full
+        variant={primary ? "on-verdict" : "on-verdict-ghost"}
+        tone={onTone}
+        icon={<ArrowClockwise size={20} weight="bold" />}
+        onClick={again}
+      >
         {t(key)}
       </Button>
     </VerdictAction>
@@ -151,7 +163,13 @@ export function Result() {
       content = (
         <div className="flex flex-col gap-2.5">
           <VerdictAction index={0}>
-            <Button full variant="on-verdict" tone={onTone} icon={<ChatCircleText size={22} weight="duotone" />} onClick={() => setSayOpen(true)}>
+            <Button
+              full
+              variant="on-verdict"
+              tone={onTone}
+              icon={<ChatCircleText size={22} weight="duotone" />}
+              onClick={() => setSayOpen(true)}
+            >
               {t("v.say")}
             </Button>
           </VerdictAction>
@@ -161,11 +179,17 @@ export function Result() {
             </VerdictAction>
           )}
           <VerdictAction index={2}>
-            <div className="flex min-h-14 items-center gap-3 rounded-[18px] bg-white/10 px-4 py-3 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.16)]" aria-live="polite">
+            <div
+              className="flex min-h-14 items-center gap-3 rounded-[18px] bg-white/10 px-4 py-3 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.16)]"
+              aria-live="polite"
+            >
               {status === "sent" ? (
                 <CheckCircle size={24} weight="fill" className="shrink-0" aria-hidden />
               ) : status === "sending" || status === undefined ? (
-                <span className="h-5 w-5 shrink-0 animate-spin rounded-full border-2 border-white border-t-transparent" aria-hidden />
+                <span
+                  className="h-5 w-5 shrink-0 animate-spin rounded-full border-2 border-white border-t-transparent"
+                  aria-hidden
+                />
               ) : (
                 <UsersThree size={24} weight="duotone" className="shrink-0" aria-hidden />
               )}
@@ -208,7 +232,10 @@ export function Result() {
           )}
           <VerdictAction index={1}>
             {record.checkOnSentTo ? (
-              <p className="flex min-h-14 items-center gap-3 rounded-[18px] bg-black/[0.08] px-4 py-3 text-body-sm font-semibold" aria-live="polite">
+              <p
+                className="flex min-h-14 items-center gap-3 rounded-[18px] bg-black/[0.08] px-4 py-3 text-body-sm font-semibold"
+                aria-live="polite"
+              >
                 <CheckCircle size={22} weight="fill" aria-hidden />
                 {t("v.askFamilySent", { names: joinNames(record.checkOnSentTo, lang) })}
               </p>
@@ -334,7 +361,11 @@ export function Result() {
 function VerdictSection({ index, children, className }: { index: number; children: ReactNode; className?: string }) {
   return (
     <VerdictAction index={index}>
-      <div className={cn("rounded-[20px] bg-black/[0.12] p-4 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.14)]", className)}>{children}</div>
+      <div
+        className={cn("rounded-[20px] bg-black/[0.12] p-4 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.14)]", className)}
+      >
+        {children}
+      </div>
     </VerdictAction>
   );
 }

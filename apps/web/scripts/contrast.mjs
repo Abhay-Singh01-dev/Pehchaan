@@ -40,7 +40,9 @@ function check(theme, label, fg, bg, min = 4.5) {
   const r = ratio(fg, bg);
   const ok = r >= min;
   if (!ok) failures++;
-  console.log(`${ok ? "pass" : "FAIL"}  ${theme.padEnd(5)} ${r.toFixed(2).padStart(5)} ≥ ${min}  ${label}  (${fg} on ${bg})`);
+  console.log(
+    `${ok ? "pass" : "FAIL"}  ${theme.padEnd(5)} ${r.toFixed(2).padStart(5)} ≥ ${min}  ${label}  (${fg} on ${bg})`,
+  );
 }
 
 for (const [name, t] of [

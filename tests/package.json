@@ -1,0 +1,22 @@
+{
+  "name": "@pehchaan/tests",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Cross-package suites: Playwright journeys against the real relay (e2e), infrastructure (ops), security and chaos.",
+  "scripts": {
+    "lint": "eslint . --max-warnings 0 && prettier --check . --ignore-path ../.prettierignore",
+    "typecheck": "tsc -p tsconfig.json",
+    "e2e": "playwright test -c e2e/playwright.config.ts"
+  },
+  "devDependencies": {
+    "@pehchaan/crypto": "workspace:*",
+    "@pehchaan/protocol": "workspace:*",
+    "@playwright/test": "1.63.0",
+    "@types/node": "^26.6.2",
+    "@types/ws": "8.18.1",
+    "typescript": "7.0.2",
+    "vitest": "5.0.2",
+    "ws": "8.21.3"
+  }
+}

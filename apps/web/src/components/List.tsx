@@ -5,10 +5,20 @@ import { CaretRight } from "@phosphor-icons/react";
 import { spring } from "@/design/motion";
 import { cn } from "@/lib/cn";
 
-export function ListGroup({ children, className, title }: { children: ReactNode; className?: string; title?: ReactNode }) {
+export function ListGroup({
+  children,
+  className,
+  title,
+}: {
+  children: ReactNode;
+  className?: string;
+  title?: ReactNode;
+}) {
   return (
     <div className={className}>
-      {title && <div className="mb-2 px-1 text-caption font-medium uppercase tracking-[0.06em] text-muted">{title}</div>}
+      {title && (
+        <div className="mb-2 px-1 text-caption font-medium uppercase tracking-[0.06em] text-muted">{title}</div>
+      )}
       <div className="card divide-y divide-line overflow-hidden">{children}</div>
     </div>
   );
@@ -53,7 +63,13 @@ export function ListRow({ icon, label, sub, value, right, onClick, chevron, dang
   const cls = cn("flex min-h-16 w-full items-center gap-3.5 px-4 py-3 text-left", className);
   if (onClick) {
     return (
-      <m.button type="button" onClick={onClick} whileTap={{ scale: 0.985 }} transition={spring.ui} className={cn(cls, "active:bg-surface-2")}>
+      <m.button
+        type="button"
+        onClick={onClick}
+        whileTap={{ scale: 0.985 }}
+        transition={spring.ui}
+        className={cn(cls, "active:bg-surface-2")}
+      >
         {inner}
       </m.button>
     );

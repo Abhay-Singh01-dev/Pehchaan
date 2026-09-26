@@ -45,7 +45,10 @@ export function WaveformSeal({ morph, size = 200 }: { morph: boolean; size?: num
                   ? { height: 12, y: -6, opacity: 1 }
                   : reduced
                     ? { height: h, y: -h / 2 }
-                    : { height: [h * 0.35, h, h * 0.55, h * 0.9, h * 0.35], y: [-h * 0.175, -h / 2, -h * 0.275, -h * 0.45, -h * 0.175] }
+                    : {
+                        height: [h * 0.35, h, h * 0.55, h * 0.9, h * 0.35],
+                        y: [-h * 0.175, -h / 2, -h * 0.275, -h * 0.45, -h * 0.175],
+                      }
               }
               transition={
                 morph || reduced

@@ -76,10 +76,7 @@ export function ChipGroup<T extends string>({
             </AnimatePresence>
             {o.icon && <span className="relative">{o.icon}</span>}
             <span
-              className={cn(
-                "relative transition-colors",
-                selected ? "text-brand-ink" : "text-ink-2",
-              )}
+              className={cn("relative transition-colors", selected ? "text-brand-ink" : "text-ink-2")}
               style={{ transitionDuration: `${dur.fast * 1000}ms` }}
             >
               {o.label}
@@ -149,7 +146,11 @@ export function Segmented<T extends string>({
   className?: string;
 }) {
   return (
-    <div role="tablist" aria-label={label} className={cn("grid auto-cols-fr grid-flow-col gap-1 rounded-full bg-surface-2 p-1", className)}>
+    <div
+      role="tablist"
+      aria-label={label}
+      className={cn("grid auto-cols-fr grid-flow-col gap-1 rounded-full bg-surface-2 p-1", className)}
+    >
       {options.map((o) => {
         const active = o.value === value;
         return (

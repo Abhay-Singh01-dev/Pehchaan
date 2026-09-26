@@ -59,7 +59,10 @@ export function BigButton({ icon, label, hint, onClick, disabled, className }: B
           className="pointer-events-none absolute -right-24 -top-24"
         />
         {/* Brass hairline along the top edge: one of the few premium brass details. */}
-        <span aria-hidden className="absolute inset-x-8 top-0 h-px bg-[linear-gradient(90deg,transparent,var(--brass),transparent)] opacity-70" />
+        <span
+          aria-hidden
+          className="absolute inset-x-8 top-0 h-px bg-[linear-gradient(90deg,transparent,var(--brass),transparent)] opacity-70"
+        />
         <span className="relative grid h-14 w-14 shrink-0 place-items-center rounded-full bg-[color-mix(in_oklab,var(--on-brand)_14%,transparent)] shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--on-brand)_22%,transparent)]">
           {icon}
         </span>

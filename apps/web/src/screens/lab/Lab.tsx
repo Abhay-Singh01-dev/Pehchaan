@@ -3,15 +3,7 @@
 // every attack ever run. Without attacker mode it only observes.
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import * as m from "motion/react-m";
-import {
-  ArrowsClockwise,
-  Broom,
-  DownloadSimple,
-  Ghost,
-  Key,
-  Skull,
-  Swap,
-} from "@phosphor-icons/react";
+import { ArrowsClockwise, Broom, DownloadSimple, Ghost, Key, Skull, Swap } from "@phosphor-icons/react";
 import { loadLab } from "@/services";
 import type { AttackKind, InvalidReason, LabService, LabStatus, PeerInfo, RelayEvent } from "@/services/types";
 import { Button } from "@/components/Button";
@@ -80,7 +72,9 @@ export function Lab() {
   useEffect(() => {
     if (manualRolesRef.current || (askerId && targetId)) return;
     const phones = peers.filter((p) => p.kind === "phone");
-    const a = askerId ?? (phones.find((p) => p.canBeVerified === false) ?? phones.find((p) => p.deviceId !== targetId))?.deviceId;
+    const a =
+      askerId ??
+      (phones.find((p) => p.canBeVerified === false) ?? phones.find((p) => p.deviceId !== targetId))?.deviceId;
     let b = targetId ?? phones.find((p) => p.canBeVerified && p.deviceId !== a)?.deviceId;
     if (b === a) b = undefined;
     if (a !== askerId) setAskerId(a);
@@ -108,8 +102,11 @@ export function Lab() {
     const { askerId: a, targetId: b } = rolesRef.current;
     if (e.verdictSeen) {
       // A report from Maa's phone: update the capsule, flash the shield.
-      const reason = lastAttackRef.current?.requestId === e.requestId ? lastAttackRef.current?.invalidReason : undefined;
-      setCapsules((cs) => cs.map((c) => (c.event.id === e.id ? { ...c, verdict: e.verdictSeen, reason: reason ?? c.reason } : c)));
+      const reason =
+        lastAttackRef.current?.requestId === e.requestId ? lastAttackRef.current?.invalidReason : undefined;
+      setCapsules((cs) =>
+        cs.map((c) => (c.event.id === e.id ? { ...c, verdict: e.verdictSeen, reason: reason ?? c.reason } : c)),
+      );
       setShield(e.verdictSeen === "INVALID" ? "block" : "ok");
       window.setTimeout(() => setShield(null), 1300);
       return;
@@ -121,14 +118,18 @@ export function Lab() {
     else if (e.from === a && e.to === b) path = "ltr";
     else if (e.from === b && e.to === a) path = "rtl";
     if (!path) return;
-    setCapsules((cs) => [...cs.filter((c) => c.event.id !== e.id), { id: `${e.id}-${Date.now()}`, event: e, path: path! }].slice(-12));
+    setCapsules((cs) =>
+      [...cs.filter((c) => c.event.id !== e.id), { id: `${e.id}-${Date.now()}`, event: e, path: path! }].slice(-12),
+    );
   }, []);
 
   // Late-arriving invalid reasons (the status update can come after the traffic update).
   useEffect(() => {
     const la = status?.lastAttack;
     if (!la?.invalidReason) return;
-    setCapsules((cs) => cs.map((c) => (c.event.requestId === la.requestId && !c.reason ? { ...c, reason: la.invalidReason } : c)));
+    setCapsules((cs) =>
+      cs.map((c) => (c.event.requestId === la.requestId && !c.reason ? { ...c, reason: la.invalidReason } : c)),
+    );
   }, [status?.lastAttack]);
 
   const onCapsuleDone = useCallback((id: string) => setCapsules((cs) => cs.filter((c) => c.id !== id)), []);
@@ -142,9 +143,24 @@ export function Lab() {
 
   const attacks: Array<{ kind: AttackKind; icon: ReactNode; title: string; body: string }> = useMemo(
     () => [
-      { kind: "change", icon: <Swap size={28} weight="duotone" />, title: t("lab.change.title"), body: t("lab.change.body", { name: targetLabel }) },
-      { kind: "replay", icon: <Ghost size={28} weight="duotone" />, title: t("lab.replay.title", { name: targetLabel }), body: t("lab.replay.body") },
-      { kind: "forge", icon: <Key size={28} weight="duotone" />, title: t("lab.forge.title"), body: t("lab.forge.body") },
+      {
+        kind: "change",
+        icon: <Swap size={28} weight="duotone" />,
+        title: t("lab.change.title"),
+        body: t("lab.change.body", { name: targetLabel }),
+      },
+      {
+        kind: "replay",
+        icon: <Ghost size={28} weight="duotone" />,
+        title: t("lab.replay.title", { name: targetLabel }),
+        body: t("lab.replay.body"),
+      },
+      {
+        kind: "forge",
+        icon: <Key size={28} weight="duotone" />,
+        title: t("lab.forge.title"),
+        body: t("lab.forge.body"),
+      },
     ],
     [t, targetLabel],
   );
@@ -153,7 +169,9 @@ export function Lab() {
   const exportLog = async () => {
     if (!lab) return;
     const log = await lab.attackLog();
-    const blob = new Blob([JSON.stringify({ exportedAt: new Date().toISOString(), attacks: log }, null, 2)], { type: "application/json" });
+    const blob = new Blob([JSON.stringify({ exportedAt: new Date().toISOString(), attacks: log }, null, 2)], {
+      type: "application/json",
+    });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -173,7 +191,11 @@ export function Lab() {
             <Skull size={18} weight="duotone" className="-mt-0.5 mr-1.5 inline" aria-hidden />
             {t("lab.attacker")}
           </span>
-          <Switch checked={Boolean(status?.attackerMode)} label={t("lab.attacker")} onChange={(v) => lab?.setAttackerMode(v)} />
+          <Switch
+            checked={Boolean(status?.attackerMode)}
+            label={t("lab.attacker")}
+            onChange={(v) => lab?.setAttackerMode(v)}
+          />
         </label>
       </LaptopHeader>
       <LaptopNarrowNote text={t("lab.wide")} />
@@ -222,11 +244,28 @@ export function Lab() {
                 <m.div
                   key={a.kind}
                   className={cn("card relative flex flex-col p-5", armed && "shadow-[inset_0_0_0_2px_#E5463A]")}
-                  animate={armed ? { boxShadow: ["inset 0 0 0 2px rgba(229,70,58,1)", "inset 0 0 0 2px rgba(229,70,58,0.35)", "inset 0 0 0 2px rgba(229,70,58,1)"] } : {}}
+                  animate={
+                    armed
+                      ? {
+                          boxShadow: [
+                            "inset 0 0 0 2px rgba(229,70,58,1)",
+                            "inset 0 0 0 2px rgba(229,70,58,0.35)",
+                            "inset 0 0 0 2px rgba(229,70,58,1)",
+                          ],
+                        }
+                      : {}
+                  }
                   transition={armed ? { duration: 1.6, repeat: Infinity } : undefined}
                 >
                   <div className="flex items-center gap-3">
-                    <span className={cn("grid h-12 w-12 place-items-center rounded-[14px]", armed ? "bg-[#E5463A] text-white" : "bg-surface-2 text-ink-2")}>{a.icon}</span>
+                    <span
+                      className={cn(
+                        "grid h-12 w-12 place-items-center rounded-[14px]",
+                        armed ? "bg-[#E5463A] text-white" : "bg-surface-2 text-ink-2",
+                      )}
+                    >
+                      {a.icon}
+                    </span>
                     <h3 className="font-display text-h3 font-semibold text-ink">{a.title}</h3>
                   </div>
                   <p className="mt-3 flex-1 text-body-sm text-ink-2">{a.body}</p>
@@ -259,12 +298,19 @@ export function Lab() {
             {!la ? (
               <p className="mt-3 text-h3 text-ink-2">{t("lab.resultIdle", { name: targetLabel, asker: askerLabel })}</p>
             ) : (
-              <m.div key={la.id + (la.verdictSeen ?? "")} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={spring.soft}>
+              <m.div
+                key={la.id + (la.verdictSeen ?? "")}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={spring.soft}
+              >
                 <div className="mt-3 flex flex-wrap items-center gap-2">
                   <Chip tone="fake" size="lg">
                     {t(`lab.attackNames.${la.attack}`)}
                   </Chip>
-                  <span className="font-mono text-caption text-muted">{new Date(la.at).toLocaleTimeString(lang === "hi" ? "hi-IN" : "en-IN")}</span>
+                  <span className="font-mono text-caption text-muted">
+                    {new Date(la.at).toLocaleTimeString(lang === "hi" ? "hi-IN" : "en-IN")}
+                  </span>
                 </div>
                 {la.verdictSeen ? (
                   <div className="mt-4">
@@ -272,7 +318,9 @@ export function Lab() {
                       {t("lab.phoneShowed", { asker: askerLabel })} <VerdictChip verdict={la.verdictSeen} size="lg" />
                     </p>
                     {la.invalidReason && (
-                      <p className="mt-3 text-h2 font-semibold text-ink">{t(`v.reasons.${la.invalidReason}`, { name: targetLabel })}</p>
+                      <p className="mt-3 text-h2 font-semibold text-ink">
+                        {t(`v.reasons.${la.invalidReason}`, { name: targetLabel })}
+                      </p>
                     )}
                     {la.failedChecks && la.failedChecks.length > 0 && (
                       <p className="mt-2 text-h3 text-ink-2">
@@ -294,11 +342,26 @@ export function Lab() {
               <RollingText text={String(counters.attacks)} className="mt-2 text-[3.5rem] font-semibold text-ink" />
             </div>
             <div>
-              <p className="text-caption font-semibold uppercase tracking-[0.06em] text-muted">{t("lab.falseGreens")}</p>
-              <RollingText text={String(counters.falseGreens)} className="mt-2 text-[3.5rem] font-semibold text-chip-ok" />
+              <p className="text-caption font-semibold uppercase tracking-[0.06em] text-muted">
+                {t("lab.falseGreens")}
+              </p>
+              <RollingText
+                text={String(counters.falseGreens)}
+                className="mt-2 text-[3.5rem] font-semibold text-chip-ok"
+              />
             </div>
             <p className="col-span-2 text-caption text-muted">
-              {status ? t("lab.since", { date: formatDateLong(status.since, lang) + " " + new Date(status.since).toLocaleTimeString(lang === "hi" ? "hi-IN" : "en-IN", { hour: "2-digit", minute: "2-digit" }) }) : ""}
+              {status
+                ? t("lab.since", {
+                    date:
+                      formatDateLong(status.since, lang) +
+                      " " +
+                      new Date(status.since).toLocaleTimeString(lang === "hi" ? "hi-IN" : "en-IN", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      }),
+                  })
+                : ""}
             </p>
           </div>
         </section>

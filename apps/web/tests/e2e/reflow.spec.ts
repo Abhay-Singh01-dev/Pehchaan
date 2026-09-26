@@ -30,7 +30,14 @@ for (const lang of ["en", "hi"] as const) {
     await page.goto("/?device=maa");
     await page.waitForURL("**/home");
     await page.waitForFunction(() => Boolean((window as never as { __pehchaan?: unknown }).__pehchaan));
-    await page.evaluate((l) => (window as never as { __pehchaan: { setPrefs(p: object): Promise<void> } }).__pehchaan.setPrefs({ textSize: "xlarge", lang: l }), lang);
+    await page.evaluate(
+      (l) =>
+        (window as never as { __pehchaan: { setPrefs(p: object): Promise<void> } }).__pehchaan.setPrefs({
+          textSize: "xlarge",
+          lang: l,
+        }),
+      lang,
+    );
 
     const problems: string[] = [];
     for (const route of ROUTES) {

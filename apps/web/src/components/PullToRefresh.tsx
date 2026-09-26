@@ -65,7 +65,13 @@ export function PullToRefresh({ onRefresh, children }: { onRefresh: () => Promis
   };
 
   return (
-    <div onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd} onTouchCancel={onTouchEnd} className="relative">
+    <div
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
+      onTouchCancel={onTouchEnd}
+      className="relative"
+    >
       <m.div
         aria-hidden={!refreshing}
         className="pointer-events-none absolute inset-x-0 top-0 z-10 flex flex-col items-center"
@@ -74,7 +80,9 @@ export function PullToRefresh({ onRefresh, children }: { onRefresh: () => Promis
         <m.div
           style={{ rotate: reduced ? 0 : rotate }}
           animate={refreshing && !reduced ? { scale: [1, 0.82, 1] } : { scale: 1 }}
-          transition={refreshing ? { duration: 0.5, ease: "easeInOut", repeat: Infinity, repeatDelay: 0.2 } : spring.stamp}
+          transition={
+            refreshing ? { duration: 0.5, ease: "easeInOut", repeat: Infinity, repeatDelay: 0.2 } : spring.stamp
+          }
         >
           <Seal size={32} state={refreshing ? "waiting" : "brand"} />
         </m.div>

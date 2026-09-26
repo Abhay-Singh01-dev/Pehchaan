@@ -34,7 +34,8 @@ export function History() {
     for (const e of events ?? []) {
       const k = dayKey(e.at);
       const key = String(k);
-      const label = k === "today" ? t("common.today") : k === "yesterday" ? t("common.yesterday") : formatDateShort(k, lang);
+      const label =
+        k === "today" ? t("common.today") : k === "yesterday" ? t("common.yesterday") : formatDateShort(k, lang);
       const g = out.find((x) => x.key === key);
       if (g) g.items.push(e);
       else out.push({ key, label, items: [e] });
@@ -84,11 +85,16 @@ export function History() {
             ) : (
               groups.map((g) => (
                 <section key={g.key} className="mb-6">
-                  <h2 className="mb-2 px-1 text-caption font-medium uppercase tracking-[0.06em] text-muted">{g.label}</h2>
+                  <h2 className="mb-2 px-1 text-caption font-medium uppercase tracking-[0.06em] text-muted">
+                    {g.label}
+                  </h2>
                   <div className="card divide-y divide-line overflow-hidden">
                     {g.items.map((e) => {
                       const member = family?.find((mm) => mm.deviceId === e.memberDeviceId);
-                      const name = e.verdict === "UNKNOWN_PERSON" && !e.personLabel ? t("verify.someone") : member?.label ?? e.personLabel;
+                      const name =
+                        e.verdict === "UNKNOWN_PERSON" && !e.personLabel
+                          ? t("verify.someone")
+                          : (member?.label ?? e.personLabel);
                       const i = idx++;
                       return (
                         <m.button
@@ -105,7 +111,9 @@ export function History() {
                               {e.kind === "checked" ? t("history.checked", { name }) : t("history.answered", { name })}
                             </span>
                             <span className="mt-0.5 flex items-center gap-1.5 text-caption text-muted">
-                              {e.amountInr ? <span className="font-mono font-semibold text-ink-2">{formatINR(e.amountInr)}</span> : null}
+                              {e.amountInr ? (
+                                <span className="font-mono font-semibold text-ink-2">{formatINR(e.amountInr)}</span>
+                              ) : null}
                               {e.amountInr ? <span aria-hidden>·</span> : null}
                               <span>{formatTime(e.at, lang)}</span>
                             </span>

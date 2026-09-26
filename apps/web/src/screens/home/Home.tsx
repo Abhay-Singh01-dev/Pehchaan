@@ -70,11 +70,18 @@ export function Home() {
       <PageBody noTopBar withTabBar>
         {/* 1 · Header */}
         <m.header className="flex items-start gap-3" {...(intro ? riseIn(0, reduced) : {})}>
-          <button type="button" onClick={() => navigate("/settings/profile")} aria-label={profile.name} className="rounded-full">
+          <button
+            type="button"
+            onClick={() => navigate("/settings/profile")}
+            aria-label={profile.name}
+            className="rounded-full"
+          >
             <Avatar name={profile.name} color={profile.color} size={44} />
           </button>
           <div className="min-w-0 flex-1">
-            <h1 className="break-words font-display text-h2 font-semibold text-ink">{t("home.greeting", { name: firstName })}</h1>
+            <h1 className="break-words font-display text-h2 font-semibold text-ink">
+              {t("home.greeting", { name: firstName })}
+            </h1>
             <ConnectionPill state={connection} className="mt-1.5" />
           </div>
           <m.button
@@ -149,7 +156,9 @@ export function Home() {
               <span className="absolute inset-0 animate-ping rounded-full bg-[#8C95FF]/30" />
               <BellRinging size={22} weight="fill" className="relative text-[#B3B9FF]" />
             </span>
-            <span className="min-w-0 flex-1 text-body font-semibold">{t("home.incoming", { asker: pendingAsker })}</span>
+            <span className="min-w-0 flex-1 text-body font-semibold">
+              {t("home.incoming", { asker: pendingAsker })}
+            </span>
             <span className="inline-flex items-center gap-1 text-body-sm font-semibold text-[#B3B9FF]">
               {t("home.incomingCta")} <ArrowRight size={16} weight="bold" />
             </span>
@@ -229,10 +238,7 @@ export function Home() {
         </m.section>
 
         {/* 7 · Family rule */}
-        <m.div
-          className={cn("card relative mt-6 overflow-hidden p-4")}
-          {...(intro ? riseIn(4, reduced) : {})}
-        >
+        <m.div className={cn("card relative mt-6 overflow-hidden p-4")} {...(intro ? riseIn(4, reduced) : {})}>
           <span aria-hidden className="hairline-brass absolute inset-x-6 top-0" />
           <div className="flex items-center gap-3">
             <Seal size={32} />

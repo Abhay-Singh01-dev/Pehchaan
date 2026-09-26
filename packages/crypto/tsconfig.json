@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // WebCrypto, TextEncoder and friends come from the DOM lib; the package itself uses no Node APIs.
+    "lib": ["ES2023", "DOM"],
+    "types": []
+  },
+  "include": ["src"],
+  "references": []
+}

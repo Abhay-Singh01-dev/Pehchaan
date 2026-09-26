@@ -41,7 +41,15 @@ export function Chip({
   );
 }
 
-export function VerdictChip({ verdict, className, size }: { verdict: Verdict; className?: string; size?: "md" | "lg" }) {
+export function VerdictChip({
+  verdict,
+  className,
+  size,
+}: {
+  verdict: Verdict;
+  className?: string;
+  size?: "md" | "lg";
+}) {
   const { t } = useTranslation();
   return (
     <Chip tone={verdictTone(verdict)} className={className} size={size}>

@@ -171,7 +171,12 @@ export function Scan() {
             }
             transition={snap ? spring.ui : { duration: 0.36 }}
           >
-            <div className="absolute inset-0" style={{ animation: phase === "scanning" && !reduced ? "brackets-breathe 2.4s ease-in-out infinite" : undefined }}>
+            <div
+              className="absolute inset-0"
+              style={{
+                animation: phase === "scanning" && !reduced ? "brackets-breathe 2.4s ease-in-out infinite" : undefined,
+              }}
+            >
               {(["tl", "tr", "bl", "br"] as const).map((c) => (
                 <span
                   key={c}
@@ -233,9 +238,14 @@ export function Scan() {
         style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 20px)" }}
       >
         {cameraBlocked ? (
-          <div className="mb-4 rounded-[24px] bg-white/[0.08] p-5 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.12)]" role="alert">
+          <div
+            className="mb-4 rounded-[24px] bg-white/[0.08] p-5 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.12)]"
+            role="alert"
+          >
             <CameraSlash size={32} weight="duotone" className="text-[#B3B9FF]" aria-hidden />
-            <p className="mt-3 text-body font-medium">{phase === "denied" ? t("scan.cameraOff") : t("scan.noCamera")}</p>
+            <p className="mt-3 text-body font-medium">
+              {phase === "denied" ? t("scan.cameraOff") : t("scan.noCamera")}
+            </p>
           </div>
         ) : (
           <p className="mb-4 text-center text-body font-medium text-white/90" aria-live="polite">
@@ -254,10 +264,14 @@ export function Scan() {
             >
               <p className="text-body font-semibold">{t("scan.already", { name: already.label })}</p>
               <div className="mt-3 grid grid-cols-2 gap-2">
-                <Button variant="secondary" size="md" onClick={() => {
-                  setAlready(null);
-                  void scannerRef.current?.start();
-                }}>
+                <Button
+                  variant="secondary"
+                  size="md"
+                  onClick={() => {
+                    setAlready(null);
+                    void scannerRef.current?.start();
+                  }}
+                >
                   {t("confirm.scanAgain")}
                 </Button>
                 <Button size="md" onClick={() => navigate(`/family/${already.id}`, { replace: true })}>

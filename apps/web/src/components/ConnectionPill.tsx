@@ -16,7 +16,9 @@ export function ConnectionPill({ state, className }: { state: ConnectionState; c
       aria-live="polite"
       className={cn(
         "inline-flex h-7 items-center gap-2 rounded-full pl-2.5 pr-3 text-caption font-medium transition-colors duration-300",
-        state === "offline" ? "bg-[color-mix(in_oklab,var(--ink)_10%,transparent)] text-ink" : "bg-surface-2 text-ink-2",
+        state === "offline"
+          ? "bg-[color-mix(in_oklab,var(--ink)_10%,transparent)] text-ink"
+          : "bg-surface-2 text-ink-2",
         className,
       )}
     >

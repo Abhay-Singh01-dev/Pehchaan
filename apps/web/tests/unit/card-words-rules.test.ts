@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createCardService, myCard } from "@/services/card";
-import { CardError, type FamilyCard } from "@/services/types";
+import { type CardError, type FamilyCard } from "@/services/types";
 import { utf8ToBase64Url } from "@/services/crypto";
 import { WORDS, confirmationWordsFor, safetyWordsFor } from "@/services/words";
 import { accumulate, analyzeLine, parseAmount, SCRIPTED_CALL } from "@/services/guard/rules";
@@ -91,7 +91,9 @@ describe("Call Guard rules", () => {
 
   it("recognises a claimed name it has never seen, and Devanagari", () => {
     expect(analyzeLine("Maa, main Rohit bol raha hoon", []).claimedLabel).toBe("Rohit");
-    expect(analyzeLine("मैं अर्जुन बोल रहा हूँ, पैसे भेजो", []).tactics).toEqual(expect.arrayContaining(["identity", "money"]));
+    expect(analyzeLine("मैं अर्जुन बोल रहा हूँ, पैसे भेजो", []).tactics).toEqual(
+      expect.arrayContaining(["identity", "money"]),
+    );
   });
 
   it("matches ED only as a word (not inside English words)", () => {

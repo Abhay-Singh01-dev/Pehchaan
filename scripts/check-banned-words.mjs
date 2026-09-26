@@ -18,8 +18,21 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const LIST = join(root, "scripts", "banned-words.txt");
 
 const SKIP_DIRS = new Set([
-  "node_modules", "dist", "dev-dist", "coverage", "test-results", "playwright-report", ".turbo", ".git",
-  ".vite", ".venv", "frontend", "tests", "test", "__tests__", "__fixtures__",
+  "node_modules",
+  "dist",
+  "dev-dist",
+  "coverage",
+  "test-results",
+  "playwright-report",
+  ".turbo",
+  ".git",
+  ".vite",
+  ".venv",
+  "frontend",
+  "tests",
+  "test",
+  "__tests__",
+  "__fixtures__",
 ]);
 const SKIP_FILES = new Set([
   "scripts/banned-words.txt",
@@ -30,7 +43,8 @@ const SKIP_FILES = new Set([
   "Pehchaan_Backend_Specification.md",
   "Pehchaan_Frontend_Build_Prompt.md",
 ]);
-const TEXT_EXT = /\.(ts|tsx|mts|cts|js|mjs|cjs|json|md|yml|yaml|html|css|lua|sql|sh|txt|alloy|toml|Caddyfile|example)$/i;
+const TEXT_EXT =
+  /\.(ts|tsx|mts|cts|js|mjs|cjs|json|md|yml|yaml|html|css|lua|sql|sh|txt|alloy|toml|Caddyfile|example)$/i;
 const TEST_FILE = /\.(test|spec|int\.test|e2e)\.[cm]?[jt]sx?$/i;
 
 const escape = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -43,14 +57,22 @@ function listFiles(dir, out = []) {
     const st = statSync(p);
     if (st.isDirectory()) {
       if (!SKIP_DIRS.has(name)) listFiles(p, out);
-    } else if ((TEXT_EXT.test(name) || name === "Caddyfile" || name === "Dockerfile" || name.startsWith("Dockerfile.")) && !TEST_FILE.test(name)) {
+    } else if (
+      (TEXT_EXT.test(name) || name === "Caddyfile" || name === "Dockerfile" || name.startsWith("Dockerfile.")) &&
+      !TEST_FILE.test(name)
+    ) {
       out.push(p);
     }
   }
   return out;
 }
 
-export function checkEverywhere(words = readFileSync(LIST, "utf8").split(/\r?\n/).map((w) => w.trim()).filter(Boolean)) {
+export function checkEverywhere(
+  words = readFileSync(LIST, "utf8")
+    .split(/\r?\n/)
+    .map((w) => w.trim())
+    .filter(Boolean),
+) {
   const res = words.map((w) => [w, wordRe(w)]);
   const hits = [];
   for (const file of listFiles(root)) {
@@ -70,7 +92,9 @@ const FAMILY_WORDS = ["demo", "mock", "test", "sample", "safe", "100% secure", "
 const SPEC_DICTATED = new Set(["family.inperson", "limits.closing"]); // frontend spec lines 833/1155, 1521
 
 const flatten = (o, p = "") =>
-  Object.entries(o).flatMap(([k, v]) => (v && typeof v === "object" ? flatten(v, `${p}${k}.`) : [[`${p}${k}`, String(v)]]));
+  Object.entries(o).flatMap(([k, v]) =>
+    v && typeof v === "object" ? flatten(v, `${p}${k}.`) : [[`${p}${k}`, String(v)]],
+  );
 
 export function checkFamilyScreens(i18nDir = join(root, "apps", "web", "src", "i18n")) {
   const res = FAMILY_WORDS.map((w) => [w, wordRe(w)]);

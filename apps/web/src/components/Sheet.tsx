@@ -22,7 +22,16 @@ interface SheetProps {
   tone?: "surface" | "ink";
 }
 
-export function Sheet({ open, onClose, dismissible = true, children, labelledBy, label, className, tone = "surface" }: SheetProps) {
+export function Sheet({
+  open,
+  onClose,
+  dismissible = true,
+  children,
+  labelledBy,
+  label,
+  className,
+  tone = "surface",
+}: SheetProps) {
   const reduced = useReduced();
   const panelRef = useRef<HTMLDivElement>(null);
   const restoreRef = useRef<HTMLElement | null>(null);
@@ -99,7 +108,10 @@ export function Sheet({ open, onClose, dismissible = true, children, labelledBy,
                 if (info.offset.y > 110 || info.velocity.y > 650) onClose?.();
               }}
             >
-              <div className="mx-auto mb-3 h-1.5 w-10 rounded-full bg-[color-mix(in_oklab,currentColor_22%,transparent)]" aria-hidden />
+              <div
+                className="mx-auto mb-3 h-1.5 w-10 rounded-full bg-[color-mix(in_oklab,currentColor_22%,transparent)]"
+                aria-hidden
+              />
               {children}
             </m.div>
           </div>

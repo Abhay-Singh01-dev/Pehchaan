@@ -28,7 +28,9 @@ export function TrafficLog({ events, peers }: { events: RelayEvent[]; peers: Pee
     <div className="card overflow-hidden">
       <div className="overflow-x-auto">
         <div className="min-w-[820px]">
-          <div className={`${COLS} border-b border-line px-4 py-3 text-caption font-semibold uppercase tracking-[0.06em] text-muted`}>
+          <div
+            className={`${COLS} border-b border-line px-4 py-3 text-caption font-semibold uppercase tracking-[0.06em] text-muted`}
+          >
             <span>{t("lab.time")}</span>
             <span>{t("lab.route")}</span>
             <span>{t("lab.kind")}</span>

@@ -42,11 +42,7 @@ function myDeviceId(): string {
 
 // ─── Starting a check ──────────────────────────────────────────────────────
 
-export async function startCheck(p: {
-  member: FamilyMember;
-  reason?: AskReason;
-  amountInr?: number;
-}): Promise<string> {
+export async function startCheck(p: { member: FamilyMember; reason?: AskReason; amountInr?: number }): Promise<string> {
   const profile = await getProfile();
   const req = services.requests.create({
     from: { deviceId: myDeviceId(), name: profile?.name ?? "Pehchaan", phone: profile?.phone },

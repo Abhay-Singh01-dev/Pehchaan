@@ -83,12 +83,35 @@ export function TwoPhones({ size = 220 }: { size?: number }) {
   const from: [number, number] = [45, 74];
   const to: [number, number] = [155, 74];
   return (
-    <svg viewBox="0 0 200 160" width={size} height={(size * 160) / 200} aria-hidden focusable="false" style={{ overflow: "visible" }}>
-      <path d={arcPath(from, to, 58)} fill="none" stroke="var(--brass)" strokeWidth={2} strokeDasharray="2 6" strokeLinecap="round" />
+    <svg
+      viewBox="0 0 200 160"
+      width={size}
+      height={(size * 160) / 200}
+      aria-hidden
+      focusable="false"
+      style={{ overflow: "visible" }}
+    >
+      <path
+        d={arcPath(from, to, 58)}
+        fill="none"
+        stroke="var(--brass)"
+        strokeWidth={2}
+        strokeDasharray="2 6"
+        strokeLinecap="round"
+      />
       <Phone x={22} y={68}>
         {/* A caller's waveform */}
         {[0.4, 0.8, 1, 0.6, 0.9, 0.5].map((h, i) => (
-          <rect key={i} x={9 + i * 5} y={41 - h * 12} width={3} height={h * 24} rx={1.5} fill="var(--ink-2)" opacity={0.55} />
+          <rect
+            key={i}
+            x={9 + i * 5}
+            y={41 - h * 12}
+            width={3}
+            height={h * 24}
+            rx={1.5}
+            fill="var(--ink-2)"
+            opacity={0.55}
+          />
         ))}
       </Phone>
       <Phone x={132} y={68}>
@@ -161,11 +184,7 @@ export function KeyVault({ phase, size = 180 }: { phase: "idle" | "waiting" | "l
       <m.g
         style={{ transformOrigin: "100px 100px" }}
         animate={
-          phase === "locked"
-            ? { rotate: 30 }
-            : phase === "waiting" && !reduced
-              ? { rotate: [0, 360] }
-              : { rotate: 0 }
+          phase === "locked" ? { rotate: 30 } : phase === "waiting" && !reduced ? { rotate: [0, 360] } : { rotate: 0 }
         }
         transition={
           phase === "locked"
@@ -200,7 +219,13 @@ export function KeyVault({ phase, size = 180 }: { phase: "idle" | "waiting" | "l
         transition={phase === "locked" ? { duration: 0.25, delay: 0.2 } : { ...spring.soft }}
       >
         <circle cx="82" cy="100" r="15" fill="none" stroke="var(--ink-2)" strokeWidth={7} />
-        <path d="M96 100 H128 M116 100 V112 M126 100 V110" stroke="var(--ink-2)" strokeWidth={7} strokeLinecap="round" fill="none" />
+        <path
+          d="M96 100 H128 M116 100 V112 M126 100 V110"
+          stroke="var(--ink-2)"
+          strokeWidth={7}
+          strokeLinecap="round"
+          fill="none"
+        />
       </m.g>
       {/* Success check */}
       <m.path
@@ -223,15 +248,40 @@ export function PhoneHome({ size = 180 }: { size?: number }) {
   const reduced = useReduced();
   return (
     <div style={{ animation: reduced ? undefined : "float-y 4s ease-in-out infinite" }}>
-      <svg viewBox="0 0 160 220" width={size} height={(size * 220) / 160} aria-hidden focusable="false" style={{ overflow: "visible" }}>
-        <rect x="20" y="8" width="120" height="204" rx="24" fill="var(--surface)" stroke="var(--ink-2)" strokeWidth={2.5} />
+      <svg
+        viewBox="0 0 160 220"
+        width={size}
+        height={(size * 220) / 160}
+        aria-hidden
+        focusable="false"
+        style={{ overflow: "visible" }}
+      >
+        <rect
+          x="20"
+          y="8"
+          width="120"
+          height="204"
+          rx="24"
+          fill="var(--surface)"
+          stroke="var(--ink-2)"
+          strokeWidth={2.5}
+        />
         <rect x="64" y="17" width="32" height="6" rx="3" fill="var(--ink-2)" opacity={0.35} />
         {Array.from({ length: 12 }, (_, i) => {
           const col = i % 3;
           const row = Math.floor(i / 3);
           if (i === 4) return null;
           return (
-            <rect key={i} x={36 + col * 32} y={42 + row * 36} width="24" height="24" rx="7" fill="var(--ink-2)" opacity={0.14} />
+            <rect
+              key={i}
+              x={36 + col * 32}
+              y={42 + row * 36}
+              width="24"
+              height="24"
+              rx="7"
+              fill="var(--ink-2)"
+              opacity={0.14}
+            />
           );
         })}
         {/* The Pehchaan icon drops into its slot once. */}
@@ -261,7 +311,14 @@ export function FamilyIllustration({ size = 132 }: { size?: number }) {
       <circle cx="116" cy="54" r="24" fill="none" stroke="var(--ink-2)" strokeWidth={2} strokeDasharray="4 5" />
       <path d="M116 45 V63 M107 54 H125" stroke="var(--ink-2)" strokeWidth={2.5} strokeLinecap="round" />
       <circle cx="80" cy="40" r="8" fill="var(--brand)" opacity={0.85} />
-      <path d="M66 62 C68 54 92 54 94 62" stroke="var(--brand)" strokeWidth={3} strokeLinecap="round" fill="none" opacity={0.85} />
+      <path
+        d="M66 62 C68 54 92 54 94 62"
+        stroke="var(--brand)"
+        strokeWidth={3}
+        strokeLinecap="round"
+        fill="none"
+        opacity={0.85}
+      />
     </svg>
   );
 }
@@ -270,9 +327,27 @@ export function FamilyIllustration({ size = 132 }: { size?: number }) {
 export function ShieldIllustration({ size = 96 }: { size?: number }) {
   return (
     <svg viewBox="0 0 100 100" width={size} height={size} aria-hidden focusable="false">
-      <path d="M50 10 L82 22 V48 C82 70 68 84 50 91 C32 84 18 70 18 48 V22 Z" fill="var(--brand-soft)" stroke="var(--brand)" strokeWidth={3} />
-      <path d="M50 18 L75 27.5 V48 C75 65 64 76.5 50 82.5" fill="none" stroke="var(--brass)" strokeWidth={2} strokeLinecap="round" />
-      <path d="M38 50 L47 59 L64 41" fill="none" stroke="var(--brand)" strokeWidth={5} strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d="M50 10 L82 22 V48 C82 70 68 84 50 91 C32 84 18 70 18 48 V22 Z"
+        fill="var(--brand-soft)"
+        stroke="var(--brand)"
+        strokeWidth={3}
+      />
+      <path
+        d="M50 18 L75 27.5 V48 C75 65 64 76.5 50 82.5"
+        fill="none"
+        stroke="var(--brass)"
+        strokeWidth={2}
+        strokeLinecap="round"
+      />
+      <path
+        d="M38 50 L47 59 L64 41"
+        fill="none"
+        stroke="var(--brand)"
+        strokeWidth={5}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
@@ -288,7 +363,13 @@ export function BellIllustration({ size = 150 }: { size?: number }) {
         animate={reduced ? undefined : { rotate: [0, 12, -10, 6, -3, 0] }}
         transition={{ duration: 1.6, repeat: Infinity, repeatDelay: 1.6, ease: "easeInOut" }}
       >
-        <path d="M60 24 C44 24 36 36 36 52 V66 L28 78 H92 L84 66 V52 C84 36 76 24 60 24 Z" fill="var(--surface)" stroke="var(--brand)" strokeWidth={4} strokeLinejoin="round" />
+        <path
+          d="M60 24 C44 24 36 36 36 52 V66 L28 78 H92 L84 66 V52 C84 36 76 24 60 24 Z"
+          fill="var(--surface)"
+          stroke="var(--brand)"
+          strokeWidth={4}
+          strokeLinejoin="round"
+        />
         <circle cx="60" cy="86" r="7" fill="var(--brass)" />
       </m.g>
       <circle cx="60" cy="20" r="4" fill="var(--brand)" />

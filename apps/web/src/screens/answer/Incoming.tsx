@@ -63,8 +63,12 @@ export function Incoming() {
 
   const req = record?.request;
   const seconds = useSecondsLeft(req?.expiresAt ?? 0);
-  const expired = phase === "expired" || record?.status === "expired" || (req !== undefined && seconds <= 0 && record?.status === "pending");
-  const ringing = Boolean(req) && record?.status === "pending" && !expired && (phase === "idle" || phase === "cancelled");
+  const expired =
+    phase === "expired" ||
+    record?.status === "expired" ||
+    (req !== undefined && seconds <= 0 && record?.status === "pending");
+  const ringing =
+    Boolean(req) && record?.status === "pending" && !expired && (phase === "idle" || phase === "cancelled");
 
   useWakeLock(Boolean(req) && !expired && record?.status === "pending");
 
@@ -90,7 +94,8 @@ export function Incoming() {
 
   // Already answered (e.g. after a reload): show the sent screen.
   useEffect(() => {
-    if (record?.status === "answered" && requestId && phase === "idle") navigate(`/request/${requestId}/sent`, { replace: true });
+    if (record?.status === "answered" && requestId && phase === "idle")
+      navigate(`/request/${requestId}/sent`, { replace: true });
   }, [record?.status, requestId, navigate, phase]);
 
   const onPhase = useCallback((p: AnswerPhase) => {
@@ -164,12 +169,7 @@ export function Incoming() {
           animate={{ opacity: expired ? 0.4 : 1 }}
           transition={{ duration: dur.slow }}
         >
-          <Avatar
-            name={asker}
-            color={askerMember?.color ?? "slate"}
-            size={88}
-            pulse={ringing ? "heartbeat" : null}
-          />
+          <Avatar name={asker} color={askerMember?.color ?? "slate"} size={88} pulse={ringing ? "heartbeat" : null} />
           <m.p className="mt-4 text-body font-semibold text-[#C3C8E8]" {...riseIn(1, reduced, 0.35)}>
             {t("ask.title", { asker })}
           </m.p>
@@ -181,10 +181,7 @@ export function Incoming() {
               <span className="text-caption text-[#8D94BC]">{t("ask.gaveName", { name: req.fromName })}</span>
             </m.div>
           )}
-          <m.h1
-            className="mt-6 font-display text-display font-semibold text-white"
-            {...riseIn(3, reduced, 0.35)}
-          >
+          <m.h1 className="mt-6 font-display text-display font-semibold text-white" {...riseIn(3, reduced, 0.35)}>
             {parts.map((p, i) => (
               <span key={i}>
                 {p}
@@ -195,7 +192,10 @@ export function Incoming() {
             ))}
           </m.h1>
           {!expired && (
-            <p className="mt-4 inline-flex items-center gap-1.5 font-mono text-body font-semibold tabular-nums text-[#C3C8E8]" aria-label={t("a11y.secondsLeft", { count: seconds })}>
+            <p
+              className="mt-4 inline-flex items-center gap-1.5 font-mono text-body font-semibold tabular-nums text-[#C3C8E8]"
+              aria-label={t("a11y.secondsLeft", { count: seconds })}
+            >
               <HourglassLow size={18} aria-hidden /> {t("ask.expires", { time: mmss(seconds) })}
             </p>
           )}
@@ -220,14 +220,31 @@ export function Incoming() {
                 </Button>
               </m.div>
             ) : phase === "no_key" ? (
-              <m.div key="nokey" className="rounded-[22px] bg-white/[0.08] p-5" initial={{ opacity: 0 }} animate={{ opacity: 1 }} role="alert">
+              <m.div
+                key="nokey"
+                className="rounded-[22px] bg-white/[0.08] p-5"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                role="alert"
+              >
                 <p className="text-body font-semibold text-white">{t("ask.noKey")}</p>
-                <Button className="mt-4" full variant="on-verdict" onClick={() => navigate("/settings/key", { replace: true })}>
+                <Button
+                  className="mt-4"
+                  full
+                  variant="on-verdict"
+                  onClick={() => navigate("/settings/key", { replace: true })}
+                >
                   {t("myKey.create")}
                 </Button>
               </m.div>
             ) : (
-              <m.div key="answer" className="flex flex-col gap-3" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <m.div
+                key="answer"
+                className="flex flex-col gap-3"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+              >
                 {/* Status notes: F5 (couldn't confirm) and "Couldn't send… Reconnecting…" */}
                 <AnimatePresence initial={false}>
                   {(phase === "cancelled" || phase === "retrying") && (
@@ -239,7 +256,11 @@ export function Incoming() {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0 }}
                     >
-                      {phase === "retrying" ? <WifiSlash size={18} aria-hidden /> : <WarningCircle size={18} aria-hidden />}
+                      {phase === "retrying" ? (
+                        <WifiSlash size={18} aria-hidden />
+                      ) : (
+                        <WarningCircle size={18} aria-hidden />
+                      )}
                       {phase === "retrying" ? t("ask.sendFailed") : t("ask.notConfirmed")}
                     </m.p>
                   )}

@@ -1,0 +1,27 @@
+{
+  "name": "@pehchaan/protocol",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Pehchaan wire protocol: zod schemas for every frame and payload, error and close codes, limits.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "lint": "eslint . --max-warnings 0 && prettier --check . --ignore-path ../../.prettierignore",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run --coverage",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@pehchaan/crypto": "workspace:*",
+    "@types/node": "^26.6.2",
+    "@vitest/coverage-v8": "5.0.2",
+    "fast-check": "4.10.2",
+    "typescript": "7.0.2",
+    "vitest": "5.0.2"
+  }
+}

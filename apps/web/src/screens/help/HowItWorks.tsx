@@ -54,7 +54,11 @@ function MiniUnlock() {
         aria-hidden
         className="absolute inset-0 grid place-items-center text-brand"
         initial={{ clipPath: "inset(100% 0 0 0)" }}
-        animate={reduced ? { clipPath: "inset(0% 0 0 0)" } : { clipPath: ["inset(100% 0 0 0)", "inset(0% 0 0 0)", "inset(0% 0 0 0)"] }}
+        animate={
+          reduced
+            ? { clipPath: "inset(0% 0 0 0)" }
+            : { clipPath: ["inset(100% 0 0 0)", "inset(0% 0 0 0)", "inset(0% 0 0 0)"] }
+        }
         transition={{ duration: 2, repeat: reduced ? 0 : Infinity, times: [0, 0.35, 1] }}
       >
         <Fingerprint size={34} weight="bold" />
@@ -110,7 +114,10 @@ export function HowItWorks() {
       <PageBody>
         <PageTitle>{t("howItWorks.title")}</PageTitle>
         <ol className="relative flex flex-col gap-3">
-          <span aria-hidden className="absolute bottom-10 left-[43px] top-10 w-0.5 bg-[linear-gradient(var(--brass),var(--brand))] opacity-40" />
+          <span
+            aria-hidden
+            className="absolute bottom-10 left-[43px] top-10 w-0.5 bg-[linear-gradient(var(--brass),var(--brand))] opacity-40"
+          />
           {steps.map((s, i) => (
             <m.li key={i} className="card relative flex items-center gap-4 p-3 pr-4" {...riseIn(i + 1, reduced)}>
               {s.art}

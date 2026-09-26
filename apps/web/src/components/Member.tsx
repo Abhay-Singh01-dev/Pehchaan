@@ -45,7 +45,13 @@ export function MemberTile({
       {...riseIn(index, reduced, 0.06)}
       className="card flex min-h-[148px] flex-col items-center justify-center gap-2.5 p-4 text-center active:bg-surface-2"
     >
-      <Avatar name={member.label} color={member.color} size={56} reachable={reachable} layoutId={`avatar-${member.id}`} />
+      <Avatar
+        name={member.label}
+        color={member.color}
+        size={56}
+        reachable={reachable}
+        layoutId={`avatar-${member.id}`}
+      />
       <span className="w-full min-w-0">
         <span className="block truncate font-display text-h3 font-semibold text-ink">{member.label}</span>
         <span className="block truncate text-body-sm text-muted">{t(`relation.${member.relation}`)}</span>
@@ -76,7 +82,13 @@ export function MemberRow({
       {...riseIn(index, reduced)}
       className="flex w-full items-center gap-3.5 px-4 py-3.5 text-left active:bg-surface-2"
     >
-      <Avatar name={member.label} color={member.color} size={48} reachable={reachable} layoutId={`avatar-${member.id}`} />
+      <Avatar
+        name={member.label}
+        color={member.color}
+        size={48}
+        reachable={reachable}
+        layoutId={`avatar-${member.id}`}
+      />
       <span className="min-w-0 flex-1">
         <span className="flex flex-wrap items-baseline gap-x-2">
           <span className="break-words font-display text-h3 font-semibold text-ink">{member.label}</span>

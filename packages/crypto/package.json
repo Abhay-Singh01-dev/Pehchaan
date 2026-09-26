@@ -1,0 +1,25 @@
+{
+  "name": "@pehchaan/crypto",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Pehchaan's security core: canonical requests, device login, E2E seals, the 7-check verifier, cards and words. WebCrypto only.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./bytes": "./src/bytes.ts",
+    "./device-auth": "./src/device-auth.ts"
+  },
+  "scripts": {
+    "lint": "eslint . --max-warnings 0 && prettier --check . --ignore-path ../../.prettierignore",
+    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.test.json",
+    "test": "vitest run --coverage",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.2",
+    "@vitest/coverage-v8": "5.0.2",
+    "fast-check": "4.10.2",
+    "typescript": "7.0.2",
+    "vitest": "5.0.2"
+  }
+}

@@ -17,7 +17,19 @@ export interface TacticRule {
 export const TACTIC_RULES: TacticRule[] = [
   {
     tactic: "money",
-    latin: ["rupaye", "rupaiye", "rupees", "rupee", "paise", "paisa", "upi", "transfer", "bhejo", "bhej do", "send money"],
+    latin: [
+      "rupaye",
+      "rupaiye",
+      "rupees",
+      "rupee",
+      "paise",
+      "paisa",
+      "upi",
+      "transfer",
+      "bhejo",
+      "bhej do",
+      "send money",
+    ],
     devanagari: ["₹", "पैसे", "पैसा", "रुपये", "भेजो", "भेज दो", "यूपीआई"],
   },
   {

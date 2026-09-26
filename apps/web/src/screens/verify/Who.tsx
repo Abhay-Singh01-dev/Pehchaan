@@ -89,7 +89,12 @@ export function Who() {
         {family && members.length === 0 ? (
           <m.div className="card p-5" {...riseIn(1, reduced)}>
             <p className="text-body text-ink-2">{t("verify.noMembers")}</p>
-            <Button className="mt-4" full icon={<Plus size={20} weight="bold" />} onClick={() => navigate("/family/add")}>
+            <Button
+              className="mt-4"
+              full
+              icon={<Plus size={20} weight="bold" />}
+              onClick={() => navigate("/family/add")}
+            >
               {t("verify.addFamily")}
             </Button>
           </m.div>

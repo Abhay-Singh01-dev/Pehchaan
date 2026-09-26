@@ -70,9 +70,7 @@ export function AmountInput({ value, onChange }: { value: number | null; onChang
               aria-pressed={selected}
               className={cn(
                 "h-11 shrink-0 rounded-full px-4 font-mono text-body-sm font-semibold transition-colors duration-150",
-                selected
-                  ? "bg-brand text-on-brand"
-                  : "bg-surface text-ink-2 shadow-[inset_0_0_0_1px_var(--line)]",
+                selected ? "bg-brand text-on-brand" : "bg-surface text-ink-2 shadow-[inset_0_0_0_1px_var(--line)]",
               )}
             >
               {formatINR(q)}

@@ -56,7 +56,15 @@ function baseProfile(p: Partial<Profile> & Pick<Profile, "deviceId" | "name" | "
 
 function member(
   id: string,
-  s: { deviceId: string; name: string; phone?: string; color: FamilyMember["color"]; keyId?: string; publicKey?: string; safetyWords: SafetyWordsT },
+  s: {
+    deviceId: string;
+    name: string;
+    phone?: string;
+    color: FamilyMember["color"];
+    keyId?: string;
+    publicKey?: string;
+    safetyWords: SafetyWordsT;
+  },
   label: string,
   relation: FamilyMember["relation"],
   addedDaysAgo: number,

@@ -28,16 +28,7 @@ import { haptic } from "@/design/haptics";
 import { dur, ease, riseIn } from "@/design/motion";
 import { cn } from "@/lib/cn";
 
-type Phase =
-  | "intro"
-  | "waiting"
-  | "done"
-  | "noLock"
-  | "noPasskey"
-  | "cancelled"
-  | "pin"
-  | "pinConfirm"
-  | "creatingPin";
+type Phase = "intro" | "waiting" | "done" | "noLock" | "noPasskey" | "cancelled" | "pin" | "pinConfirm" | "creatingPin";
 
 export function KeyStep() {
   const { t } = useTranslation();
@@ -52,7 +43,10 @@ export function KeyStep() {
   const firstPin = useRef("");
   useRecordSetupStep();
 
-  const finishKey = async (k: { keyId: string; publicKey: string; safetyWords: SafetyWordsT }, kind: "passkey" | "pin") => {
+  const finishKey = async (
+    k: { keyId: string; publicKey: string; safetyWords: SafetyWordsT },
+    kind: "passkey" | "pin",
+  ) => {
     await updateProfile({
       role: "can_be_verified",
       keyId: k.keyId,
@@ -132,7 +126,9 @@ export function KeyStep() {
             {phase === "done" && words ? (
               <div className="text-center">
                 <h1 className="font-display text-h1 font-semibold text-ink">{t("key.done")}</h1>
-                <p className="mt-6 text-caption font-medium uppercase tracking-[0.06em] text-muted">{t("key.wordsTitle")}</p>
+                <p className="mt-6 text-caption font-medium uppercase tracking-[0.06em] text-muted">
+                  {t("key.wordsTitle")}
+                </p>
                 <SafetyWords words={words} size="lg" className="mt-2" delay={reduced ? 0 : 0.55} />
                 <p className="mt-3 text-body-sm text-ink-2">{t("key.wordsCaption")}</p>
               </div>
@@ -149,7 +145,11 @@ export function KeyStep() {
                 <div className="flex gap-3">
                   <WarningCircle size={28} weight="duotone" className="mt-0.5 shrink-0 text-chip-amber" aria-hidden />
                   <p className="text-body font-medium text-ink" role="alert">
-                    {phase === "noLock" ? t("key.noLock") : phase === "noPasskey" ? t("key.noPasskey") : t("key.cancelled")}
+                    {phase === "noLock"
+                      ? t("key.noLock")
+                      : phase === "noPasskey"
+                        ? t("key.noPasskey")
+                        : t("key.cancelled")}
                   </p>
                 </div>
               </div>
@@ -158,13 +158,18 @@ export function KeyStep() {
                 <h1 className="text-center font-display text-h1 font-semibold text-ink">{t("key.title")}</h1>
                 <p className="mt-2 text-center text-body text-ink-2">{t("key.body")}</p>
                 {phase === "waiting" ? (
-                  <p className="mt-6 flex items-center justify-center gap-2 text-center text-body font-medium text-brand-ink" aria-live="polite">
+                  <p
+                    className="mt-6 flex items-center justify-center gap-2 text-center text-body font-medium text-brand-ink"
+                    aria-live="polite"
+                  >
                     <Fingerprint size={22} weight="duotone" aria-hidden />
                     {t("key.waiting")}
                   </p>
                 ) : (
                   <div className="card mt-6 p-5">
-                    <div className="mb-3 text-caption font-medium uppercase tracking-[0.06em] text-muted">{t("key.what")}</div>
+                    <div className="mb-3 text-caption font-medium uppercase tracking-[0.06em] text-muted">
+                      {t("key.what")}
+                    </div>
                     <ul className="space-y-3.5">
                       {[
                         { icon: DeviceMobile, text: t("key.point1") },
@@ -245,7 +250,10 @@ function PinBoxes({
   const reduced = useReduced();
   return (
     <div className="mt-6">
-      <div className="relative mx-auto flex max-w-[320px] justify-center gap-2" onClick={() => inputRef.current?.focus()}>
+      <div
+        className="relative mx-auto flex max-w-[320px] justify-center gap-2"
+        onClick={() => inputRef.current?.focus()}
+      >
         {Array.from({ length: 6 }, (_, i) => {
           const filled = i < pin.length;
           const active = i === pin.length;

@@ -1,0 +1,21 @@
+# Vendored or generated, never reformatted
+docs/BACKEND_SPEC.md
+docs/FRONTEND_SPEC.md
+CLAUDE.md
+# Exactly as spec B3 prints them
+.claude/settings.json
+scripts/claude/*.mjs
+pnpm-lock.yaml
+**/node_modules
+**/dist
+**/dev-dist
+**/coverage
+**/test-results
+**/playwright-report
+**/.turbo
+**/store/migrations/meta
+frontend
+Pehchaan_*.md
+# Markdown is written by hand (tables line up by meaning, not by width)
+*.md
+**/*.md

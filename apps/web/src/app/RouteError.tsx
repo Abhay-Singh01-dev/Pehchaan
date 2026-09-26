@@ -9,7 +9,9 @@ const RELOADED_KEY = "pehchaan:chunk-reload";
 
 function isChunkError(e: unknown): boolean {
   const msg = e instanceof Error ? e.message : String(e ?? "");
-  return /dynamically imported module|Importing a module script failed|error loading dynamically imported module|ChunkLoadError/i.test(msg);
+  return /dynamically imported module|Importing a module script failed|error loading dynamically imported module|ChunkLoadError/i.test(
+    msg,
+  );
 }
 
 export function RouteError() {

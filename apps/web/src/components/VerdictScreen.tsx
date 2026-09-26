@@ -89,14 +89,19 @@ function StampedSeal({ result, timing }: { result: VerdictResult; timing: Verdic
   const drawDelay = timing.impact + (glitch ? 0.18 : 0);
 
   // Per-verdict movement of the seal itself (never the whole screen).
-  const detail =
-    reduced
-      ? {}
-      : state === "denied"
-        ? { animate: { x: [0, -6, 6, -6, 6, 0] }, transition: { duration: 0.26, delay: timing.impact + 0.04, ease: "easeInOut" as const } }
-        : state === "unknown"
-          ? { animate: { rotate: [0, -4, 4, 0] }, transition: { duration: 0.6, delay: timing.impact + 0.45, ease: "easeInOut" as const } }
-          : {};
+  const detail = reduced
+    ? {}
+    : state === "denied"
+      ? {
+          animate: { x: [0, -6, 6, -6, 6, 0] },
+          transition: { duration: 0.26, delay: timing.impact + 0.04, ease: "easeInOut" as const },
+        }
+      : state === "unknown"
+        ? {
+            animate: { rotate: [0, -4, 4, 0] },
+            transition: { duration: 0.6, delay: timing.impact + 0.45, ease: "easeInOut" as const },
+          }
+        : {};
 
   return (
     <div className="relative grid place-items-center" style={{ width: 120, height: 120 }}>
@@ -244,11 +249,17 @@ export function VerdictScreen({
         />
       )}
       {/* A soft light from above, so the seal sits on the brighter part and text on the darker. */}
-      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-[60%] bg-[radial-gradient(80%_60%_at_50%_0%,rgba(255,255,255,0.16),transparent_70%)]" />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 h-[60%] bg-[radial-gradient(80%_60%_at_50%_0%,rgba(255,255,255,0.16),transparent_70%)]"
+      />
 
       <div
         className="relative mx-auto flex min-h-app w-full max-w-[480px] flex-col px-6"
-        style={{ paddingTop: "calc(env(safe-area-inset-top) + 64px)", paddingBottom: "calc(env(safe-area-inset-bottom) + 24px)" }}
+        style={{
+          paddingTop: "calc(env(safe-area-inset-top) + 64px)",
+          paddingBottom: "calc(env(safe-area-inset-bottom) + 24px)",
+        }}
       >
         <div aria-live="assertive" className="sr-only">
           {announce}

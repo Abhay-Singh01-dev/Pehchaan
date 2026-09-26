@@ -69,7 +69,11 @@ export function Avatar({ name, color, size = 40, reachable, pulse, layoutId, cla
         </span>
       )}
       {layoutId ? (
-        <m.span layoutId={layoutId} className="block h-full w-full" transition={{ type: "spring", stiffness: 220, damping: 26 }}>
+        <m.span
+          layoutId={layoutId}
+          className="block h-full w-full"
+          transition={{ type: "spring", stiffness: 220, damping: 26 }}
+        >
           {content}
         </m.span>
       ) : (

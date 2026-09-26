@@ -29,9 +29,15 @@ test.describe("Part D walkthrough", () => {
     await askFromHome(maa);
     await answer(arjun, "yes");
     expect(await verdict(maa)).toBe("Confirmed");
-    const words = await maa.getByText(/Ask Arjun to say these words/).locator("xpath=following-sibling::p[1]").textContent();
+    const words = await maa
+      .getByText(/Ask Arjun to say these words/)
+      .locator("xpath=following-sibling::p[1]")
+      .textContent();
     await arjun.bringToFront();
-    const arjunWords = await arjun.getByText(/Say these words to Maa/).locator("xpath=following-sibling::p[1]").textContent();
+    const arjunWords = await arjun
+      .getByText(/Say these words to Maa/)
+      .locator("xpath=following-sibling::p[1]")
+      .textContent();
     expect(words?.replace(/\s+/g, " ").trim()).toBe(arjunWords?.replace(/\s+/g, " ").trim());
     await ctx.close();
   });
@@ -94,9 +100,17 @@ test.describe("Part D walkthrough", () => {
     await maa.getByRole("button", { name: /Police, bank or government/ }).click();
     await expect(maa.getByText("Cyber helpline")).toBeVisible();
 
-    await maa.evaluate(() => (window as never as { __pehchaan: { simControls: { forceConnection(s: string): void } } }).__pehchaan.simControls.forceConnection("offline"));
+    await maa.evaluate(() =>
+      (
+        window as never as { __pehchaan: { simControls: { forceConnection(s: string): void } } }
+      ).__pehchaan.simControls.forceConnection("offline"),
+    );
     await maa.goto("/verify/who");
-    await maa.evaluate(() => (window as never as { __pehchaan: { simControls: { forceConnection(s: string): void } } }).__pehchaan.simControls.forceConnection("offline"));
+    await maa.evaluate(() =>
+      (
+        window as never as { __pehchaan: { simControls: { forceConnection(s: string): void } } }
+      ).__pehchaan.simControls.forceConnection("offline"),
+    );
     await expect(maa.getByText(/You're offline/)).toBeVisible();
     await maa.getByRole("button", { name: /Arjun/ }).first().click();
     await maa.getByRole("button", { name: /Ask Arjun's phone/ }).click();
@@ -115,7 +129,10 @@ test.describe("Part D walkthrough", () => {
     await guard.getByRole("button", { name: /^Start$/ }).click();
     for (let i = 0; i < 2; i++) {
       await guard.waitForTimeout(2800);
-      await guard.getByRole("button", { name: "Next line" }).click().catch(() => {});
+      await guard
+        .getByRole("button", { name: "Next line" })
+        .click()
+        .catch(() => {});
     }
     await maa.bringToFront();
     await expect(maa.getByText(/Caller says they're Arjun/)).toBeVisible({ timeout: 20_000 });

@@ -29,7 +29,12 @@ export function SuspiciousCall() {
               <div className="min-w-0 flex-1 pt-1.5">
                 <p className="text-body font-medium text-ink">{s}</p>
                 {i === 1 && (
-                  <Button className="mt-3" size="md" icon={<ShieldCheck size={20} weight="duotone" />} onClick={() => navigate("/verify/who")}>
+                  <Button
+                    className="mt-3"
+                    size="md"
+                    icon={<ShieldCheck size={20} weight="duotone" />}
+                    onClick={() => navigate("/verify/who")}
+                  >
                     {t("home.verify")}
                   </Button>
                 )}

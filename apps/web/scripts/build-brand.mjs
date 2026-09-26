@@ -103,8 +103,5 @@ for (const [name, svg] of jobs) {
   console.log("public/icons/" + name);
 }
 
-writeFileSync(
-  join(root, "public/favicon.svg"),
-  sealSvg({ size: 64, ...dark, pad: 0.04, rounded: true }),
-);
+writeFileSync(join(root, "public/favicon.svg"), sealSvg({ size: 64, ...dark, pad: 0.04, rounded: true }));
 console.log("public/favicon.svg");

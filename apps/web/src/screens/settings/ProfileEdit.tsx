@@ -52,7 +52,12 @@ export function ProfileEdit() {
                 haptic("error");
                 return;
               }
-              await updateProfile({ name: draft.name.trim(), phone: v.phone, color: draft.color, hindiForm: draft.hindiForm });
+              await updateProfile({
+                name: draft.name.trim(),
+                phone: v.phone,
+                color: draft.color,
+                hindiForm: draft.hindiForm,
+              });
               await setPrefs({ hindiForm: draft.hindiForm });
               toast(t("profileEdit.saved"), { tone: "success" });
               navigate(-1);

@@ -228,7 +228,9 @@
   .card {
     background: var(--surface);
     border-radius: var(--radius-card);
-    box-shadow: var(--shadow-1), inset 0 0 0 1px var(--inner-border);
+    box-shadow:
+      var(--shadow-1),
+      inset 0 0 0 1px var(--inner-border);
   }
 
   .card-2 {
@@ -292,19 +294,13 @@
     color: #fff;
   }
   .v-ink {
-    background:
-      radial-gradient(120% 60% at 50% -10%, rgba(140, 149, 255, 0.22), transparent 60%),
-      #0a0e1f;
+    background: radial-gradient(120% 60% at 50% -10%, rgba(140, 149, 255, 0.22), transparent 60%), #0a0e1f;
     color: #eef0ff;
   }
 
   /* The Fake-answer hatch: 45° hairlines at 6% white. */
   .hatch {
-    background-image: repeating-linear-gradient(
-      45deg,
-      rgba(255, 255, 255, 0.06) 0 1px,
-      transparent 1px 9px
-    );
+    background-image: repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.06) 0 1px, transparent 1px 9px);
   }
 
   .safe-top {

@@ -81,7 +81,7 @@ Paths: `crypto` = `packages/crypto/test`, `protocol` = `packages/protocol/test`,
 | C-15.1c | 15.1 | Pub/sub behind a bus interface (PUBLISH or SPUBLISH) | relay/bus.int.test.ts | integration | 3 | ⏳ |
 | C-B5a | B5 | Every Lua script in its own file with a header comment, loaded with defineCommand | relay/lua.test.ts | unit | 3 | ⏳ |
 | C-B5b | B5 | Authorisation lives in core/authz.ts, one function per 16.3 row | relay/authz.int.test.ts › module shape | unit | 3 | ⏳ |
-| C-4b | 4 | The relay never imports crypto/verifier or crypto/e2e (depcruise) | depcruise › relay-no-verifier | static | 1 | ⏳ |
+| C-4b | 4 | The relay never imports crypto/verifier or crypto/e2e (depcruise) | relay/unit/depcruise.test.ts › fails when the relay imports packages/crypto/verifier | static | 1 | ✅ |
 | C-7.6a | 7.6 | Outbound notices: the app ignores unknown fields | web/relay-frames.test.ts › lenient outbound | unit | 5 | ⏳ |
 
 ## CON · contacts, devices, data

@@ -10,7 +10,12 @@ import { isTabRoute } from "@/components/TabBar";
 
 export type TransitionKind = "forward" | "back" | "tab" | "reveal" | "brand" | "takeover" | "fade" | "none";
 
-const TAKEOVER_SCREENS = [/^\/request\/[^/]+$/, /^\/request\/[^/]+\/sent$/, /^\/verify\/result\//, /^\/verify\/waiting\//];
+const TAKEOVER_SCREENS = [
+  /^\/request\/[^/]+$/,
+  /^\/request\/[^/]+\/sent$/,
+  /^\/verify\/result\//,
+  /^\/verify\/waiting\//,
+];
 
 export const isTakeoverScreen = (path: string) => TAKEOVER_SCREENS.some((re) => re.test(path));
 

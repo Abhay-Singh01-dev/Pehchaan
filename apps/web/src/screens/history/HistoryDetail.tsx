@@ -58,7 +58,10 @@ export function HistoryDetail() {
   if (!event) return <PageSkeleton />;
 
   const member = family?.find((mm) => mm.deviceId === event.memberDeviceId);
-  const name = event.verdict === "UNKNOWN_PERSON" && !event.personLabel ? t("verify.someone") : member?.label ?? event.personLabel;
+  const name =
+    event.verdict === "UNKNOWN_PERSON" && !event.personLabel
+      ? t("verify.someone")
+      : (member?.label ?? event.personLabel);
   const amber = event.verdict === "NO_RESPONSE" || event.verdict === "UNKNOWN_PERSON";
 
   const headline = event.verdict
@@ -75,7 +78,12 @@ export function HistoryDetail() {
 
   const timeline = [
     event.askedAt ? { label: t("historyDetail.asked"), at: event.askedAt } : null,
-    event.answeredAt ? { label: event.kind === "answered" ? t("historyDetail.yourAnswer") : t("historyDetail.answered"), at: event.answeredAt } : null,
+    event.answeredAt
+      ? {
+          label: event.kind === "answered" ? t("historyDetail.yourAnswer") : t("historyDetail.answered"),
+          at: event.answeredAt,
+        }
+      : null,
     { label: event.cancelled ? t("historyDetail.cancelledAt") : t("historyDetail.result"), at: event.at },
   ].filter(Boolean) as Array<{ label: string; at: number }>;
 
@@ -85,10 +93,7 @@ export function HistoryDetail() {
       <PageBody className="pt-2">
         {/* Summary card */}
         <m.div
-          className={cn(
-            "relative overflow-hidden rounded-[24px] p-5",
-            event.verdict ? BG[event.verdict] : "card",
-          )}
+          className={cn("relative overflow-hidden rounded-[24px] p-5", event.verdict ? BG[event.verdict] : "card")}
           {...riseIn(0, reduced)}
         >
           <div className="flex items-center gap-4">
@@ -105,8 +110,12 @@ export function HistoryDetail() {
             </div>
           </div>
           <div className={cn("mt-4 flex flex-wrap items-center gap-2 text-body-sm", event.verdict ? "" : "text-ink-2")}>
-            {event.amountInr ? <span className="font-mono text-mono-lg font-semibold">{formatINR(event.amountInr)}</span> : null}
-            <span className={cn("rounded-full px-3 py-1 font-semibold", event.verdict ? "bg-black/[0.12]" : "bg-surface-2")}>
+            {event.amountInr ? (
+              <span className="font-mono text-mono-lg font-semibold">{formatINR(event.amountInr)}</span>
+            ) : null}
+            <span
+              className={cn("rounded-full px-3 py-1 font-semibold", event.verdict ? "bg-black/[0.12]" : "bg-surface-2")}
+            >
               {reasonLabel(t, event.reason)}
             </span>
             {event.decision && <DecisionChip decision={event.decision} />}
@@ -122,8 +131,15 @@ export function HistoryDetail() {
             <p className="mb-3 text-caption text-muted">{formatDateLong(event.at, lang)}</p>
             {timeline.map((s, i) => (
               <li key={s.label} className="relative flex items-center gap-3 pb-4 last:pb-0">
-                {i < timeline.length - 1 && <span aria-hidden className="absolute left-[7px] top-4 h-full w-0.5 bg-line" />}
-                <span className={cn("relative h-4 w-4 shrink-0 rounded-full", i === timeline.length - 1 ? "bg-brand" : "bg-surface-2 shadow-[inset_0_0_0_2px_var(--brand)]")} />
+                {i < timeline.length - 1 && (
+                  <span aria-hidden className="absolute left-[7px] top-4 h-full w-0.5 bg-line" />
+                )}
+                <span
+                  className={cn(
+                    "relative h-4 w-4 shrink-0 rounded-full",
+                    i === timeline.length - 1 ? "bg-brand" : "bg-surface-2 shadow-[inset_0_0_0_2px_var(--brand)]",
+                  )}
+                />
                 <span className="flex-1 text-body font-medium text-ink">{s.label}</span>
                 <span className="font-mono text-body-sm font-medium tabular-nums text-ink-2">{formatClock(s.at)}</span>
               </li>

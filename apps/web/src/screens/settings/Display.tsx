@@ -17,12 +17,18 @@ import { PageSkeleton } from "@/components/Skeleton";
 function ThemePreview({ theme }: { theme: ThemePref }) {
   const resolved = resolveTheme(theme);
   return (
-    <div data-theme={resolved} className="frame-bg overflow-hidden rounded-[18px] p-3 shadow-[inset_0_0_0_1px_var(--line)]">
+    <div
+      data-theme={resolved}
+      className="frame-bg overflow-hidden rounded-[18px] p-3 shadow-[inset_0_0_0_1px_var(--line)]"
+    >
       <div className="flex items-center gap-2">
         <span className="h-6 w-6 rounded-full" style={{ background: "var(--av-rose)" }} />
         <span className="h-2.5 w-24 rounded-full bg-ink/80" />
       </div>
-      <div className="mt-3 flex h-14 items-center gap-3 rounded-[16px] px-3" style={{ background: "linear-gradient(150deg, var(--brand), var(--brand-strong))" }}>
+      <div
+        className="mt-3 flex h-14 items-center gap-3 rounded-[16px] px-3"
+        style={{ background: "linear-gradient(150deg, var(--brand), var(--brand-strong))" }}
+      >
         <span className="h-7 w-7 rounded-full bg-[color-mix(in_oklab,var(--on-brand)_20%,transparent)]" />
         <span className="h-2.5 w-28 rounded-full bg-[color-mix(in_oklab,var(--on-brand)_85%,transparent)]" />
       </div>
@@ -103,14 +109,22 @@ export function Display() {
               <p className="text-body font-medium text-ink">{t("display.reduceMotion")}</p>
               <p className="text-body-sm text-muted">{t("display.reduceMotionHint")}</p>
             </div>
-            <Switch checked={prefs.reduceMotion} label={t("display.reduceMotion")} onChange={(v) => void setPrefs({ reduceMotion: v })} />
+            <Switch
+              checked={prefs.reduceMotion}
+              label={t("display.reduceMotion")}
+              onChange={(v) => void setPrefs({ reduceMotion: v })}
+            />
           </div>
           <div className="flex items-center gap-3 p-4">
             <div className="min-w-0 flex-1">
               <p className="text-body font-medium text-ink">{t("display.sounds")}</p>
               <p className="text-body-sm text-muted">{t("display.soundsHint")}</p>
             </div>
-            <Switch checked={prefs.soundsOn} label={t("display.sounds")} onChange={(v) => void setPrefs({ soundsOn: v })} />
+            <Switch
+              checked={prefs.soundsOn}
+              label={t("display.sounds")}
+              onChange={(v) => void setPrefs({ soundsOn: v })}
+            />
           </div>
         </m.div>
       </PageBody>

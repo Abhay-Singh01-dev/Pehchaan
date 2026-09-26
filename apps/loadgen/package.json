@@ -1,0 +1,25 @@
+{
+  "name": "@pehchaan/loadgen",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "WebSocket load generator for the relay (spec 21.4): capacity, reconnect storm, soak.",
+  "scripts": {
+    "lint": "eslint . --max-warnings 0 && prettier --check . --ignore-path ../../.prettierignore",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "short": "tsx src/cli.ts short"
+  },
+  "dependencies": {
+    "@pehchaan/crypto": "workspace:*",
+    "@pehchaan/protocol": "workspace:*",
+    "ws": "8.21.3"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.2",
+    "@types/ws": "8.18.1",
+    "tsx": "4.23.15",
+    "typescript": "7.0.2",
+    "vitest": "5.0.2"
+  }
+}

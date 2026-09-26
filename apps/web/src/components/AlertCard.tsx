@@ -49,7 +49,11 @@ export function AlertCard({
               : "bg-[color-mix(in_oklab,var(--amber)_15%,transparent)] text-chip-amber",
           )}
         >
-          {imp ? <ShieldWarning size={24} weight="duotone" aria-hidden /> : <UserCircle size={24} weight="duotone" aria-hidden />}
+          {imp ? (
+            <ShieldWarning size={24} weight="duotone" aria-hidden />
+          ) : (
+            <UserCircle size={24} weight="duotone" aria-hidden />
+          )}
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
@@ -57,7 +61,11 @@ export function AlertCard({
               {imp ? t("alerts.imp.title", { about }) : t("alerts.checkOn.title", { about })}
             </p>
             {!alert.read && (
-              <span className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full bg-brand" role="img" aria-label={t("alerts.unread")} />
+              <span
+                className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full bg-brand"
+                role="img"
+                aria-label={t("alerts.unread")}
+              />
             )}
           </div>
           <p className="mt-1 text-body-sm text-ink-2">

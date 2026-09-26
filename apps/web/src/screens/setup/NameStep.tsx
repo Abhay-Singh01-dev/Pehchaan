@@ -115,17 +115,17 @@ export function ProfileForm({
                     transition={spring.ui}
                   />
                 )}
-                <span className="h-9 w-9 rounded-full shadow-[inset_0_0_0_1px_rgba(255,255,255,0.18)]" style={{ background: `var(--av-${c})` }} />
+                <span
+                  className="h-9 w-9 rounded-full shadow-[inset_0_0_0_1px_rgba(255,255,255,0.18)]"
+                  style={{ background: `var(--av-${c})` }}
+                />
               </button>
             );
           })}
         </div>
       </m.div>
 
-      <m.div
-        {...riseIn(5, reduced)}
-        className={cn(!inHindi && "rounded-[18px] bg-surface-2 p-4")}
-      >
+      <m.div {...riseIn(5, reduced)} className={cn(!inHindi && "rounded-[18px] bg-surface-2 p-4")}>
         <div className={cn("mb-1 font-medium text-ink-2", inHindi ? "text-body-sm" : "text-body-sm")}>
           {t("name.hindiForm")}
         </div>
@@ -137,7 +137,9 @@ export function ProfileForm({
           onChange={(v) => setDraft({ ...draft, hindiForm: v })}
           options={(["m", "f", "n"] as const).map((v) => ({
             value: v,
-            label: inHindi ? t(`name.form.${v}`) : `${t(`name.form.${v}`)} · ${{ m: "पुरुष", f: "महिला", n: "बताना नहीं" }[v]}`,
+            label: inHindi
+              ? t(`name.form.${v}`)
+              : `${t(`name.form.${v}`)} · ${{ m: "पुरुष", f: "महिला", n: "बताना नहीं" }[v]}`,
           }))}
         />
       </m.div>

@@ -1,0 +1,57 @@
+name: ci
+on:
+  pull_request: {}
+  push: { branches: [main, staging] }
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      REDIS_URL: "redis://localhost:6379"
+      DATABASE_URL: "postgres://postgres:test@localhost:5432/postgres"
+    services:
+      valkey: { image: "valkey/valkey:8", ports: ["6379:6379"] }
+      postgres:
+        image: postgres:16
+        env: { POSTGRES_PASSWORD: test }
+        ports: ["5432:5432"]
+        options: "--health-cmd pg_isready --health-interval 5s --health-retries 10"
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 } # gitleaks scans the whole history
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm turbo run lint typecheck test build # unit tests incl. crypto vectors
+      - run: pnpm depcruise # code boundaries (section 4)
+      - run: pnpm banned-words
+      - run: pnpm --filter @pehchaan/relay test:integration
+      - run: pnpm --filter @pehchaan/tests exec playwright install --with-deps chromium
+      - run: pnpm test:e2e # relay + web + virtual authenticator
+
+  secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  workflows:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: actionlint
+        run: |
+          bash <(curl -sSfL https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)
+          ./actionlint -color

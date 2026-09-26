@@ -18,7 +18,7 @@ export default defineConfig({
     trace: "retain-on-failure",
   },
   webServer: {
-    command: "npm run dev -- --port 5180 --strictPort",
+    command: "pnpm exec vite --port 5180 --strictPort",
     url: "http://localhost:5180",
     reuseExistingServer: true,
     timeout: 120_000,

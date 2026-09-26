@@ -90,7 +90,12 @@ export function MyCode() {
               transition={{ duration: reduced ? dur.reduced : dur.base }}
               onClick={() => setLarge(false)}
             >
-              <m.div initial={reduced ? false : { scale: 0.9 }} animate={{ scale: 1 }} transition={spring.soft} className="w-full">
+              <m.div
+                initial={reduced ? false : { scale: 0.9 }}
+                animate={{ scale: 1 }}
+                transition={spring.soft}
+                className="w-full"
+              >
                 <QRImage
                   text={link}
                   size={Math.min(frameRect().width * 0.9, frameRect().height * 0.72)}

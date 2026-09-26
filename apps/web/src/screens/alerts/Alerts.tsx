@@ -26,7 +26,10 @@ export function Alerts() {
 
   // Opening the list clears any alert banners still showing.
   useEffect(() => {
-    useUi.getState().banners.filter((b) => b.kind === "alert").forEach((b) => dismissBanner(b.id));
+    useUi
+      .getState()
+      .banners.filter((b) => b.kind === "alert")
+      .forEach((b) => dismissBanner(b.id));
   }, []);
 
   return (
@@ -40,7 +43,12 @@ export function Alerts() {
           <>
             {unread > 0 && (
               <div className="-mt-3 mb-3 flex justify-end">
-                <Button variant="ghost" size="sm" icon={<Checks size={18} weight="bold" />} onClick={() => void markAllAlertsRead()}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  icon={<Checks size={18} weight="bold" />}
+                  onClick={() => void markAllAlertsRead()}
+                >
                   {t("alerts.markAll")}
                 </Button>
               </div>

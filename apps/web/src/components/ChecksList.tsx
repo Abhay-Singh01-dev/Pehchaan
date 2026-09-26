@@ -33,11 +33,33 @@ function Mark({ passed, delay, play }: { passed: boolean; delay: number; play: b
     >
       <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden>
         {passed ? (
-          <m.path d="M5 12.5 L10 17.5 L19 7.5" fill="none" stroke={color} strokeWidth={2.8} strokeLinecap="round" strokeLinejoin="round" {...draw()} />
+          <m.path
+            d="M5 12.5 L10 17.5 L19 7.5"
+            fill="none"
+            stroke={color}
+            strokeWidth={2.8}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            {...draw()}
+          />
         ) : (
           <>
-            <m.path d="M6.5 6.5 L17.5 17.5" fill="none" stroke={color} strokeWidth={2.8} strokeLinecap="round" {...draw()} />
-            <m.path d="M17.5 6.5 L6.5 17.5" fill="none" stroke={color} strokeWidth={2.8} strokeLinecap="round" {...draw(0.08)} />
+            <m.path
+              d="M6.5 6.5 L17.5 17.5"
+              fill="none"
+              stroke={color}
+              strokeWidth={2.8}
+              strokeLinecap="round"
+              {...draw()}
+            />
+            <m.path
+              d="M17.5 6.5 L6.5 17.5"
+              fill="none"
+              stroke={color}
+              strokeWidth={2.8}
+              strokeLinecap="round"
+              {...draw(0.08)}
+            />
           </>
         )}
       </svg>
@@ -68,13 +90,12 @@ export function ChecksList({
         return (
           <m.li
             key={c.n}
-            className={cn("flex items-start gap-3 rounded-[14px] px-3 py-2.5", !c.passed && "bg-[color-mix(in_oklab,var(--no)_9%,transparent)]")}
+            className={cn(
+              "flex items-start gap-3 rounded-[14px] px-3 py-2.5",
+              !c.passed && "bg-[color-mix(in_oklab,var(--no)_9%,transparent)]",
+            )}
             initial={play ? { opacity: 0, y: 6 } : false}
-            animate={
-              play && !c.passed
-                ? { opacity: 1, y: 0, x: [0, -4, 4, -2, 0] }
-                : { opacity: 1, y: 0 }
-            }
+            animate={play && !c.passed ? { opacity: 1, y: 0, x: [0, -4, 4, -2, 0] } : { opacity: 1, y: 0 }}
             transition={{
               opacity: { duration: 0.2, delay: d },
               y: { duration: 0.24, delay: d, ease: ease.out },
@@ -117,7 +138,17 @@ function CountUp({ to, delay, decimals = 1 }: { to: number; delay: number; decim
 }
 
 /** E6 · Why? (spec B12 E6): dismissible, unlike the verdict itself. */
-export function WhySheet({ open, onClose, result, name }: { open: boolean; onClose: () => void; result: VerdictResult; name: string }) {
+export function WhySheet({
+  open,
+  onClose,
+  result,
+  name,
+}: {
+  open: boolean;
+  onClose: () => void;
+  result: VerdictResult;
+  name: string;
+}) {
   const { t } = useTranslation();
   const failed = result.checks.filter((c) => !c.passed).length;
   const title = result.verdict === "INVALID" ? t("why.titleFail") : t("why.titleTrust");

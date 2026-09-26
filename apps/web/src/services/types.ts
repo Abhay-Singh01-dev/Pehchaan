@@ -14,27 +14,12 @@ export type Lang = "en" | "hi";
 export type Role = "can_be_verified" | "checks_only";
 export type AvatarColor = "indigo" | "teal" | "saffron" | "rose" | "plum" | "slate";
 export type Relation =
-  | "son"
-  | "daughter"
-  | "mother"
-  | "father"
-  | "husband"
-  | "wife"
-  | "brother"
-  | "sister"
-  | "grandchild"
-  | "other";
+  "son" | "daughter" | "mother" | "father" | "husband" | "wife" | "brother" | "sister" | "grandchild" | "other";
 export type AskReason = "money" | "otp" | "bank_details" | "install_app" | "nothing_yet";
 export type Decision = "ME" | "NOT_ME";
 export type Verdict = "VERIFIED" | "DENIED" | "NO_RESPONSE" | "INVALID" | "UNKNOWN_PERSON";
 export type InvalidReason =
-  | "changed"
-  | "reused"
-  | "wrong_key"
-  | "wrong_app"
-  | "not_unlocked"
-  | "bad_signature"
-  | "expired";
+  "changed" | "reused" | "wrong_key" | "wrong_app" | "not_unlocked" | "bad_signature" | "expired";
 export type NoResponseReason = "timeout" | "offline" | "relay_unreachable";
 export type ConnectionState = "connected" | "reconnecting" | "offline";
 export type SafetyWordsT = [string, string, string, string];
@@ -288,7 +273,12 @@ export interface RelayService {
    * Called by the asker's phone after it verifies an answer, so the test-environment Lab
    * can show what Maa's phone showed. The real relay may ignore it outside the test environment.
    */
-  reportVerdict(r: { requestId: string; verdict: Verdict; invalidReason?: InvalidReason; failedChecks: number[] }): void;
+  reportVerdict(r: {
+    requestId: string;
+    verdict: Verdict;
+    invalidReason?: InvalidReason;
+    failedChecks: number[];
+  }): void;
 }
 
 export interface VerifierService {
@@ -402,13 +392,7 @@ export interface Services {
 // ─── Simulation-only controls (Diagnostics → Simulation panel) ─────────────────────
 
 export type AutoAnswerMode =
-  | "off"
-  | "not_me"
-  | "yes"
-  | "never"
-  | "tamper_changed"
-  | "tamper_reused"
-  | "tamper_wrong_key";
+  "off" | "not_me" | "yes" | "never" | "tamper_changed" | "tamper_reused" | "tamper_wrong_key";
 
 export type KeyOutcome = "success" | "no_screen_lock" | "no_passkeys" | "cancelled";
 

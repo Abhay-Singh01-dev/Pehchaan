@@ -53,7 +53,10 @@ export function QRImage({
   const play = animate && !reduced;
 
   return (
-    <div className={cn("relative overflow-hidden rounded-[14px] bg-white", className)} style={{ width: size, height: size }}>
+    <div
+      className={cn("relative overflow-hidden rounded-[14px] bg-white", className)}
+      style={{ width: size, height: size }}
+    >
       <svg
         viewBox={`${-quiet} ${-quiet} ${n + quiet * 2} ${n + quiet * 2}`}
         width={size}
@@ -81,7 +84,8 @@ export function QRImage({
           <span
             className="absolute inset-y-[-20%] left-0 w-1/3"
             style={{
-              background: "linear-gradient(90deg, transparent, rgba(58,69,214,0.14), rgba(255,255,255,0.5), rgba(58,69,214,0.14), transparent)",
+              background:
+                "linear-gradient(90deg, transparent, rgba(58,69,214,0.14), rgba(255,255,255,0.5), rgba(58,69,214,0.14), transparent)",
               animation: "qr-sweep 6s cubic-bezier(0.65,0,0.35,1) 1.2s infinite",
             }}
           />

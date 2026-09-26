@@ -117,7 +117,13 @@ describe("every INVALID reason", () => {
 
   it("wrong_app: signed for a different website", async () => {
     const req = await pendingRequest();
-    const ans = await makeSignedAnswer({ keyId: arjun.keyId!, req, decision: "ME", fromDeviceId: arjun.deviceId, origin: "https://evil.example" });
+    const ans = await makeSignedAnswer({
+      keyId: arjun.keyId!,
+      req,
+      decision: "ME",
+      fromDeviceId: arjun.deviceId,
+      origin: "https://evil.example",
+    });
     const r = await verifier.verify(req, ans, arjun);
     expect(r.invalidReason).toBe("wrong_app");
     expect(failed(r)).toEqual([4]);

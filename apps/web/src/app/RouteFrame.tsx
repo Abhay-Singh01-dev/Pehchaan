@@ -95,7 +95,15 @@ function RevealLayer({ kind, origin, children }: { kind: TransitionKind; origin:
   );
 }
 
-export function RouteFrame({ kind, reduced, children }: { kind: TransitionKind; reduced: boolean; children: ReactNode }) {
+export function RouteFrame({
+  kind,
+  reduced,
+  children,
+}: {
+  kind: TransitionKind;
+  reduced: boolean;
+  children: ReactNode;
+}) {
   const ref = useRef<HTMLDivElement>(null);
   const { scrollY } = useScroll({ container: ref });
   const isPresent = useIsPresent();

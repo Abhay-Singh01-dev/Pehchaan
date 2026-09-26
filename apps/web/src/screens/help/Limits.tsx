@@ -14,7 +14,11 @@ export function Limits() {
   const reduced = useReduced();
   const { person } = useHelpNames();
   const cards = [
-    { icon: Password, title: person ? t("limits.card1", { name: person }) : t("limits.card1_you"), body: t("limits.card1Body") },
+    {
+      icon: Password,
+      title: person ? t("limits.card1", { name: person }) : t("limits.card1_you"),
+      body: t("limits.card1Body"),
+    },
     { icon: Bug, title: t("limits.card2"), body: t("limits.card2Body") },
     { icon: HandPalm, title: t("limits.card3"), body: t("limits.card3Body") },
     { icon: UserCircleDashed, title: t("limits.card4"), body: t("limits.card4Body") },

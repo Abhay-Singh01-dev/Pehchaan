@@ -32,9 +32,12 @@ interface SealProps {
 const ICON_STROKE = 7;
 
 function palette(tone: SealTone) {
-  if (tone === "light") return { ring: "#FFFFFF", inner: "rgba(255,255,255,0.62)", fill: "#FFFFFF", tick: "rgba(255,255,255,0.35)" };
-  if (tone === "dark") return { ring: "#1F1300", inner: "rgba(31,19,0,0.55)", fill: "#1F1300", tick: "rgba(31,19,0,0.3)" };
-  if (tone === "amber") return { ring: "var(--brass)", inner: "var(--amber)", fill: "var(--chip-amber)", tick: "var(--brass)" };
+  if (tone === "light")
+    return { ring: "#FFFFFF", inner: "rgba(255,255,255,0.62)", fill: "#FFFFFF", tick: "rgba(255,255,255,0.35)" };
+  if (tone === "dark")
+    return { ring: "#1F1300", inner: "rgba(31,19,0,0.55)", fill: "#1F1300", tick: "rgba(31,19,0,0.3)" };
+  if (tone === "amber")
+    return { ring: "var(--brass)", inner: "var(--amber)", fill: "var(--chip-amber)", tick: "var(--brass)" };
   return { ring: "var(--brass)", inner: "var(--brand)", fill: "var(--brand)", tick: "var(--brass)" };
 }
 
@@ -227,7 +230,14 @@ export function Seal({
             style={{ transformOrigin: "50px 50px" }}
             initial={animateDraw ? { rotate: -90, opacity: 0 } : undefined}
             animate={animateDraw ? { rotate: 270, opacity: 1 } : undefined}
-            transition={animateDraw ? { rotate: { duration: 1.6, delay: drawDelay + 0.3, ease: ease.inOut }, opacity: { duration: 0.1, delay: drawDelay } } : undefined}
+            transition={
+              animateDraw
+                ? {
+                    rotate: { duration: 1.6, delay: drawDelay + 0.3, ease: ease.inOut },
+                    opacity: { duration: 0.1, delay: drawDelay },
+                  }
+                : undefined
+            }
           />
         </>
       )}

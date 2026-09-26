@@ -3,7 +3,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence } from "motion/react";
 import * as m from "motion/react-m";
-import { CaretDown, Microphone, PaperPlaneTilt, Play, Stop, SkipForward, Waveform as WaveIcon, DeviceMobile } from "@phosphor-icons/react";
+import {
+  CaretDown,
+  Microphone,
+  PaperPlaneTilt,
+  Play,
+  Stop,
+  SkipForward,
+  Waveform as WaveIcon,
+  DeviceMobile,
+} from "@phosphor-icons/react";
 import { loadGuard, services } from "@/services";
 import type { GuardService, GuardSignals, Tactic } from "@/services/types";
 import { GuardError } from "@/services/errors";
@@ -148,7 +157,12 @@ export function Guard() {
     if (!target) return;
     try {
       await services.relay.sendGuardPrompt(
-        { claimedLabel: signals.claimedLabel ?? "", amountInr: signals.amountInr, tactics: signals.tactics, at: Date.now() },
+        {
+          claimedLabel: signals.claimedLabel ?? "",
+          amountInr: signals.amountInr,
+          tactics: signals.tactics,
+          at: Date.now(),
+        },
         target,
       );
       setSentAt(Date.now());
@@ -200,7 +214,10 @@ export function Guard() {
           )}
           role="status"
         >
-          <span className={cn("h-2 w-2 rounded-full", running ? "bg-brand" : "bg-muted")} style={running && !reduced ? { animation: "dots 1.2s infinite" } : undefined} />
+          <span
+            className={cn("h-2 w-2 rounded-full", running ? "bg-brand" : "bg-muted")}
+            style={running && !reduced ? { animation: "dots 1.2s infinite" } : undefined}
+          />
           {running ? t("guard.listening") : t("guard.paused")}
         </span>
         <Segmented
@@ -264,15 +281,26 @@ export function Guard() {
           {micError && (
             <div className="card flex flex-wrap items-center gap-3 p-4" role="alert">
               <Microphone size={24} weight="duotone" className="text-chip-amber" aria-hidden />
-              <p className="flex-1 text-body font-medium text-ink">{micError === "denied" ? t("guard.micDenied") : t("guard.micUnsupported")}</p>
-              <Button size="md" variant="secondary" onClick={() => { setMode("scripted"); setMicError(null); }}>
+              <p className="flex-1 text-body font-medium text-ink">
+                {micError === "denied" ? t("guard.micDenied") : t("guard.micUnsupported")}
+              </p>
+              <Button
+                size="md"
+                variant="secondary"
+                onClick={() => {
+                  setMode("scripted");
+                  setMicError(null);
+                }}
+              >
                 {t("guard.useScripted")}
               </Button>
             </div>
           )}
 
           <div className="card min-h-[340px] p-5">
-            <h2 className="mb-3 text-caption font-semibold uppercase tracking-[0.06em] text-muted">{t("guard.transcript")}</h2>
+            <h2 className="mb-3 text-caption font-semibold uppercase tracking-[0.06em] text-muted">
+              {t("guard.transcript")}
+            </h2>
             {lines.length === 0 ? (
               <p className="text-body text-muted">{t("guard.transcriptEmpty")}</p>
             ) : (
@@ -283,7 +311,10 @@ export function Guard() {
                     initial={reduced ? false : { opacity: 0, y: 6 }}
                     animate={{ opacity: l.final ? 1 : 0.7, y: 0 }}
                     transition={{ duration: dur.base, ease: ease.out }}
-                    className={cn("rounded-[14px] px-4 py-2.5 text-body", l.final ? "bg-surface-2 text-ink" : "text-ink-2")}
+                    className={cn(
+                      "rounded-[14px] px-4 py-2.5 text-body",
+                      l.final ? "bg-surface-2 text-ink" : "text-ink-2",
+                    )}
                   >
                     {l.final ? <Highlighted text={l.text} names={names} /> : <TypedWords text={l.text} />}
                   </m.li>
@@ -296,7 +327,9 @@ export function Guard() {
         {/* Right: signals, stage, prompt */}
         <section className="flex flex-col gap-4">
           <div className="card p-5">
-            <h2 className="mb-3 text-caption font-semibold uppercase tracking-[0.06em] text-muted">{t("guard.hearing")}</h2>
+            <h2 className="mb-3 text-caption font-semibold uppercase tracking-[0.06em] text-muted">
+              {t("guard.hearing")}
+            </h2>
             <div className="flex min-h-10 flex-wrap gap-2">
               {signals.tactics.length === 0 && <span className="text-body-sm text-muted">{t("guard.nothing")}</span>}
               <AnimatePresence>
@@ -324,7 +357,9 @@ export function Guard() {
           </div>
 
           <div className="card p-5">
-            <h2 className="mb-3 text-caption font-semibold uppercase tracking-[0.06em] text-muted">{t("guard.stage")}</h2>
+            <h2 className="mb-3 text-caption font-semibold uppercase tracking-[0.06em] text-muted">
+              {t("guard.stage")}
+            </h2>
             <div className="grid grid-cols-5 gap-1.5">
               {[0, 1, 2, 3, 4].map((s) => (
                 <div key={s} className="flex flex-col gap-1.5">
@@ -345,7 +380,9 @@ export function Guard() {
           </div>
 
           <div className="card relative overflow-hidden p-5">
-            <h2 className="mb-3 text-caption font-semibold uppercase tracking-[0.06em] text-muted">{t("guard.prompt")}</h2>
+            <h2 className="mb-3 text-caption font-semibold uppercase tracking-[0.06em] text-muted">
+              {t("guard.prompt")}
+            </h2>
             <Button
               full
               icon={<PaperPlaneTilt size={20} weight="fill" />}
@@ -421,7 +458,12 @@ export function Guard() {
                     <div>
                       <dt className="font-semibold text-ink">{t("guard.identityRules")}</dt>
                       <dd className="mt-0.5 font-mono text-caption text-ink-2">
-                        {[...IDENTITY_PATTERNS.latin, ...IDENTITY_PATTERNS.devanagari, ...IDENTITY_PATTERNS.generic, ...IDENTITY_PATTERNS.anyName]
+                        {[
+                          ...IDENTITY_PATTERNS.latin,
+                          ...IDENTITY_PATTERNS.devanagari,
+                          ...IDENTITY_PATTERNS.generic,
+                          ...IDENTITY_PATTERNS.anyName,
+                        ]
                           .map((p) => `“${p}”`)
                           .join(" · ")}
                       </dd>

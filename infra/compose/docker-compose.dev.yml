@@ -1,0 +1,36 @@
+# Valkey 8 + Postgres 16 for local development and the integration tests (spec 18.12).
+#   docker compose -f infra/compose/docker-compose.dev.yml up -d --wait
+# Ports are bound to 127.0.0.1 only, so nothing is reachable from the network. The production stack
+# (infra/vm/compose.yml) publishes neither port at all.
+name: pehchaan-dev
+
+services:
+  valkey:
+    image: valkey/valkey:8
+    restart: unless-stopped
+    command:
+      ["valkey-server", "--save", "", "--appendonly", "no", "--maxmemory", "256mb", "--maxmemory-policy", "noeviction"]
+    ports: ["127.0.0.1:6379:6379"]
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 2s
+      timeout: 2s
+      retries: 20
+
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: pehchaan
+      POSTGRES_USER: pehchaan
+      POSTGRES_PASSWORD: pehchaan-dev
+    ports: ["127.0.0.1:5432:5432"]
+    volumes: ["pgdata:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-U", "pehchaan", "-d", "pehchaan"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+
+volumes:
+  pgdata: {}

@@ -50,7 +50,9 @@ export function MyKey() {
                 <SealCheck size={28} weight="duotone" aria-hidden />
               </span>
               <p className="text-body font-medium text-ink">
-                {profile.keyKind === "pin" ? t("myKey.statusPin", { date: created }) : t("myKey.status", { date: created })}
+                {profile.keyKind === "pin"
+                  ? t("myKey.statusPin", { date: created })
+                  : t("myKey.status", { date: created })}
               </p>
             </m.div>
 
@@ -94,7 +96,12 @@ export function MyKey() {
 
             <div className="mt-6">
               {!confirmReplace && (
-                <Button full variant="secondary" icon={<ArrowsClockwise size={20} />} onClick={() => setConfirmReplace(true)}>
+                <Button
+                  full
+                  variant="secondary"
+                  icon={<ArrowsClockwise size={20} />}
+                  onClick={() => setConfirmReplace(true)}
+                >
                   {t("myKey.replace")}
                 </Button>
               )}

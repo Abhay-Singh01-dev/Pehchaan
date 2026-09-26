@@ -34,7 +34,11 @@ export function RollingText({ text, className, label }: { text: string; classNam
   const reduced = useReduced();
   const chars = Array.from(text);
   return (
-    <span className={cn("inline-flex items-end font-mono tabular-nums leading-[1.2em]", className)} aria-label={label ?? text} role="text">
+    <span
+      className={cn("inline-flex items-end font-mono tabular-nums leading-[1.2em]", className)}
+      aria-label={label ?? text}
+      role="text"
+    >
       <AnimatePresence initial={false} mode="popLayout">
         {chars.map((ch, i) => {
           const fromRight = chars.length - i;

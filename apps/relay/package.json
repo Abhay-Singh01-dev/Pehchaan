@@ -1,0 +1,49 @@
+{
+  "name": "@pehchaan/relay",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "The Pehchaan relay: authenticates devices, routes sealed envelopes, holds them for up to 60 s, sends Web Push, runs the Security Lab. It never decides who anyone is.",
+  "scripts": {
+    "dev": "tsx watch --clear-screen=false src/main.ts",
+    "build": "node scripts/build.mjs",
+    "start": "node dist/main.js",
+    "lint": "eslint . --max-warnings 0 && prettier --check . --ignore-path ../../.prettierignore",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run --coverage",
+    "test:watch": "vitest",
+    "test:integration": "vitest run -c vitest.integration.config.ts",
+    "db:generate": "drizzle-kit generate",
+    "migrate": "tsx src/migrate.ts",
+    "admin": "tsx src/admin.ts"
+  },
+  "dependencies": {
+    "@fastify/cors": "11.3.0",
+    "drizzle-orm": "0.45.3",
+    "fastify": "5.12.5",
+    "hash-wasm": "4.12.0",
+    "ioredis": "5.11.1",
+    "pg": "8.23.0",
+    "pino": "10.3.1",
+    "prom-client": "15.1.3",
+    "undici": "8.11.2",
+    "web-push": "3.6.7",
+    "ws": "8.21.3",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@pehchaan/crypto": "workspace:*",
+    "@pehchaan/protocol": "workspace:*",
+    "@types/node": "^26.6.2",
+    "@types/pg": "8.23.1",
+    "@types/web-push": "3.6.4",
+    "@types/ws": "8.18.1",
+    "@vitest/coverage-v8": "5.0.2",
+    "drizzle-kit": "0.31.11",
+    "esbuild": "0.28.2",
+    "fast-check": "4.10.2",
+    "tsx": "4.23.15",
+    "typescript": "7.0.2",
+    "vitest": "5.0.2"
+  }
+}

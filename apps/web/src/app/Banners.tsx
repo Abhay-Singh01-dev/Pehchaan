@@ -85,12 +85,17 @@ function BannerCard({ item }: { item: BannerItem }) {
             transition={{ duration: 1.2, times: [0, 0.2, 1] }}
           />
         )}
-        <span aria-hidden className={cn("absolute inset-y-0 left-0 w-1.5", imp ? "bg-[var(--no)]" : "bg-[var(--amber)]")} />
+        <span
+          aria-hidden
+          className={cn("absolute inset-y-0 left-0 w-1.5", imp ? "bg-[var(--no)]" : "bg-[var(--amber)]")}
+        />
         <div className="flex gap-3 pl-1.5">
           <span
             className={cn(
               "grid h-11 w-11 shrink-0 place-items-center rounded-full",
-              imp ? "bg-[color-mix(in_oklab,var(--no)_14%,transparent)] text-chip-no" : "bg-[color-mix(in_oklab,var(--amber)_16%,transparent)] text-chip-amber",
+              imp
+                ? "bg-[color-mix(in_oklab,var(--no)_14%,transparent)] text-chip-no"
+                : "bg-[color-mix(in_oklab,var(--amber)_16%,transparent)] text-chip-amber",
             )}
           >
             {imp ? <ShieldWarning size={24} weight="duotone" /> : <UserCircle size={24} weight="duotone" />}

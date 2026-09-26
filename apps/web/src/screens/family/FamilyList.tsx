@@ -67,7 +67,9 @@ export function FamilyList() {
               .filter((s) => s.list.length > 0)
               .map((s) => (
                 <section key={s.key} className="mb-6">
-                  <h2 className="mb-2 px-1 text-caption font-medium uppercase tracking-[0.06em] text-muted">{t(s.key)}</h2>
+                  <h2 className="mb-2 px-1 text-caption font-medium uppercase tracking-[0.06em] text-muted">
+                    {t(s.key)}
+                  </h2>
                   <div className="card divide-y divide-line overflow-hidden">
                     {s.list.map((mem, i) => (
                       <MemberRow

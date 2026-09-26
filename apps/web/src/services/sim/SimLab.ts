@@ -42,7 +42,9 @@ const REASON_EN: Record<string, string> = {
 export function summarize(kind: RelayEvent["kind"], payload: unknown): string {
   if (kind === "request") {
     const r = payload as VerifyRequest;
-    const what = r.reason ? `${REASON_EN[r.reason] ?? r.reason}${r.amountInr ? " " + inr(r.amountInr) : ""}` : "No reason";
+    const what = r.reason
+      ? `${REASON_EN[r.reason] ?? r.reason}${r.amountInr ? " " + inr(r.amountInr) : ""}`
+      : "No reason";
     return `request · ${what} · nonce ${r.nonce.slice(0, 4)}…`;
   }
   if (kind === "answer") {
@@ -339,9 +341,12 @@ export class SimLab implements LabService {
       const ans = m.payload as SignedAnswer;
       const flipped: SignedAnswer = { ...ans, decision: ans.decision === "NOT_ME" ? "ME" : "NOT_ME" };
       void this.recordAttack("change", { requestId: ans.requestId, toDeviceId: ans.fromDeviceId, fromDeviceId: m.to });
-      this.forward({ ...m, payload: flipped, tampered: "change" }, {
-        summary: `answer · ${ans.decision === "NOT_ME" ? "NOT ME → ME" : "ME → NOT ME"} · changed by attacker`,
-      });
+      this.forward(
+        { ...m, payload: flipped, tampered: "change" },
+        {
+          summary: `answer · ${ans.decision === "NOT_ME" ? "NOT ME → ME" : "ME → NOT ME"} · changed by attacker`,
+        },
+      );
       this.emitStatus();
       return;
     }

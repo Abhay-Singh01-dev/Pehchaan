@@ -1,0 +1,26 @@
+{
+  "name": "@pehchaan/canary",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Synthetic check (spec 19.6): two software-key devices log in, ask, answer and check receipts and timings.",
+  "scripts": {
+    "lint": "eslint . --max-warnings 0 && prettier --check . --ignore-path ../../.prettierignore",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "canary": "tsx src/cli.ts canary",
+    "smoke": "tsx src/cli.ts smoke"
+  },
+  "dependencies": {
+    "@pehchaan/crypto": "workspace:*",
+    "@pehchaan/protocol": "workspace:*",
+    "ws": "8.21.3"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.2",
+    "@types/ws": "8.18.1",
+    "tsx": "4.23.15",
+    "typescript": "7.0.2",
+    "vitest": "5.0.2"
+  }
+}

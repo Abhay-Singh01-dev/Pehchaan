@@ -12,8 +12,7 @@ export interface ToastItem {
 }
 
 export type BannerItem =
-  | { id: string; kind: "alert"; alert: FamilyAlert }
-  | { id: string; kind: "guard"; prompt: GuardPrompt };
+  { id: string; kind: "alert"; alert: FamilyAlert } | { id: string; kind: "guard"; prompt: GuardPrompt };
 
 interface UiState {
   toasts: ToastItem[];

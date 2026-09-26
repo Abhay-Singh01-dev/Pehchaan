@@ -43,7 +43,9 @@ function Row({ label, value, mono, action }: { label: string; value: ReactNode; 
   return (
     <div className="flex min-h-12 items-center gap-3 px-4 py-2.5">
       <span className="w-[38%] shrink-0 text-body-sm text-muted">{label}</span>
-      <span className={cn("min-w-0 flex-1 break-all text-body-sm font-medium text-ink", mono && "font-mono")}>{value}</span>
+      <span className={cn("min-w-0 flex-1 break-all text-body-sm font-medium text-ink", mono && "font-mono")}>
+        {value}
+      </span>
       {action}
     </div>
   );
@@ -73,8 +75,19 @@ function Radio<T extends string>({
             onClick={() => onChange(o.value)}
             className="flex min-h-12 w-full items-center gap-3 px-4 py-2.5 text-left active:bg-surface-2"
           >
-            <span className={cn("grid h-5 w-5 shrink-0 place-items-center rounded-full", on ? "bg-brand" : "shadow-[inset_0_0_0_2px_var(--line)]")}>
-              {on && <m.span layoutId={`radio-${name}`} className="h-2 w-2 rounded-full bg-on-brand" transition={spring.ui} />}
+            <span
+              className={cn(
+                "grid h-5 w-5 shrink-0 place-items-center rounded-full",
+                on ? "bg-brand" : "shadow-[inset_0_0_0_2px_var(--line)]",
+              )}
+            >
+              {on && (
+                <m.span
+                  layoutId={`radio-${name}`}
+                  className="h-2 w-2 rounded-full bg-on-brand"
+                  transition={spring.ui}
+                />
+              )}
             </span>
             <span className="text-body-sm font-medium text-ink">{o.label}</span>
           </button>
@@ -114,10 +127,14 @@ export function Diagnostics() {
         app: APP_VERSION,
         device: { id: deviceId, db: device.dbName, sim: device.simName },
         flags,
-        profile: profile ? { name: profile.name, role: profile.role, key: Boolean(profile.keyId), lang: profile.lang } : null,
+        profile: profile
+          ? { name: profile.name, role: profile.role, key: Boolean(profile.keyId), lang: profile.lang }
+          : null,
         connection: { state: connection, relay: services.relay.address(), rttMs: rtt, lastMessageAt: lastMsg },
         reachable,
-        lastVerdict: last?.result ? { verdict: last.result.verdict, reason: last.result.invalidReason ?? last.result.noResponseReason } : null,
+        lastVerdict: last?.result
+          ? { verdict: last.result.verdict, reason: last.result.invalidReason ?? last.result.noResponseReason }
+          : null,
         userAgent: navigator.userAgent,
       },
       null,
@@ -142,14 +159,19 @@ export function Diagnostics() {
                   type="button"
                   aria-label={t("common.copy")}
                   className="grid h-10 w-10 place-items-center rounded-full text-muted active:bg-surface-2"
-                  onClick={async () => deviceId && (await copyText(deviceId)) && toast(t("common.copied"), { tone: "success" })}
+                  onClick={async () =>
+                    deviceId && (await copyText(deviceId)) && toast(t("common.copied"), { tone: "success" })
+                  }
                 >
                   <Copy size={18} />
                 </button>
               }
             />
             <Row label={t("diag.role")} value={profile ? t(`settings.role.${profile.role}`) : "—"} />
-            <Row label={t("diag.keyStatus")} value={profile?.keyId ? `${t("diag.keyReady")} · ${profile.keyId.slice(0, 14)}…` : t("diag.keyNone")} />
+            <Row
+              label={t("diag.keyStatus")}
+              value={profile?.keyId ? `${t("diag.keyReady")} · ${profile.keyId.slice(0, 14)}…` : t("diag.keyNone")}
+            />
             <Row label={t("diag.version")} value={APP_VERSION} mono />
             <Row
               label={t("diag.flags")}
@@ -191,8 +213,14 @@ export function Diagnostics() {
                 </Button>
               }
             />
-            <Row label={t("diag.lastMessage")} value={lastMsg ? `${formatClock(lastMsg)} · ${relativeTime(lastMsg, lang)}` : t("diag.never")} />
-            <Row label={t("diag.reachable")} value={reachable.length ? reachable.map(peerName).join(", ") : t("diag.none")} />
+            <Row
+              label={t("diag.lastMessage")}
+              value={lastMsg ? `${formatClock(lastMsg)} · ${relativeTime(lastMsg, lang)}` : t("diag.never")}
+            />
+            <Row
+              label={t("diag.reachable")}
+              value={reachable.length ? reachable.map(peerName).join(", ") : t("diag.none")}
+            />
           </div>
         </Section>
 
@@ -204,7 +232,9 @@ export function Diagnostics() {
                 <span className="text-body-sm text-ink-2">{last.memberLabel || t("verify.someone")}</span>
                 <span className="ml-auto font-mono text-caption text-muted">{formatClock(last.result.decidedAt)}</span>
               </div>
-              {last.result.checks.length > 0 && <ChecksList checks={last.result.checks} name={last.memberLabel} animate={false} />}
+              {last.result.checks.length > 0 && (
+                <ChecksList checks={last.result.checks} name={last.memberLabel} animate={false} />
+              )}
             </div>
           ) : (
             <p className="card p-4 text-body-sm text-muted">{t("diag.noVerdict")}</p>
@@ -242,7 +272,12 @@ export function Diagnostics() {
             >
               {t("diag.resetNonces")}
             </Button>
-            <Button full variant="secondary" icon={<ArrowsClockwise size={20} />} onClick={() => services.relay.reconnect()}>
+            <Button
+              full
+              variant="secondary"
+              icon={<ArrowsClockwise size={20} />}
+              onClick={() => services.relay.reconnect()}
+            >
               {t("diag.reconnect")}
             </Button>
             <Button
@@ -276,7 +311,9 @@ export function Diagnostics() {
                     setAuto(v);
                     await simControls!.setAutoAnswer(v);
                   }}
-                  options={(["off", "not_me", "yes", "never", "tamper_changed", "tamper_reused", "tamper_wrong_key"] as const).map((v) => ({
+                  options={(
+                    ["off", "not_me", "yes", "never", "tamper_changed", "tamper_reused", "tamper_wrong_key"] as const
+                  ).map((v) => ({
                     value: v,
                     label: t(`diag.auto.${v}`),
                   }))}
@@ -343,12 +380,22 @@ export function Diagnostics() {
                   </a>
                 ))}
                 {flags.ENABLE_LAB && (
-                  <a href="/lab?device=lab" target="_blank" rel="noreferrer" className="card inline-flex min-h-12 items-center justify-center gap-2 px-3 text-body-sm font-semibold text-brand-ink">
+                  <a
+                    href="/lab?device=lab"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="card inline-flex min-h-12 items-center justify-center gap-2 px-3 text-body-sm font-semibold text-brand-ink"
+                  >
                     <Lightning size={18} aria-hidden /> {t("diag.openLab")}
                   </a>
                 )}
                 {flags.ENABLE_GUARD && (
-                  <a href="/guard?device=guard" target="_blank" rel="noreferrer" className="card inline-flex min-h-12 items-center justify-center gap-2 px-3 text-body-sm font-semibold text-brand-ink">
+                  <a
+                    href="/guard?device=guard"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="card inline-flex min-h-12 items-center justify-center gap-2 px-3 text-body-sm font-semibold text-brand-ink"
+                  >
                     <Waveform size={18} aria-hidden /> {t("diag.openGuard")}
                   </a>
                 )}

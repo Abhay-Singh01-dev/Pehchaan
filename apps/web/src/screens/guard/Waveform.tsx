@@ -2,14 +2,24 @@
 // scroll left, in the brand colour.
 import { useEffect, useRef } from "react";
 
-export function WaveformCanvas({ subscribe, active }: { subscribe: (cb: (level: number) => void) => () => void; active: boolean }) {
+export function WaveformCanvas({
+  subscribe,
+  active,
+}: {
+  subscribe: (cb: (level: number) => void) => () => void;
+  active: boolean;
+}) {
   const ref = useRef<HTMLCanvasElement>(null);
   const levels = useRef<number[]>(Array.from({ length: 64 }, () => 0.04));
 
-  useEffect(() => subscribe((l) => {
-    levels.current.push(l);
-    if (levels.current.length > 64) levels.current.shift();
-  }), [subscribe]);
+  useEffect(
+    () =>
+      subscribe((l) => {
+        levels.current.push(l);
+        if (levels.current.length > 64) levels.current.shift();
+      }),
+    [subscribe],
+  );
 
   useEffect(() => {
     const canvas = ref.current;

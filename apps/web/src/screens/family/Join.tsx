@@ -143,7 +143,9 @@ export function Join() {
               <>
                 <div className="flex flex-col items-center text-center">
                   <Avatar name={card.name} color={card.color} size={88} />
-                  <h1 className="mt-5 font-display text-h1 font-semibold text-ink">{t("join.shared", { name: card.name })}</h1>
+                  <h1 className="mt-5 font-display text-h1 font-semibold text-ink">
+                    {t("join.shared", { name: card.name })}
+                  </h1>
                   <RoleBadge className="mt-3" canBeVerified={card.canBeVerified} />
                 </div>
                 {existing && (
@@ -202,7 +204,9 @@ export function Join() {
             {step === 3 && saved && (
               <div className="flex flex-col items-center pt-6 text-center">
                 <Seal size={96} state="confirmed" draw drawDelay={0.2} />
-                <h1 className="mt-6 font-display text-h1 font-semibold text-ink">{t("join.saved", { name: saved.label })}</h1>
+                <h1 className="mt-6 font-display text-h1 font-semibold text-ink">
+                  {t("join.saved", { name: saved.label })}
+                </h1>
               </div>
             )}
           </m.section>
@@ -249,7 +253,11 @@ export function Join() {
                 {t("join.verifyNow", { name: saved.label })}
               </Button>
             )}
-            <Button full variant={saved.canBeVerified ? "ghost" : "primary"} onClick={() => navigate("/home", { replace: true })}>
+            <Button
+              full
+              variant={saved.canBeVerified ? "ghost" : "primary"}
+              onClick={() => navigate("/home", { replace: true })}
+            >
               {t("join.goHome")}
             </Button>
           </>

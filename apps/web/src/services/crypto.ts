@@ -33,8 +33,7 @@ export async function sha256(input: string | Uint8Array): Promise<Uint8Array> {
   return new Uint8Array(digest);
 }
 
-export const toHex = (bytes: Uint8Array) =>
-  Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+export const toHex = (bytes: Uint8Array) => Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
 
 export async function sha256Hex(input: string): Promise<string> {
   return toHex(await sha256(input));
