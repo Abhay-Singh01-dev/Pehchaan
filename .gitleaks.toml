@@ -1,0 +1,11 @@
+# gitleaks (SEC-10, spec 16.4): every default rule, plus one documented exception. CI's gitleaks step and
+# `pnpm test:security` both read this file.
+[extend]
+useDefault = true
+
+[allowlist]
+description = """
+Simulation fixtures only: the fixed keys of the simulated devices (?device=maa|arjun|priya). They are loaded only
+by simulation tabs, never by a real device, and protect nothing (see the file's header and D-057).
+"""
+paths = ['''^apps/web/src/store/seedKeys\.ts$''']

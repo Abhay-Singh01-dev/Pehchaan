@@ -1,5 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { generateKeyPairSync } from "node:crypto";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { defineConfig, devices } from "@playwright/test";
 
@@ -36,6 +37,9 @@ const LAB_PASSWORD_HASH = execFileSync(process.execPath, ["--import", "tsx", "in
   encoding: "utf8",
 }).trim();
 
+/** Every WebSocket frame the test relay receives and sends (J-16: tests/e2e/privacy.spec.ts scans them). */
+export const FRAMES_FILE = join(tmpdir(), "pehchaan-e2e-frames.jsonl");
+
 /** The relay's settings, also used by the tests that run its admin CLI (`admin lab on`). */
 export const RELAY_ENV = {
   ENV_NAME: "test",
@@ -61,6 +65,7 @@ export const RELAY_ENV = {
   // J-12 runs 50 checks between the same two phones in a few minutes; the per-pair limit (3 a minute) would
   // stop it. Every limit is still enforced, at 100 times the rate (never allowed in production).
   RATE_LIMIT_PROFILE: "relaxed",
+  FRAME_CAPTURE_FILE: FRAMES_FILE,
 };
 
 export default defineConfig({

@@ -7,6 +7,10 @@ import { installOriginTracker } from "./design/origin";
 import { installAudioUnlock } from "./design/sounds";
 import { installPwa } from "./app/pwa";
 import { App } from "./app/App";
+import { initSentry } from "./app/sentry";
+
+// Error reports, when a DSN is configured, scrubbed of anything personal (16.7).
+initSentry();
 
 // Dev builds only: expose the service layer for debugging and end-to-end tests.
 if (import.meta.env.DEV) {

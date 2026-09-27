@@ -2,6 +2,7 @@
 // (REL-20). SIGTERM drains (18.9): `docker compose up -d` waits up to 40 s, the drain takes at most 26 s.
 import { ConfigError, loadConfig, type Config } from "./config";
 import { createRelay } from "./relay";
+import { initSentry } from "./sentry";
 import { createStore, runMigrations } from "./store/db";
 
 let config: Config;
@@ -25,6 +26,9 @@ if (config.ENV_NAME === "development" || config.ENV_NAME === "test") {
     await store.close();
   }
 }
+
+// Error reports first, so a failure while starting is reported too (scrubbed, 16.7).
+await initSentry({ dsn: config.SENTRY_DSN, env: config.ENV_NAME, release: config.RELEASE });
 
 const relay = await createRelay(config);
 

@@ -83,7 +83,8 @@ const schema = z
       .string()
       .regex(/^[a-z0-9-]{1,32}$/)
       .default("relay"),
-    SENTRY_DSN: z.string().optional(),
+    /** Error reports (16.7): scrubbed, no personal data. Absent: no reports are sent. */
+    SENTRY_DSN: z.string().url().optional(),
     LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"]).default("info"),
     DRAIN_TIMEOUT_MS: int(0, 60_000).default(20_000),
     /** Time for Caddy's 5 s health check to take a draining container out, before upgrades are refused. */
@@ -96,6 +97,10 @@ const schema = z
     PUSH_TEST_DELAY_MS: int(0, 60_000).default(TIMING.PUSH_TEST_DELAY_MS),
     /** Test only (D-011): send every push request to this mock push service instead of the endpoint's host. */
     PUSH_TEST_TARGET: z.string().url().optional(),
+    /** Test only (J-16): write every WebSocket frame in and out to this file, to prove no personal data crosses. */
+    FRAME_CAPTURE_FILE: z.string().min(1).optional(),
+    /** The build being run, for error reports and Diagnostics (16.6). */
+    RELEASE: z.string().max(64).default("dev"),
   })
   .superRefine((c, ctx) => {
     const strict = c.ENV_NAME === "staging" || c.ENV_NAME === "production";
@@ -150,6 +155,9 @@ const schema = z
       }
       if (c.PUSH_TEST_TARGET) {
         ctx.addIssue({ code: "custom", path: ["PUSH_TEST_TARGET"], message: "can only be set when ENV_NAME=test" });
+      }
+      if (c.FRAME_CAPTURE_FILE) {
+        ctx.addIssue({ code: "custom", path: ["FRAME_CAPTURE_FILE"], message: "can only be set when ENV_NAME=test" });
       }
     }
     if (c.RATE_LIMIT_PROFILE === "relaxed" && c.ENV_NAME === "production") {

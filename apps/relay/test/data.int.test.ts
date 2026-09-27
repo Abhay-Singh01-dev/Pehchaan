@@ -397,6 +397,21 @@ describe("CON-12 · admin CLI", () => {
     expect(await admin().block("NoSuchDeviceXXXXXXXXXX", "x")).toBe(false);
   });
 
+  it("canary devices (platform 'canary') are left out of the statistics (19.6)", async () => {
+    await resetIp();
+    const before = (await admin().stats()).devicesActive;
+    const canary = await TestDevice.create();
+    const c = await TestClient.open(A());
+    const hello = await c.type("hello");
+    const body = await canary.authBody(hello.t === "hello" ? hello.body.serverNonce : "");
+    c.send("auth", { ...body, client: { ...body.client, platform: "canary" } });
+    await c.type("auth.ok");
+    c.close();
+    expect((await admin().stats()).devicesActive).toBe(before);
+    (await (await TestDevice.create()).login(A())).close();
+    expect((await admin().stats()).devicesActive).toBe(before + 1);
+  });
+
   it("stats are counts only; lab on/off sets and clears the 12-hour switch", async () => {
     const s = await admin().stats();
     for (const v of Object.values(s)) expect(typeof v).toBe("number");

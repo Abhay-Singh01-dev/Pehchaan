@@ -4,7 +4,7 @@
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { count, eq, isNotNull, isNull, sql } from "drizzle-orm";
+import { and, count, eq, isNotNull, isNull, sql } from "drizzle-orm";
 import { CLOSE, TIMING } from "@pehchaan/protocol";
 import type { Audit } from "../core/audit";
 import type { Bus } from "../core/bus";
@@ -73,14 +73,30 @@ export function createAdmin(d: AdminDeps) {
       await d.retire(deviceId, "admin");
     },
 
-    /** Counts only: no IDs, no content. */
+    /** Counts only: no IDs, no content. The canary's synthetic devices are left out (19.6). */
     async stats() {
       const db = d.store.db;
+      const real = sql`coalesce(${devices.platform}, '') <> 'canary'`;
       const n = async (q: Promise<Array<{ n: number }>>) => (await q)[0]?.n ?? 0;
       return {
-        devicesActive: await n(db.select({ n: count() }).from(devices).where(isNull(devices.retiredAt))),
-        devicesRetired: await n(db.select({ n: count() }).from(devices).where(isNotNull(devices.retiredAt))),
-        devicesBlocked: await n(db.select({ n: count() }).from(devices).where(isNotNull(devices.blockedAt))),
+        devicesActive: await n(
+          db
+            .select({ n: count() })
+            .from(devices)
+            .where(and(isNull(devices.retiredAt), real)),
+        ),
+        devicesRetired: await n(
+          db
+            .select({ n: count() })
+            .from(devices)
+            .where(and(isNotNull(devices.retiredAt), real)),
+        ),
+        devicesBlocked: await n(
+          db
+            .select({ n: count() })
+            .from(devices)
+            .where(and(isNotNull(devices.blockedAt), real)),
+        ),
         bindings: await n(db.select({ n: count() }).from(contactBindings).where(isNull(contactBindings.revokedAt))),
         bindingsRevoked: await n(
           db.select({ n: count() }).from(contactBindings).where(isNotNull(contactBindings.revokedAt)),

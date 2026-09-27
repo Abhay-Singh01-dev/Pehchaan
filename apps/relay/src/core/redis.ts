@@ -32,7 +32,7 @@ export interface RelayRedis extends Redis {
   inboxPut: Cmd<[string, string, string, number, string, number, number, number], number>;
   inboxAck: Cmd<[string, string, string], string | null>;
   answerCheck: Cmd<[string, string, string, number, number], [string, string, string]>;
-  requestCreate: Cmd<[string, string, string, number, number], string>;
+  requestCreate: Cmd<[string, string, string, number, number, number], string>;
   openReserve: Cmd<[string, string, number, number, number, number], number>;
   cancelRequest: Cmd<[string, string], [string, string]>;
   gcra: Cmd<[string, number, number, number], number>;

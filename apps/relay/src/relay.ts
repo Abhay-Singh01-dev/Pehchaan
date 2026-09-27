@@ -2,6 +2,7 @@
 // its own sockets; everything shared lives in Valkey (seconds to minutes) or Postgres (durable). Any number
 // of gateways can serve any phone. Nothing is kept at module level, so tests run several in one process.
 import { randomBytes } from "node:crypto";
+import { appendFileSync } from "node:fs";
 import type { DestinationStream } from "pino";
 import { ulid } from "@pehchaan/protocol";
 import type { Config } from "./config";
@@ -14,18 +15,18 @@ import { createDevices } from "./core/devices";
 import { createInbox } from "./core/inbox";
 import { createKeys } from "./core/keys";
 import { createRateLimiter } from "./core/ratelimit";
-import { createCommandClient, createSubscriberClient } from "./core/redis";
+import { createCommandClient, createSubscriberClient, type RelayRedis } from "./core/redis";
 import { createRequests } from "./core/requests";
 import { createRetire } from "./core/retire";
 import { createRouter, type BusMessage } from "./core/router";
 import { createHttpServer, createMetricsServer } from "./http/server";
 import type { Hub } from "./hub";
 import { createLogger, hmacId } from "./log";
-import { createMetrics } from "./metrics";
+import { createMetrics, type Metrics } from "./metrics";
 import { noPush, type Push } from "./push/push";
 import { createWebPush } from "./push/sender";
 import { createSubscriptions } from "./push/subscriptions";
-import { createStore } from "./store/db";
+import { createStore, type Store } from "./store/db";
 import type { Connection } from "./ws/connection";
 import { Sessions } from "./ws/sessions";
 import { createUpgradeHandler } from "./ws/upgrade";
@@ -64,6 +65,7 @@ export async function createRelay(config: Config, opts: RelayOptions = {}): Prom
   const redis = createCommandClient(config.REDIS_URL);
   const sub = createSubscriberClient(config.REDIS_URL);
   const store = createStore({ url: config.DATABASE_URL, schema: config.PG_SCHEMA });
+  timeStores(redis, store, metrics);
   const audit = createAudit(store.db, config.AUDIT_KEY);
   const abuse = createAbuseSignals({ redis, keys, audit });
   const limiter = createRateLimiter({
@@ -103,6 +105,11 @@ export async function createRelay(config: Config, opts: RelayOptions = {}): Prom
     push: noPush,
     subscriptions: createSubscriptions({ db: store.db, redis, keys }),
     lab: null,
+    // Test relays only (the configuration refuses it elsewhere): one JSON line per frame, for the J-16 scan.
+    capture: config.FRAME_CAPTURE_FILE
+      ? (dir: "in" | "out", text: string) =>
+          appendFileSync(config.FRAME_CAPTURE_FILE!, JSON.stringify({ at: Date.now(), dir, text }) + "\n")
+      : null,
     state: { draining: false, redisReady: false, refuseUpgrades: false },
     hmac: (id: string) => hmacId(config.AUDIT_KEY, id),
   } as unknown as Hub;
@@ -276,5 +283,24 @@ export async function createRelay(config: Config, opts: RelayOptions = {}): Prom
       for (const c of [...sessions.sockets(), ...upgrade.unauthenticated()]) c.ws.terminate();
       await stop();
     },
+  };
+}
+
+/** 19.1: every Valkey command and Postgres query is timed, labelled only by the command (never by a key or ID). */
+function timeStores(redis: RelayRedis, store: Store, metrics: Metrics): void {
+  const send = redis.sendCommand.bind(redis);
+  redis.sendCommand = ((cmd: Parameters<RelayRedis["sendCommand"]>[0]) => {
+    const t0 = performance.now();
+    const done = () => metrics.redisLatency.observe({ op: cmd.name.toLowerCase() }, performance.now() - t0);
+    cmd.promise.then(done, done);
+    return send(cmd);
+  }) as RelayRedis["sendCommand"];
+  const query = store.pool.query.bind(store.pool) as (...a: unknown[]) => Promise<unknown>;
+  (store.pool as unknown as { query: (...a: unknown[]) => Promise<unknown> }).query = (...args: unknown[]) => {
+    const t0 = performance.now();
+    const done = () => metrics.pgLatency.observe({ op: "query" }, performance.now() - t0);
+    const p = query(...args);
+    p.then(done, done);
+    return p;
   };
 }

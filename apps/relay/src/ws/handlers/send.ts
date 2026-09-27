@@ -92,6 +92,7 @@ async function accept(hub: Hub, conn: Connection, f: SendFrame): Promise<void> {
     expiresAt = a.deadline + TIMING.ANSWER_GRACE_MS;
     otherTargets = a.to.filter((t) => t !== me);
     hub.metrics.requests.inc({ outcome: late ? "answered_late" : "answered" });
+    if (a.askedAt) hub.metrics.answerTime.observe(Math.max(0, now - a.askedAt));
   } else {
     await mayAlertOrPrompt(hub, me, b);
     expiresAt = now + INBOX_TTL[b.kind];

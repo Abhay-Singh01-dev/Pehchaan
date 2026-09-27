@@ -24,6 +24,7 @@
     "@pehchaan/crypto": "workspace:*",
     "@pehchaan/protocol": "workspace:*",
     "@phosphor-icons/react": "^2.1.10",
+    "@sentry/browser": "11.0.0",
     "@tanstack/react-virtual": "^3.14.13",
     "dexie": "^4.4.6",
     "dexie-react-hooks": "^4.4.0",

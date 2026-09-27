@@ -1,0 +1,501 @@
+{
+  "apiVersion": 1,
+  "groups": [
+    {
+      "orgId": 1,
+      "name": "pehchaan-pages",
+      "folder": "Pehchaan",
+      "interval": "1m",
+      "rules": [
+        {
+          "uid": "relay-down",
+          "title": "Relay down",
+          "condition": "B",
+          "data": [
+            {
+              "refId": "A",
+              "relativeTimeRange": {
+                "from": 600,
+                "to": 0
+              },
+              "datasourceUid": "${DS_PROMETHEUS}",
+              "model": {
+                "refId": "A",
+                "expr": "max by (instance) (up{job=\"relay\"} == 0)",
+                "instant": true
+              }
+            },
+            {
+              "refId": "B",
+              "datasourceUid": "__expr__",
+              "model": {
+                "refId": "B",
+                "type": "threshold",
+                "expression": "A",
+                "conditions": [
+                  {
+                    "evaluator": {
+                      "type": "gt",
+                      "params": [0]
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "for": "2m",
+          "noDataState": "Alerting",
+          "execErrState": "Error",
+          "labels": {
+            "severity": "page",
+            "team": "pehchaan"
+          },
+          "annotations": {
+            "summary": "A relay process isn't answering.",
+            "runbook": "docs/RUNBOOKS.md#relay-down"
+          }
+        },
+        {
+          "uid": "server-errors",
+          "title": "Server error rate above 2%",
+          "condition": "B",
+          "data": [
+            {
+              "refId": "A",
+              "relativeTimeRange": {
+                "from": 600,
+                "to": 0
+              },
+              "datasourceUid": "${DS_PROMETHEUS}",
+              "model": {
+                "refId": "A",
+                "expr": "sum(rate(pehchaan_messages_total{result=\"unavailable\"}[5m])) / clamp_min(sum(rate(pehchaan_messages_total[5m])), 1e-9) > 0.02",
+                "instant": true
+              }
+            },
+            {
+              "refId": "B",
+              "datasourceUid": "__expr__",
+              "model": {
+                "refId": "B",
+                "type": "threshold",
+                "expression": "A",
+                "conditions": [
+                  {
+                    "evaluator": {
+                      "type": "gt",
+                      "params": [0]
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "for": "5m",
+          "noDataState": "OK",
+          "execErrState": "Error",
+          "labels": {
+            "severity": "page",
+            "team": "pehchaan"
+          },
+          "annotations": {
+            "summary": "More than 2% of messages fail closed (unavailable) for 5 minutes.",
+            "runbook": "docs/RUNBOOKS.md#server-errors"
+          }
+        },
+        {
+          "uid": "event-loop-lag",
+          "title": "Event-loop lag p99 above 200 ms",
+          "condition": "B",
+          "data": [
+            {
+              "refId": "A",
+              "relativeTimeRange": {
+                "from": 600,
+                "to": 0
+              },
+              "datasourceUid": "${DS_PROMETHEUS}",
+              "model": {
+                "refId": "A",
+                "expr": "max(nodejs_eventloop_lag_p99_seconds) > 0.2",
+                "instant": true
+              }
+            },
+            {
+              "refId": "B",
+              "datasourceUid": "__expr__",
+              "model": {
+                "refId": "B",
+                "type": "threshold",
+                "expression": "A",
+                "conditions": [
+                  {
+                    "evaluator": {
+                      "type": "gt",
+                      "params": [0]
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "for": "5m",
+          "noDataState": "OK",
+          "execErrState": "Error",
+          "labels": {
+            "severity": "page",
+            "team": "pehchaan"
+          },
+          "annotations": {
+            "summary": "A relay's event loop is lagging (p99 > 200 ms) for 5 minutes.",
+            "runbook": "docs/RUNBOOKS.md#event-loop-lag"
+          }
+        },
+        {
+          "uid": "push-failures",
+          "title": "Push failures above 10%",
+          "condition": "B",
+          "data": [
+            {
+              "refId": "A",
+              "relativeTimeRange": {
+                "from": 600,
+                "to": 0
+              },
+              "datasourceUid": "${DS_PROMETHEUS}",
+              "model": {
+                "refId": "A",
+                "expr": "sum(rate(pehchaan_push_total{result!=\"ok\"}[10m])) / clamp_min(sum(rate(pehchaan_push_total[10m])), 1e-9) > 0.1",
+                "instant": true
+              }
+            },
+            {
+              "refId": "B",
+              "datasourceUid": "__expr__",
+              "model": {
+                "refId": "B",
+                "type": "threshold",
+                "expression": "A",
+                "conditions": [
+                  {
+                    "evaluator": {
+                      "type": "gt",
+                      "params": [0]
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "for": "10m",
+          "noDataState": "OK",
+          "execErrState": "Error",
+          "labels": {
+            "severity": "page",
+            "team": "pehchaan"
+          },
+          "annotations": {
+            "summary": "More than 10% of pushes are not accepted for 10 minutes.",
+            "runbook": "docs/RUNBOOKS.md#push-failures"
+          }
+        },
+        {
+          "uid": "store-errors",
+          "title": "Redis or Postgres errors",
+          "condition": "B",
+          "data": [
+            {
+              "refId": "A",
+              "relativeTimeRange": {
+                "from": 600,
+                "to": 0
+              },
+              "datasourceUid": "${DS_PROMETHEUS}",
+              "model": {
+                "refId": "A",
+                "expr": "sum(rate(pehchaan_messages_total{result=\"unavailable\"}[5m])) > 0.1",
+                "instant": true
+              }
+            },
+            {
+              "refId": "B",
+              "datasourceUid": "__expr__",
+              "model": {
+                "refId": "B",
+                "type": "threshold",
+                "expression": "A",
+                "conditions": [
+                  {
+                    "evaluator": {
+                      "type": "gt",
+                      "params": [0]
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "for": "5m",
+          "noDataState": "OK",
+          "execErrState": "Error",
+          "labels": {
+            "severity": "page",
+            "team": "pehchaan"
+          },
+          "annotations": {
+            "summary": "The relay keeps failing closed: Valkey or Postgres errors.",
+            "runbook": "docs/RUNBOOKS.md#store-errors"
+          }
+        },
+        {
+          "uid": "connections-drop",
+          "title": "Connections dropped by more than 50%",
+          "condition": "B",
+          "data": [
+            {
+              "refId": "A",
+              "relativeTimeRange": {
+                "from": 600,
+                "to": 0
+              },
+              "datasourceUid": "${DS_PROMETHEUS}",
+              "model": {
+                "refId": "A",
+                "expr": "sum(pehchaan_ws_connections) < 0.5 * sum(pehchaan_ws_connections offset 5m) and sum(pehchaan_ws_connections offset 5m) > 20",
+                "instant": true
+              }
+            },
+            {
+              "refId": "B",
+              "datasourceUid": "__expr__",
+              "model": {
+                "refId": "B",
+                "type": "threshold",
+                "expression": "A",
+                "conditions": [
+                  {
+                    "evaluator": {
+                      "type": "gt",
+                      "params": [0]
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "for": "0m",
+          "noDataState": "OK",
+          "execErrState": "Error",
+          "labels": {
+            "severity": "page",
+            "team": "pehchaan"
+          },
+          "annotations": {
+            "summary": "Live connections halved in 5 minutes.",
+            "runbook": "docs/RUNBOOKS.md#connections-drop"
+          }
+        },
+        {
+          "uid": "false-green",
+          "title": "Security Lab false green",
+          "condition": "B",
+          "data": [
+            {
+              "refId": "A",
+              "relativeTimeRange": {
+                "from": 600,
+                "to": 0
+              },
+              "datasourceUid": "${DS_PROMETHEUS}",
+              "model": {
+                "refId": "A",
+                "expr": "increase(pehchaan_lab_false_greens_total[10m]) > 0",
+                "instant": true
+              }
+            },
+            {
+              "refId": "B",
+              "datasourceUid": "__expr__",
+              "model": {
+                "refId": "B",
+                "type": "threshold",
+                "expression": "A",
+                "conditions": [
+                  {
+                    "evaluator": {
+                      "type": "gt",
+                      "params": [0]
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "for": "0m",
+          "noDataState": "OK",
+          "execErrState": "Error",
+          "labels": {
+            "severity": "page",
+            "team": "pehchaan"
+          },
+          "annotations": {
+            "summary": "A tampered check was shown as VERIFIED. Stop and fix before anything else (14.3).",
+            "runbook": "docs/RUNBOOKS.md#false-green"
+          }
+        }
+      ]
+    },
+    {
+      "orgId": 1,
+      "name": "pehchaan-notices",
+      "folder": "Pehchaan",
+      "interval": "5m",
+      "rules": [
+        {
+          "uid": "disk-70",
+          "title": "VM disk above 70%",
+          "condition": "B",
+          "data": [
+            {
+              "refId": "A",
+              "relativeTimeRange": {
+                "from": 600,
+                "to": 0
+              },
+              "datasourceUid": "${DS_PROMETHEUS}",
+              "model": {
+                "refId": "A",
+                "expr": "1 - node_filesystem_avail_bytes{mountpoint=\"/\"} / node_filesystem_size_bytes{mountpoint=\"/\"} > 0.7",
+                "instant": true
+              }
+            },
+            {
+              "refId": "B",
+              "datasourceUid": "__expr__",
+              "model": {
+                "refId": "B",
+                "type": "threshold",
+                "expression": "A",
+                "conditions": [
+                  {
+                    "evaluator": {
+                      "type": "gt",
+                      "params": [0]
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "for": "15m",
+          "noDataState": "OK",
+          "execErrState": "Error",
+          "labels": {
+            "severity": "notice",
+            "team": "pehchaan"
+          },
+          "annotations": {
+            "summary": "The VM disk is more than 70% full.",
+            "runbook": "docs/RUNBOOKS.md#disk"
+          }
+        },
+        {
+          "uid": "backup-missing",
+          "title": "Nightly backup missing for more than 26 h",
+          "condition": "B",
+          "data": [
+            {
+              "refId": "A",
+              "relativeTimeRange": {
+                "from": 600,
+                "to": 0
+              },
+              "datasourceUid": "${DS_PROMETHEUS}",
+              "model": {
+                "refId": "A",
+                "expr": "time() - max(pehchaan_backup_last_success_timestamp_seconds) > 26 * 3600",
+                "instant": true
+              }
+            },
+            {
+              "refId": "B",
+              "datasourceUid": "__expr__",
+              "model": {
+                "refId": "B",
+                "type": "threshold",
+                "expression": "A",
+                "conditions": [
+                  {
+                    "evaluator": {
+                      "type": "gt",
+                      "params": [0]
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "for": "0m",
+          "noDataState": "Alerting",
+          "execErrState": "Error",
+          "labels": {
+            "severity": "notice",
+            "team": "pehchaan"
+          },
+          "annotations": {
+            "summary": "No successful backup in 26 hours.",
+            "runbook": "docs/RUNBOOKS.md#backups"
+          }
+        },
+        {
+          "uid": "cert-expiry",
+          "title": "Certificate expires within 20 days",
+          "condition": "B",
+          "data": [
+            {
+              "refId": "A",
+              "relativeTimeRange": {
+                "from": 600,
+                "to": 0
+              },
+              "datasourceUid": "${DS_PROMETHEUS}",
+              "model": {
+                "refId": "A",
+                "expr": "min(probe_ssl_earliest_cert_expiry) - time() < 20 * 86400",
+                "instant": true
+              }
+            },
+            {
+              "refId": "B",
+              "datasourceUid": "__expr__",
+              "model": {
+                "refId": "B",
+                "type": "threshold",
+                "expression": "A",
+                "conditions": [
+                  {
+                    "evaluator": {
+                      "type": "gt",
+                      "params": [0]
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "for": "1h",
+          "noDataState": "OK",
+          "execErrState": "Error",
+          "labels": {
+            "severity": "notice",
+            "team": "pehchaan"
+          },
+          "annotations": {
+            "summary": "A TLS certificate expires within 20 days.",
+            "runbook": "docs/RUNBOOKS.md#certificates"
+          }
+        }
+      ]
+    }
+  ]
+}

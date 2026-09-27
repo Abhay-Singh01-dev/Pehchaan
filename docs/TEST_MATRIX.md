@@ -64,12 +64,12 @@ Paths: `crypto` = `packages/crypto/test`, `protocol` = `packages/protocol/test`,
 | REL-15 | 16.3 | One test per authorisation row | relay/authz.int.test.ts | integration | 3, 7, 8 | ⏳ |
 | REL-16 | 16.1 | Every rate-limit row; GCRA burst then steady; CGNAT not blocked | relay/ratelimit.int.test.ts › REL-16 · the 16.1 table, GCRA over time, CGNAT | integration | 3 | ✅ |
 | REL-17 | 16.1 | 4th open request refused | relay/requests.int.test.ts › REL-17 · a 4th open request | integration | 3 | ✅ |
-| REL-18 | 9.5 | E2E_REQUIRED: plain → e2e_required unless both Lab-opted-in | relay/e2e-required.int.test.ts | integration | 8 | ⏳ |
+| REL-18 | 9.5 | E2E_REQUIRED: plain → e2e_required unless both Lab-opted-in | relay/e2e-required.int.test.ts › REL-18 (hello, sealed accepted, plain refused for every kind, Lab exception) | integration | 8 | ✅ |
 | REL-19 | 15.5, 23 | Valkey down → unavailable; Postgres down cold → unavailable; warm → works | relay/health.int.test.ts › REL-19 · fail closed + errors.int.test.ts › unavailable | integration | 3 | ✅ |
 | REL-20 | 18.7 | Invalid configuration exits with a clear message | relay/unit/config.test.ts › REL-20 · configuration | unit | 3 | ✅ |
 | REL-21 | 16.2 | X-Forwarded-For honoured only from TRUST_PROXY | relay/upgrade.int.test.ts › REL-21 · X-Forwarded-For only from TRUST_PROXY | integration | 3 | ✅ |
 | REL-22 | 16.7 | Logs during full flows contain no payload, nonce, signature, grant, endpoint, name, label, phone | relay/log-leak.int.test.ts › REL-22 · no personal data or secrets in logs | integration | 3, 9 | ✅ |
-| REL-23 | 19.1 | /metrics exposes every 19.1 metric; no device-ID labels | relay/metrics.int.test.ts | integration | 9 | ⏳ |
+| REL-23 | 19.1 | /metrics exposes every 19.1 metric; no device-ID labels | relay/metrics.int.test.ts › REL-23 (every 19.1 metric, timings recorded, no device labels) | integration | 9 | ✅ |
 | REL-24 | 18.9 | /healthz vs /readyz (readiness fails when draining or Valkey down) | relay/health.int.test.ts › REL-24 · health and readiness | integration | 3 | ✅ |
 | C-7.3a | 7.3 | devices row upserted at login, at most one write per device per day | relay/login.int.test.ts › C-7.3a · the devices row | integration | 3 | ✅ |
 | C-7.3b | 7.3 | relayHost comes from RELAY_HOST, never the Host header | relay/login.int.test.ts › C-7.3b · a login signed for another relay host fails | integration | 3 | ✅ |
@@ -132,14 +132,14 @@ Paths: `crypto` = `packages/crypto/test`, `protocol` = `packages/protocol/test`,
 | APP-03 | 6.1 | Card v2 QR/link round trip; each validation error message; words derived locally | web/card.test.ts + e2e/journeys.spec.ts › J-01, J-09 | unit+e2e | 5 | ✅ |
 | APP-04 | 6.5 | Every new-phone guard row in the UI | e2e/new-phone.spec.ts (already, altered, name, phone) | e2e | 5 | ✅ |
 | APP-05 | 10.3–10.4 | Passkey created (virtual authenticator); UV required; errors map to A6/F5; no await before credentials.get | web/real-key.test.ts + web/real-key-extra.test.ts + e2e/webauthn.spec.ts + every journey (virtual authenticator) | unit+e2e | 5 | ✅ |
-| APP-06 | 10.5, 9.4 | Every verdict and reason reachable; skipped checks for an unreadable seal (Phase 8) | web/verifier.test.ts + web/verification.test.ts (unreadable seal in e2e: Phase 8) | unit+e2e | 5, 8 | ⏳ |
+| APP-06 | 10.5, 9.4 | Every verdict and reason reachable; skipped checks for an unreadable seal (Phase 8) | web/verifier.test.ts + web/verification.test.ts + e2e/downgrade.spec.ts › APP-06 (changed inside the seal, seal stripped) | unit+e2e | 5, 8 | ✅ |
 | APP-07 | 10.5, 10.9 | Nonce marked right after verdict/cancel; after timeout only when the late window closes; pruned after 30 days | web/verification.test.ts › the late window, cancel and the used-nonce store | unit | 5 | ✅ |
 | APP-08 | 8.4–8.10 | Backoff with jitter; outbox same id; sendRequest resolves on accepted / rejects after 5 s; receipts drive D3 and "Family alerted"; tombstones; dedupe; push inbox; clock offset display-only | web/real-relay.test.ts + real-relay-extra.test.ts + socket.test.ts + outbox.test.ts; push inbox: sw.test.ts › C-11.5a + real-relay-extra.test.ts › drainPushInbox (Lab plain: Phase 7) | unit | 5, 6, 7 | ✅ |
 | APP-09 | 22.1 | Every new state: D3 status line, not_allowed ending, F1 skew, F1 cancelled, E3 late line, E2 late meta, D1 hint, Privacy, C7 revoke/reset, Diagnostics fields, 4426 update prompt, A6 checks-only, F1 drops mis-addressed | e2e/states.spec.ts + journeys/failures/late + web/answering.test.ts | e2e | 5 | ✅ |
 | APP-10 | 10.8 | Confirmation words identical on both phones | e2e/journeys.spec.ts › J-02 | e2e | 5 | ✅ |
 | APP-11 | B0 | Every i18n key in en and hi; no banned word | web/i18n.test.ts + tests/unit/banned-words.test.ts | unit | 5 | ✅ |
-| APP-12 | 16.5 | Security headers; meta CSP names the relay; fonts self-hosted; no third-party requests except relay + Sentry | web/headers.test.ts + e2e/third-party.spec.ts | unit+e2e | 9 | ⏳ |
-| APP-13 | 16.7 | Sentry scrubber removes every 16.7 field | web/sentry.test.ts | unit | 9 | ⏳ |
+| APP-12 | 16.5 | Security headers; meta CSP names the relay; fonts self-hosted; no third-party requests except relay + Sentry | web/headers.test.ts (vercel.json, meta CSP, no inline script) + e2e/third-party.spec.ts › APP-12 | unit+e2e | 9 | ✅ |
+| APP-13 | 16.7 | Sentry scrubber removes every 16.7 field | web/sentry.test.ts + relay/unit/sentry.test.ts + relay/unit/scrub.test.ts | unit | 9 | ✅ |
 | APP-14 | 21.3 | The whole frontend Part D walkthrough against the real backend | e2e/walkthrough.spec.ts + journeys (Lab and Guard steps against the relay: Phase 7) | e2e | 5 | ⏳ |
 | C-5.4a | 5.4 | "Delete my key" calls signalUnknownCredential where supported | web/real-key-extra.test.ts › deleteKey and signalUnknownCredential | unit | 5 | ✅ |
 | C-8.9a | 8.9 | Reconnect immediately on online, visibility visible, notification click; reconnect{afterMs} honoured | web/socket.test.ts › reconnect triggers (online, visible, reconnect{afterMs}) | unit | 5 | ✅ |
@@ -176,7 +176,7 @@ Paths: `crypto` = `packages/crypto/test`, `protocol` = `packages/protocol/test`,
 | J-13 | 13.2 | Call Guard scripted call → prompt → D2 prefilled | e2e/guard.spec.ts › J-13 (pairing by card, scripted call, B2 banner, real check) | e2e | 7 | ✅ |
 | J-14 | 18.9 | relay-a killed while a request is pending (through Caddy) → relay-b takes over | ops/failover.spec.ts › J-14 | e2e | 10 | ⏳ |
 | J-15 | 8.6 | Double tap on NOT ME → one answer, no duplicate verdict | e2e/journeys.spec.ts › J-15 | e2e | 5 | ✅ |
-| J-16 | 9 | Every journey with E2E_REQUIRED=true; captured frames hold no personal data | e2e (E2E_REQUIRED=true) + relay/frame-capture.int.test.ts | e2e | 8 | ⏳ |
+| J-16 | 9 | Every journey with E2E_REQUIRED=true; captured frames hold no personal data | E2E_REQUIRED=true: all 33 real-backend journeys + e2e/privacy.spec.ts › J-16 (relay frame capture: no name, label, phone, amount, reason, nonce or signature) + relay/frame-capture.int.test.ts | e2e | 8 | ✅ |
 | J-17 | 7.1 | Arjun open in two tabs; answering in one closes the other | e2e/failures.spec.ts › J-17 | e2e | 5 | ✅ |
 
 ## OPS · infrastructure (local)
@@ -209,17 +209,17 @@ Paths: `crypto` = `packages/crypto/test`, `protocol` = `packages/protocol/test`,
 | CHAOS-03 | 21.5 | Postgres down 2 min → safe outcome | chaos/chaos.test.ts › postgres down | chaos | 11 | ⏳ |
 | CHAOS-04 | 21.5 | Mock push 5xx → safe outcome | chaos/chaos.test.ts › push 5xx | chaos | 11 | ⏳ |
 | CHAOS-05 | 21.5 | Phone offline 5 s mid-check → recovers | chaos/chaos.test.ts › airplane | chaos | 11 | ⏳ |
-| SEC-01 | 21.7 | Envelope parser fuzzing: no crash, no unhandled rejection | sec/fuzz.test.ts | security | 9 | ⏳ |
+| SEC-01 | 21.7 | Envelope parser fuzzing: no crash, no unhandled rejection | protocol/fuzz.test.ts (parsers, 9,000+ inputs) + relay/fuzz.int.test.ts (a live relay, 2,100 random frames) | security | 9 | ✅ |
 | SEC-02 | 21.7 | A replayed login is refused | relay/login.int.test.ts › SEC-02 · the server nonce is single-use | security | 9 | ✅ |
 | SEC-03 | 21.7 | Answer from a non-target refused | relay/requests.int.test.ts › only the target may answer, and only to the asker (SEC-03) | security | 9 | ✅ |
 | SEC-04 | 21.7 | Binding bypass (revoked + valid grant; new identity with rotated grant) refused | relay/contacts.int.test.ts › SEC-04 + a revoked sender is refused even with a valid grant | security | 9 | ✅ |
-| SEC-05 | 9.5 | Downgrade: relay strips e2e and sends plain → the app refuses | web/envelope.test.ts › downgrade + e2e | security | 8 | ⏳ |
+| SEC-05 | 9.5 | Downgrade: relay strips e2e and sends plain → the app refuses | web/envelope.test.ts + real-relay.test.ts › refuses a readable envelope + e2e/downgrade.spec.ts › SEC-05 | security | 8 | ✅ |
 | SEC-06 | 16.2 | Oversized and binary frames handled | relay/upgrade.int.test.ts › binary 1003, too_large, 1009 | security | 9 | ✅ |
-| SEC-07 | 16.2 | Never-login sockets close at 10 s; pending unauthenticated per IP capped | sec/attacks.test.ts › slowloris | security | 9 | ⏳ |
-| SEC-08 | 11.3 | SSRF push subscriptions refused | sec/attacks.test.ts › ssrf | security | 9 | ⏳ |
+| SEC-07 | 16.2 | Never-login sockets close at 10 s; pending unauthenticated per IP capped | relay/upgrade.int.test.ts › C-7.1a / SEC-07 (pending sockets capped per IP, closed at the login deadline) | security | 9 | ✅ |
+| SEC-08 | 11.3 | SSRF push subscriptions refused | relay/push.int.test.ts › PSH-01 (SSRF: http, localhost, 169.254.169.254, internal names refused) | security | 9 | ✅ |
 | SEC-09 | 14.1 | Lab off → lab.* refused; not opted in → not intercepted; password attempts limited | relay/lab.int.test.ts › SEC-09 (7 tests: module off, switch off, password + shared IP limit, Lab page only, layers 3–4, opt-out, audit) | security | 7 | ✅ |
-| SEC-10 | 16.4 | gitleaks: no secrets in the repo or history | sec/gitleaks (CI + local) | security | 9 | ⏳ |
-| SEC-11 | 21.7 | pnpm audit and Trivy: no critical/high | sec/audit (CI) | security | 9 | ⏳ |
+| SEC-10 | 16.4 | gitleaks: no secrets in the repo or history | pnpm test:security › gitleaks (history, .gitleaks.toml) + CI secrets job | security | 9 | ✅ |
+| SEC-11 | 21.7 | pnpm audit and Trivy: no critical/high | pnpm test:security › pnpm audit + Trivy (lockfile, runtime and dev) + CI dependencies job | security | 9 | ✅ |
 | SEC-12 | 12 | Presence never reveals strangers | relay/data.int.test.ts › CON-06 / SEC-12 · presence | security | 9 | ✅ |
 | C-14.3a | 14.3 | Held message: 10 s without Lab reply → original forwarded, disarmed, "Lab didn't respond" | relay/lab.int.test.ts › 14.3 › the Lab page doesn't answer in 10 s | integration | 7 | ✅ |
 | C-14.1a | 14.1 | cfg:lab expires after 12 h; opt-ins and sessions after 4 h | relay/lab.int.test.ts › C-14.1a + 14.2 › opt-ins last 4 h | integration | 7 | ✅ |
@@ -227,6 +227,9 @@ Paths: `crypto` = `packages/crypto/test`, `protocol` = `packages/protocol/test`,
 | C-14.2a | 14.2 | Lab sessions survive a reconnect; arming reaches every Lab page and opted-in phone on every gateway; traffic is readable only between opted-in phones | relay/lab.int.test.ts › 14.2 | integration | 7 | ✅ |
 | C-14.1b | 14.1, 18.7 | infra/scripts/lab-password-hash.ts prints only an Argon2id hash (new salt each time, ≥ 12 characters) | tests/unit/lab-password-hash.test.ts | unit | 7 | ✅ |
 | C-13.2a | 13.2, FC-22 | Call Guard pairs with a phone by card after comparing the safety words, sends sealed prompts to it; consent line shown | e2e/guard.spec.ts › J-13 | e2e | 7 | ✅ |
+| C-19.6a | 19.6 | The canary: settings, SLO evaluation, stable software identities whose logins the relay accepts; canary devices left out of statistics | canary/test/canary.test.ts + relay/data.int.test.ts › canary devices | unit+integration | 9 | ✅ |
+| C-19.3a | 19.3, 19.5 | Five dashboards and the alert rules as code; every metric they query exists on the relay; every 19.5 page and notice present | tests/unit/observability.test.ts | unit | 9 | ✅ |
+| C-16.5a | 16.5 | The production build runs under its meta CSP with no violation (boot script, service worker, Lab, Guard) | tests/e2e/csp-check.mjs (run against `vite build` + `vite preview`) | e2e | 9 | ✅ |
 | C-14.4a | 14.4 | Every attack written to lab_attacks; false_green counter stays 0 | relay/lab.int.test.ts › 14.3–14.4 (lab_attacks rows, metric, false green logged) + web/real-lab.test.ts › 14.4 | integration | 7 | ✅ |
 
 ## Failure modes (section 23) → proving test

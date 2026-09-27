@@ -28,6 +28,8 @@
 ## Commands
 - pnpm install · pnpm dev · pnpm test · pnpm test:watch · pnpm test:integration · pnpm test:e2e
 - pnpm turbo run lint typecheck test build   (the fast gate)
+- pnpm test:security   (SEC-01 … SEC-12: fuzzing, relay security tests, gitleaks, pnpm audit, Trivy; needs Docker)
+- E2E_REQUIRED=true pnpm test:e2e:real   (J-16: every journey with readable envelopes refused)
 - docker compose -f infra/compose/docker-compose.dev.yml up -d   (Valkey + Postgres for tests)
 
 ## Never

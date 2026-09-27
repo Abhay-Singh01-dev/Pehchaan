@@ -50,6 +50,8 @@ export interface Hub {
   /** Loaded only when LAB_ENABLED (14.1). */
   lab: LabModule | null;
   state: { draining: boolean; redisReady: boolean; refuseUpgrades: boolean };
+  /** Test relays only (FRAME_CAPTURE_FILE, J-16): records each WebSocket frame received ("in") or sent ("out"). */
+  capture: ((dir: "in" | "out", text: string) => void) | null;
   /** The pseudonymous form of a device ID for logs (16.7). */
   hmac(deviceId: string): string;
 }

@@ -3,6 +3,7 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { VitePWA } from "vite-plugin-pwa";
+import { cspMetaPlugin } from "./build/csp";
 
 // Pehchaan frontend build.
 // - The service worker is our own (src/sw.ts, injectManifest): it precaches the app shell, icons and self-hosted
@@ -11,6 +12,8 @@ import { VitePWA } from "vite-plugin-pwa";
 //   relay is a WebSocket, which service workers never see; the two signed POSTs are not cached).
 export default defineConfig({
   plugins: [
+    // 16.5: the Content-Security-Policy <meta>, naming this build's relay and Sentry host (production builds).
+    cspMetaPlugin(),
     react(),
     tailwindcss(),
     VitePWA({

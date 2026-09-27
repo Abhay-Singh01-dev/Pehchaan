@@ -34,7 +34,7 @@ export function createRequests(redis: RelayRedis, keys: Keys) {
       );
       if (reserved !== 1) refuse("rate_limited", Math.max(1000, deadline - now));
       const ttl = deadline - now + TIMING.RECORD_EXTRA_MS;
-      const r = await redis.requestCreate(keys.request(requestId), from, to.join(","), deadline, ttl);
+      const r = await redis.requestCreate(keys.request(requestId), from, to.join(","), deadline, ttl, now);
       if (r === "duplicate") {
         await redis.zrem(keys.openRequests(from), requestId);
         refuse("duplicate_request");
@@ -54,7 +54,9 @@ export function createRequests(redis: RelayRedis, keys: Keys) {
         refuse(status as "expired" | "not_allowed" | "already_answered" | "cancelled");
       }
       await redis.zrem(keys.openRequests(recipient), requestId);
-      return { late: status === "ok_late", deadline: Number(deadline), to: to.split(",").filter(Boolean) };
+      // When the request was accepted, for the answer-time metric only (the human part of a check, 19.1).
+      const at = Number(await redis.hget(keys.request(requestId), "at")) || null;
+      return { late: status === "ok_late", deadline: Number(deadline), to: to.split(",").filter(Boolean), askedAt: at };
     },
 
     /** The asker stops waiting (8.6). Returns the targets to notify. */

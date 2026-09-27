@@ -1,0 +1,50 @@
+name: canary
+# The synthetic check (spec 19.6): every 10 minutes, from GitHub's servers (outside Oracle's network), two canary
+# devices log in, ask, answer and check the receipts and timings against production. Three failures in a row page
+# someone (19.5, alert rule `canary-failing`).
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  actions: read # to see whether the previous runs failed
+
+concurrency:
+  group: canary
+  cancel-in-progress: false
+
+jobs:
+  canary:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile --filter @pehchaan/canary...
+      - name: canary
+        run: pnpm --filter @pehchaan/canary canary
+        env:
+          CANARY_RELAY_URL: ${{ vars.CANARY_RELAY_URL }}
+          CANARY_ORIGIN: ${{ vars.CANARY_ORIGIN }}
+          # Two stored software identities (`pnpm --filter @pehchaan/canary exec tsx src/cli.ts keys`), so the
+          # canary is always the same two devices instead of a new one every 10 minutes.
+          CANARY_IDENTITIES: ${{ secrets.CANARY_IDENTITIES }}
+      # 19.5: "the canary fails 3 times in a row" pages someone. This run failed; page if the two before it did too.
+      - name: page after three failures in a row
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ALERT_WEBHOOK_URL: ${{ secrets.ALERT_WEBHOOK_URL }}
+        run: |
+          previous=$(gh run list --workflow canary.yml --status completed --limit 2 --json conclusion \
+            --jq '[.[] | select(.conclusion == "failure")] | length')
+          if [ "$previous" = "2" ] && [ -n "$ALERT_WEBHOOK_URL" ]; then
+            curl -fsS -X POST -H 'Content-Type: application/json' \
+              -d '{"text":"Pehchaan canary failed 3 times in a row: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"}' \
+              "$ALERT_WEBHOOK_URL"
+          fi

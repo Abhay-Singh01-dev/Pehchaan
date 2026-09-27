@@ -101,6 +101,7 @@ export class Connection implements SessionSocket, LocalSocket {
       this.close(CLOSE.POLICY, "slow reader");
       return;
     }
+    this.hub.capture?.("out", text);
     this.ws.send(text);
   }
 
@@ -143,6 +144,7 @@ export class Connection implements SessionSocket, LocalSocket {
       return;
     }
     const text = data.toString("utf8");
+    this.hub.capture?.("in", text);
     // Frames from one socket are handled strictly in order (auth before anything else, for instance).
     this.queue = this.queue.then(() => this.handle(text)).catch(() => {});
   }

@@ -24,22 +24,8 @@
     <link rel="preload" href="/fonts/mukta-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="/fonts/mukta-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="/fonts/anek-latin-latin-600-normal.woff2" as="font" type="font/woff2" crossorigin />
-    <script>
-      // Flash-free first paint: apply the last display preferences before CSS paints.
-      (function () {
-        try {
-          var d = JSON.parse(localStorage.getItem("pehchaan:display:last") || "null");
-          var r = document.documentElement;
-          var pref = (d && d.theme) || "system";
-          var dark = pref === "dark" || (pref === "system" && matchMedia("(prefers-color-scheme: dark)").matches);
-          r.dataset.theme = dark ? "dark" : "light";
-          if (d) {
-            r.dataset.textSize = d.textSize || "normal";
-            r.lang = d.lang || "en";
-          }
-        } catch (e) {}
-      })();
-    </script>
+    <!-- Flash-free first paint (a file, not inline: the CSP forbids inline scripts, spec 16.5). -->
+    <script src="/boot.js"></script>
   </head>
   <body>
     <noscript>Pehchaan needs JavaScript to run.</noscript>

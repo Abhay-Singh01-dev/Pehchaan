@@ -20,5 +20,5 @@
     },
     "types": ["vite/client", "vite-plugin-pwa/vanillajs", "node"]
   },
-  "include": ["src", "tests", "vite.config.ts", "playwright.config.ts"]
+  "include": ["src", "tests", "build", "vite.config.ts", "playwright.config.ts"]
 }

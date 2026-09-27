@@ -38,6 +38,23 @@ jobs:
       - run: pnpm --filter @pehchaan/relay test:integration
       - run: pnpm --filter @pehchaan/tests exec playwright install --with-deps chromium
       - run: pnpm test:e2e # relay + web + virtual authenticator
+      - name: e2e with E2E_REQUIRED=true (J-16, spec 18.8)
+        run: pnpm test:e2e:real
+        env: { E2E_REQUIRED: "true" }
+
+  dependencies:
+    # SEC-11 (spec 21.7): no high or critical advisory in any dependency, runtime or dev.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm audit --audit-level high
+      - name: Trivy (dependencies from the lockfile)
+        run: |
+          docker run --rm -v "$PWD:/scan" aquasec/trivy:0.74.0 fs --scanners vuln --severity HIGH,CRITICAL \
+            --include-dev-deps --skip-dirs "**/node_modules" --no-progress --exit-code 1 /scan
 
   secrets:
     runs-on: ubuntu-latest
