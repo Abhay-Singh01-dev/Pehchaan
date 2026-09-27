@@ -189,7 +189,7 @@ Paths: `crypto` = `packages/crypto/test`, `protocol` = `packages/protocol/test`,
 | OPS-04 | 15.2, 18.8 | Migrations run during a deploy; rollback to previous tag works | ops/stack.test.ts › OPS-03 / OPS-04 (ops-b adds a migration during the deploy; rollback to ops-a from deploy.log) | ops | 10 | ✅ |
 | OPS-05 | 18.10 | Backup → restore → identical counts incl. revoked bindings; unreadable without the age key | ops/stack.test.ts › OPS-05 (backup.sh → restore.sh into an empty Postgres: identical counts incl. revoked bindings; age file, no plain dump, wrong key refused) | ops | 10 | ✅ |
 | OPS-06 | 18.10 | Whole-stack restart healthy within 60 s | ops/stack.test.ts › OPS-06 (whole-stack stop/start healthy < 60 s, then a VERIFIED check) + compose.test.ts › restart policy | ops | 10 | ✅ |
-| OPS-07 | 18.5 | Image manifest has arm64 and amd64; arm64 boots | ops/image.test.ts | ops | 10 | ⏳ |
+| OPS-07 | 18.5 | Image manifest has arm64 and amd64; arm64 boots | ops/image.test.ts ? OPS-07 (buildx linux/amd64 + linux/arm64 for both images; arm64 relay migrates and reports ready under QEMU; arm64 backup tools run; non-root, retention.sql present) | ops | 10 | ✅ |
 | OPS-08 | 18 | shellcheck, hadolint, actionlint, cloud-init schema clean | ops/lint.test.ts › OPS-08 (shellcheck 0.11, hadolint 2.14 --failure-threshold warning, actionlint 1.7.12, cloud-init schema on Ubuntu 24.04) | ops | 10 | ✅ |
 | OPS-09 | 18.6 | Only ports 80 and 443 published | ops/compose.test.ts › OPS-09 (config) + stack.test.ts › OPS-09 (running stack) | ops | 10 | ✅ |
 | OPS-10 | 19.6 | The canary passes against the local stack | ops/stack.test.ts › OPS-10 (apps/canary smoke through Caddy) | ops | 10 | ✅ |
@@ -201,14 +201,14 @@ Paths: `crypto` = `packages/crypto/test`, `protocol` = `packages/protocol/test`,
 
 | ID | Spec § | Rule | Test | Type | Phase | Status |
 |---|---|---|---|---|---|---|
-| LOAD-01 | 21.4 | Capacity per container at p95 < 150 ms; sets MAX_SOCKETS | apps/loadgen capacity (short) | load | 11 | ⏳ |
-| LOAD-02 | 21.4 | Reconnect storm: all back within 30 s, errors < 1% | apps/loadgen storm | load | 11 | ⏳ |
-| LOAD-03 | 21.4 | Soak: no memory growth (short locally) | apps/loadgen soak | load | 11 | ⏳ |
-| CHAOS-01 | 21.5 | Kill a relay container mid-check → safe outcome | chaos/chaos.test.ts › kill relay | chaos | 11 | ⏳ |
-| CHAOS-02 | 21.5 | Restart Redis mid-check → safe outcome | chaos/chaos.test.ts › restart valkey | chaos | 11 | ⏳ |
-| CHAOS-03 | 21.5 | Postgres down 2 min → safe outcome | chaos/chaos.test.ts › postgres down | chaos | 11 | ⏳ |
-| CHAOS-04 | 21.5 | Mock push 5xx → safe outcome | chaos/chaos.test.ts › push 5xx | chaos | 11 | ⏳ |
-| CHAOS-05 | 21.5 | Phone offline 5 s mid-check → recovers | chaos/chaos.test.ts › airplane | chaos | 11 | ⏳ |
+| LOAD-01 | 21.4 | Capacity per container at p95 < 150 ms; sets MAX_SOCKETS | load/load.test.ts ? LOAD-01 (1 CPU, one container: p95 routing < 150 ms at every step to 1,500 sockets, the local ceiling of Docker Desktop port forwarding; MAX_SOCKETS is set from staging, D-071) | load | 11 | ✅ |
+| LOAD-02 | 21.4 | Reconnect storm: all back within 30 s, errors < 1% | load/load.test.ts ? LOAD-02 (relay-a killed under 1,500 sockets and 5 checks/s: every socket back within 30 s, < 1% failed checks) | load | 11 | ✅ |
+| LOAD-03 | 21.4 | Soak: no memory growth (short locally) | load/load.test.ts ? LOAD-03 (8 min at 1,500 sockets and 5 checks/s: zero failed checks, relay memory growth < 15%; the 12 h soak runs on staging) | load | 11 | ✅ |
+| CHAOS-01 | 21.5 | Kill a relay container mid-check → safe outcome | chaos/chaos.test.ts ? CHAOS-01 (docker kill of the asker's relay ? VERIFIED on the other; whole-stack reboot mid-check ? Not confirmed yet, then a new check VERIFIED) | chaos | 11 | ✅ |
+| CHAOS-02 | 21.5 | Restart Redis mid-check → safe outcome | chaos/chaos.test.ts ? CHAOS-02 (Valkey restart mid-check ? Not confirmed yet; routes heal: DENIED and VERIFIED on the same sockets) | chaos | 11 | ✅ |
+| CHAOS-03 | 21.5 | Postgres down 2 min → safe outcome | chaos/chaos.test.ts ? CHAOS-03 (Postgres down 2 min: an existing family stays VERIFIED; a brand-new contact is refused, never green, then VERIFIED once Postgres is back) | chaos | 11 | ✅ |
+| CHAOS-04 | 21.5 | Mock push 5xx → safe outcome | chaos/chaos.test.ts ? CHAOS-04 (push 5xx: closed app ? failed receipt, Not confirmed yet; push back ? pushed, VAPID-valid decryptable push, the reopened app answers ? VERIFIED) | chaos | 11 | ✅ |
+| CHAOS-05 | 21.5 | Phone offline 5 s mid-check → recovers | chaos/chaos.test.ts ? CHAOS-05 (answerer offline 5 s ? outbox re-send, VERIFIED; asker offline 5 s ? inbox drain, VERIFIED) | chaos | 11 | ✅ |
 | SEC-01 | 21.7 | Envelope parser fuzzing: no crash, no unhandled rejection | protocol/fuzz.test.ts (parsers, 9,000+ inputs) + relay/fuzz.int.test.ts (a live relay, 2,100 random frames) | security | 9 | ✅ |
 | SEC-02 | 21.7 | A replayed login is refused | relay/login.int.test.ts › SEC-02 · the server nonce is single-use | security | 9 | ✅ |
 | SEC-03 | 21.7 | Answer from a non-target refused | relay/requests.int.test.ts › only the target may answer, and only to the asker (SEC-03) | security | 9 | ✅ |
@@ -241,7 +241,7 @@ Paths: `crypto` = `packages/crypto/test`, `protocol` = `packages/protocol/test`,
 | F-03 | Battery saver delays push | manual: E4 step 12 | 6 | manual |
 | F-04 | iPhone not installed / alerts refused → reachability hint | APP-09 (D1 hint: states.spec.ts › FC-17), FC-10 | 5 | ✅ |
 | F-05 | Maa offline → relay_unreachable | J-05 | 5 | ✅ |
-| F-06 | Network flicker while waiting → reconnect + drain | CHAOS-05 | 11 | ⏳ |
+| F-06 | Network flicker while waiting → reconnect + drain | CHAOS-05 (chaos/chaos.test.ts) | 11 | ✅ |
 | F-07 | Maa backgrounded when answer arrives → push to Maa | REL-06 + PSH-02 + web/sw.test.ts (answer notification) | 6 | ✅ |
 | F-08 | Relay container crash / deploy mid-check | J-14, OPS-03 (ops/stack.test.ts) | 10 | ✅ |
 | F-09 | Whole VM down → Not confirmed yet; restart | OPS-06 (ops/stack.test.ts) + CHAOS-01 › reboot | 10 | ✅ |

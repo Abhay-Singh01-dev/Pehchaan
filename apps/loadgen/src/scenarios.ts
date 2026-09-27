@@ -135,13 +135,13 @@ export async function capacity(ep: Endpoint, o: CapacityOptions): Promise<boolea
       }
       capacityAt = target;
     }
-    const breaking = brokeAt ?? capacityAt;
     emit("report", {
       ok: capacityAt > 0,
       capacity: capacityAt,
       brokeAt,
       reason,
-      recommendedMaxSockets: Math.floor((breaking * 0.75) / 100) * 100,
+      // 21.4: about 75% of the point where p95 crossed the limit; unknown until a run finds that point.
+      recommendedMaxSockets: brokeAt === null ? null : Math.floor((brokeAt * 0.75) / 100) * 100,
       limitMs: o.limitMs,
       steps,
     });

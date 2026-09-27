@@ -234,6 +234,21 @@ name, status); `pnpm check-matrix` fails while any row is neither ✅ nor covere
 The ops, chaos and load suites share one Docker project and ports 80/443: run them one at a time. The real-phone
 script (Android and installed iPhone, carriers, battery settings) is in spec E4 and the matrix's "Manual" table.
 
+### Verified results (on the development machine, September 2026)
+
+| Suite | Result |
+|---|---|
+| Fast gate (lint, typecheck, unit with coverage, build) | 23 / 23 tasks green; `packages/crypto` at 100% coverage |
+| Relay integration (real Valkey + Postgres) | 193 tests passing |
+| Real-backend journeys (Playwright, virtual passkeys) | 34 / 34 with E2E optional, 33 / 33 with `E2E_REQUIRED=true` |
+| Security Lab, J-12 | 50 attacks (change, replay, forge): **0 false greens** |
+| Security suite | gitleaks (whole history), `pnpm audit` and Trivy: no high or critical findings |
+| Ops (OPS-01 … OPS-11, J-14) | All passing: two rolling deploys (with a migration and a rollback) under 1,000 sockets and 2 checks/s with **zero failed checks**; backup → restore with identical row counts; whole stack healthy within 60 s of a restart; arm64 image boots under QEMU |
+| Chaos (CHAOS-01 … CHAOS-05) | All passing: every injected failure ended in the correct verdict or "Not confirmed yet", never a false green |
+| Offline start (F-27) | The production build opens from the service worker with the network cut |
+| Load, one relay container at 1 CPU (LOAD-01 … 03, shortened) | p95 routing **10 / 9 / 9 ms at 500 / 1,000 / 1,500 sockets**, 0 failed checks; relay killed under 1,500 sockets → every socket back within 30 s, < 1% failed checks; 8-minute soak with memory growth under 15%. Docker Desktop's port forwarding stops at about 2,000 connections, so these are lower bounds: `MAX_SOCKETS` and the 12-hour soak come from staging (spec 21.4) |
+| Test matrix | **227 rules: every one ✅ or covered by a named real-phone step** (`pnpm check-matrix`) |
+
 ## 9. Deployment
 
 - **App:** Vercel (branch `main` → production, `staging` → staging), with security headers from `apps/web/vercel.json`

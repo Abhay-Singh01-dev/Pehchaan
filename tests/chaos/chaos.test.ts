@@ -142,19 +142,23 @@ describe("CHAOS-03 · Postgres down for 2 minutes", () => {
   it("a family that checked before keeps working; a brand-new contact fails safely, then works once it is back", async () => {
     const [a, b, c, d] = [await phone(ep), await phone(ep), await phone(ep), await phone(ep)];
     try {
-      // a → b have a binding (and warm caches) from before the outage; c → d have never checked.
-      expect(await realCheck({ asker: a, answerer: b, decision: "ME" })).toMatchObject({ verdict: "VERIFIED" });
+      // a → b are an existing family: the first check creates their binding (which clears the Valkey binding cache
+      // so the new sender appears), the second one warms the cache again. c → d have never checked.
+      for (const decision of ["ME", "NOT_ME"] as const) {
+        expect(await realCheck({ asker: a, answerer: b, decision })).toMatchObject({ request: "accepted" });
+      }
       const downAt = Date.now();
       await compose(["stop", "postgres"]);
-
-      expect(await realCheck({ asker: a, answerer: b, decision: "ME" })).toMatchObject({ verdict: "VERIFIED" });
-      const fresh = await realCheck({ asker: c, answerer: d, decision: "ME", ttlMs: 10_000 });
-      expect(fresh.verdict).toBe("NO_RESPONSE"); // the relay can't record a new binding: it fails closed
-      expect(fresh.request).not.toBe("accepted");
-
-      await sleep(Math.max(0, 120_000 - (Date.now() - downAt)));
-      await compose(["start", "postgres"]);
-      await waitHealthy(["postgres"], 60_000);
+      try {
+        expect(await realCheck({ asker: a, answerer: b, decision: "ME" })).toMatchObject({ verdict: "VERIFIED" });
+        const fresh = await realCheck({ asker: c, answerer: d, decision: "ME", ttlMs: 10_000 });
+        expect(fresh.verdict).toBe("NO_RESPONSE"); // the relay can't record a new binding: it fails closed
+        expect(fresh.request).not.toBe("accepted");
+        await sleep(Math.max(0, 120_000 - (Date.now() - downAt)));
+      } finally {
+        await compose(["start", "postgres"]);
+        await waitHealthy(["postgres"], 60_000);
+      }
       expect(await realCheck({ asker: c, answerer: d, decision: "ME" })).toMatchObject({ verdict: "VERIFIED" });
       expect(await realCheck({ asker: a, answerer: b, decision: "NOT_ME" })).toMatchObject({ verdict: "DENIED" });
     } finally {
