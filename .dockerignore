@@ -1,0 +1,18 @@
+# Docker build context (infra/docker/*): only sources. Dependencies are installed and outputs built inside.
+**/node_modules
+**/dist
+**/dist-*
+**/coverage
+**/.turbo
+**/test-results
+**/playwright-report
+.git
+.github
+.env
+**/.env.local
+apps/web
+apps/canary
+apps/loadgen
+tests
+docs
+*.md

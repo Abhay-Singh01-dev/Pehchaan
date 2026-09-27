@@ -1,7 +1,7 @@
 name: canary
 # The synthetic check (spec 19.6): every 10 minutes, from GitHub's servers (outside Oracle's network), two canary
 # devices log in, ask, answer and check the receipts and timings against production. Three failures in a row page
-# someone (19.5, alert rule `canary-failing`).
+# someone (19.5): the last step posts to the team chat's ALERT_WEBHOOK_URL.
 on:
   schedule:
     - cron: "*/10 * * * *"

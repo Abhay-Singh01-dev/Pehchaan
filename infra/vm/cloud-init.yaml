@@ -1,0 +1,23 @@
+#cloud-config
+# First boot of each Oracle VM (spec 18.4 step 5): Docker, the firewall opened correctly, automatic security
+# updates, and the `deploy` user CI logs in as. Replace the ssh key below with the CI deploy key's PUBLIC half.
+package_update: true
+package_upgrade: true
+packages: [ca-certificates, curl, unattended-upgrades, fail2ban, netfilter-persistent]
+ssh_pwauth: false
+users:
+  - default
+  - name: deploy
+    shell: /bin/bash
+    ssh_authorized_keys: ["ssh-ed25519 AAAA-REPLACE-WITH-THE-CI-DEPLOY-PUBLIC-KEY pehchaan-ci-deploy"]
+runcmd:
+  - curl -fsSL https://get.docker.com | sh
+  - usermod -aG docker deploy
+  # Oracle's Ubuntu images ship iptables rules that reject everything except SSH,
+  # including traffic Docker forwards to containers. Open 80/443 and drop the FORWARD reject.
+  - sed -i '/-A INPUT -j REJECT --reject-with icmp-host-prohibited/i -A INPUT -p tcp -m state --state NEW -m multiport --dports 80,443 -j ACCEPT' /etc/iptables/rules.v4
+  - sed -i '/-A FORWARD -j REJECT --reject-with icmp-host-prohibited/d' /etc/iptables/rules.v4
+  - netfilter-persistent reload
+  - systemctl restart docker # re-create Docker's own rules after the reload
+  - mkdir -p /opt/pehchaan && chown deploy:deploy /opt/pehchaan
+  - dpkg-reconfigure -f noninteractive unattended-upgrades

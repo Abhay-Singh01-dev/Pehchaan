@@ -1,0 +1,132 @@
+name: deploy-relay
+# Spec 18.8: after `ci` succeeds on main, build the images ONCE for that exact commit (linux/arm64 for the Oracle
+# VMs and linux/amd64 for the fallbacks), scan them, deploy to staging, smoke-test it, then promote the same images
+# to production after a reviewer approves, and run the canary against production.
+on:
+  workflow_run: { workflows: [ci], types: [completed], branches: [main] }
+
+concurrency: { group: deploy-relay, cancel-in-progress: false } # never two deploys at once
+
+permissions:
+  contents: read
+
+env:
+  SHA: ${{ github.event.workflow_run.head_sha }} # the commit ci tested (not main's newest)
+
+jobs:
+  build:
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    permissions: { contents: read, packages: write }
+    outputs:
+      registry: ${{ steps.registry.outputs.registry }}
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: "${{ env.SHA }}" }
+      - id: registry
+        name: Registry name (image names must be lower case)
+        run: echo "registry=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_OUTPUT"
+      - uses: docker/setup-qemu-action@v3 # Arm builds on a standard runner
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with: { registry: ghcr.io, username: "${{ github.actor }}", password: "${{ secrets.GITHUB_TOKEN }}" }
+      - name: Relay image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: infra/docker/Dockerfile.relay
+          platforms: linux/arm64,linux/amd64
+          push: true
+          tags: ${{ steps.registry.outputs.registry }}/pehchaan-relay:${{ env.SHA }}
+      - name: Backup image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: infra/docker/Dockerfile.backup
+          platforms: linux/arm64,linux/amd64
+          push: true
+          tags: ${{ steps.registry.outputs.registry }}/pehchaan-backup:${{ env.SHA }}
+      - name: Scan the pushed images (fail on CRITICAL or HIGH)
+        run: |
+          for image in pehchaan-relay pehchaan-backup; do
+            docker run --rm aquasec/trivy:0.74.0 image --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 \
+              --no-progress "${{ steps.registry.outputs.registry }}/${image}:${SHA}"
+          done
+        env:
+          TRIVY_USERNAME: ${{ github.actor }}
+          TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+
+  deploy-staging:
+    needs: build
+    environment: staging # holds VM_IP, DEPLOY_SSH_KEY, VM_KNOWN_HOSTS
+    runs-on: ubuntu-latest
+    steps:
+      - name: Rolling deploy over SSH
+        env: { SSH_KEY: "${{ secrets.DEPLOY_SSH_KEY }}", KNOWN_HOSTS: "${{ secrets.VM_KNOWN_HOSTS }}" }
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_ed25519 && chmod 600 ~/.ssh/id_ed25519
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          # shellcheck disable=SC2029 # the tag is meant to expand here, on the runner
+          ssh "deploy@${{ vars.VM_IP }}" "/opt/pehchaan/deploy.sh $SHA"
+
+  smoke-staging:
+    needs: deploy-staging
+    environment: staging
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: "${{ env.SHA }}" }
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile --filter @pehchaan/canary...
+      - name: Smoke test (health, readiness, a sealed request/answer round trip)
+        run: pnpm --filter @pehchaan/canary smoke
+        env:
+          CANARY_RELAY_URL: ${{ vars.CANARY_RELAY_URL }}
+          CANARY_ORIGIN: ${{ vars.CANARY_ORIGIN }}
+          CANARY_IDENTITIES: ${{ secrets.CANARY_IDENTITIES }}
+
+  deploy-production:
+    needs: smoke-staging
+    environment: production # requires a reviewer's approval
+    runs-on: ubuntu-latest
+    steps:
+      - name: Rolling deploy over SSH
+        env: { SSH_KEY: "${{ secrets.DEPLOY_SSH_KEY }}", KNOWN_HOSTS: "${{ secrets.VM_KNOWN_HOSTS }}" }
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_ed25519 && chmod 600 ~/.ssh/id_ed25519
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          # shellcheck disable=SC2029 # the tag is meant to expand here, on the runner
+          ssh "deploy@${{ vars.VM_IP }}" "/opt/pehchaan/deploy.sh $SHA"
+
+  canary-production:
+    needs: deploy-production
+    environment: production
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: "${{ env.SHA }}" }
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile --filter @pehchaan/canary...
+      - name: Canary against production (19.6)
+        run: pnpm --filter @pehchaan/canary canary
+        env:
+          CANARY_RELAY_URL: ${{ vars.CANARY_RELAY_URL }}
+          CANARY_ORIGIN: ${{ vars.CANARY_ORIGIN }}
+          CANARY_IDENTITIES: ${{ secrets.CANARY_IDENTITIES }}
+
+  prune-registry:
+    # Keep the registry small (18.8): the last 10 versions of each image.
+    needs: canary-production
+    runs-on: ubuntu-latest
+    permissions: { packages: write }
+    steps:
+      - uses: actions/delete-package-versions@v5
+        with: { package-name: pehchaan-relay, package-type: container, min-versions-to-keep: 10 }
+      - uses: actions/delete-package-versions@v5
+        with: { package-name: pehchaan-backup, package-type: container, min-versions-to-keep: 10 }

@@ -4,21 +4,28 @@
   "private": true,
   "type": "module",
   "description": "WebSocket load generator for the relay (spec 21.4): capacity, reconnect storm, soak.",
+  "exports": {
+    "./session": "./src/session.ts",
+    "./fleet": "./src/fleet.ts"
+  },
   "scripts": {
     "lint": "eslint . --max-warnings 0 && prettier --check . --ignore-path ../../.prettierignore",
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run",
-    "short": "tsx src/cli.ts short"
+    "short": "tsx src/cli.ts short",
+    "hold": "tsx src/cli.ts hold",
+    "capacity": "tsx src/cli.ts capacity"
   },
   "dependencies": {
+    "@pehchaan/canary": "workspace:*",
     "@pehchaan/crypto": "workspace:*",
     "@pehchaan/protocol": "workspace:*",
+    "tsx": "4.23.15",
     "ws": "8.21.3"
   },
   "devDependencies": {
     "@types/node": "^26.6.2",
     "@types/ws": "8.18.1",
-    "tsx": "4.23.15",
     "typescript": "7.0.2",
     "vitest": "5.0.2"
   }

@@ -32,12 +32,13 @@ export function evaluate(t: CanaryResult["timings"]): string | null {
   return null;
 }
 
-async function sealedSend(
+/** A `send` body sealed from one software device to another, exactly as the app seals it (also used by loadgen). */
+export async function sealedSend(
   from: CanaryDevice,
   to: CanaryDevice,
   kind: "verify.request" | "verify.answer",
   payload: object,
-  o: { id: string; re: string },
+  o: { id: string; re: string; ttlMs?: number },
 ) {
   const e2e = await seal(
     payload,
@@ -49,7 +50,7 @@ async function sealedSend(
     kind,
     to: to.deviceId,
     re: o.re,
-    ttlMs: kind === "verify.request" ? 30_000 : 0,
+    ttlMs: kind === "verify.request" ? (o.ttlMs ?? 30_000) : 0,
     ...(kind === "verify.request" ? { grant: to.cardGrant } : {}),
     e2e,
   };

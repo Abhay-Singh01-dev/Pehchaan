@@ -11,7 +11,9 @@
     "e2e": "playwright test -c e2e/playwright.config.ts"
   },
   "devDependencies": {
+    "@pehchaan/canary": "workspace:*",
     "@pehchaan/crypto": "workspace:*",
+    "@pehchaan/loadgen": "workspace:*",
     "@pehchaan/protocol": "workspace:*",
     "@playwright/test": "1.63.0",
     "@types/node": "^26.6.2",

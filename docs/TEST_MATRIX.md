@@ -53,15 +53,15 @@ Paths: `crypto` = `packages/crypto/test`, `protocol` = `packages/protocol/test`,
 | REL-04 | 7.1 | ≤3 sockets per device; 4th closes oldest 4409; deliveries reach all; first ack counts | relay/sockets.int.test.ts › REL-04 · up to 3 sockets per device | integration | 3 | ✅ |
 | REL-05 | 8.2, 15.4 | Same-gateway and cross-gateway routing; dead gateway cleaned lazily; routes rebuilt after Valkey restart | relay/delivery.int.test.ts › REL-05 · routing | integration | 3 | ✅ |
 | REL-06 | 8.3, 8.5 | Offline → queued; drained soonest-expiry first; ack removes; expired dropped; 50 cap; ttlMs rewritten | relay/delivery.int.test.ts › REL-06 · the inbox | integration | 3 | ✅ |
-| REL-07 | 8.4 | Every receipt state in its situation (pushed/failed: Phase 6) | relay/receipts.int.test.ts | integration | 3, 6 | ⏳ |
+| REL-07 | 8.4 | Every receipt state in its situation (pushed/failed: Phase 6) | relay/flow.int.test.ts (accepted, delivered, seen, queued, rejected) + push.int.test.ts › PSH-02/PSH-03 (pushed, failed) | integration | 3, 6 | ✅ |
 | REL-08 | 8.4 | Same message id re-sent → routed once, same receipt | relay/delivery.int.test.ts › REL-08 · the same message id re-sent | integration | 3 | ✅ |
 | REL-09 | 8.1 | Record created; duplicate_request; deadline on relay clock clamped 10–60 s; record TTL | relay/requests.int.test.ts › REL-09 · request records | integration | 3 | ✅ |
 | REL-10 | 8.6, 8.8 | Answer authorisation; not_allowed/already_answered/cancelled/expired; ok_late with late:true; 50-way race → one ok | relay/requests.int.test.ts › REL-10 · answers (incl. the 50-way race) | integration | 3 | ✅ |
 | REL-11 | 8.6 | Cancel only by asker; targets get verify.cancel; state cancelled | relay/requests.int.test.ts › REL-11 · cancel | integration | 3 | ✅ |
 | REL-12 | 8.3 | No ack in 1.5 s → push, only for kinds that allow it | relay/push.int.test.ts › REL-12 | integration | 6 | ✅ |
 | REL-13 | 18.9 | Drain: /readyz 503 → 6 s → spread reconnect → 1012; zero envelopes lost | relay/drain.int.test.ts › REL-13 · drain | integration | 3 | ✅ |
-| REL-14 | 7.5 | Every error code produced by a test | relay/errors.int.test.ts (+ aggregation) | integration | 3, 7, 8 | ⏳ |
-| REL-15 | 16.3 | One test per authorisation row | relay/authz.int.test.ts | integration | 3, 7, 8 | ⏳ |
+| REL-14 | 7.5 | Every error code produced by a test | relay/errors.int.test.ts › REL-14 · every error code (lab_denied: lab.int.test.ts) | integration | 3, 7, 8 | ✅ |
+| REL-15 | 16.3 | One test per authorisation row | relay/errors.int.test.ts › REL-15 / C-B5b · the 16.3 table, one function per row | integration | 3, 7, 8 | ✅ |
 | REL-16 | 16.1 | Every rate-limit row; GCRA burst then steady; CGNAT not blocked | relay/ratelimit.int.test.ts › REL-16 · the 16.1 table, GCRA over time, CGNAT | integration | 3 | ✅ |
 | REL-17 | 16.1 | 4th open request refused | relay/requests.int.test.ts › REL-17 · a 4th open request | integration | 3 | ✅ |
 | REL-18 | 9.5 | E2E_REQUIRED: plain → e2e_required unless both Lab-opted-in | relay/e2e-required.int.test.ts › REL-18 (hello, sealed accepted, plain refused for every kind, Lab exception) | integration | 8 | ✅ |
@@ -140,7 +140,7 @@ Paths: `crypto` = `packages/crypto/test`, `protocol` = `packages/protocol/test`,
 | APP-11 | B0 | Every i18n key in en and hi; no banned word | web/i18n.test.ts + tests/unit/banned-words.test.ts | unit | 5 | ✅ |
 | APP-12 | 16.5 | Security headers; meta CSP names the relay; fonts self-hosted; no third-party requests except relay + Sentry | web/headers.test.ts (vercel.json, meta CSP, no inline script) + e2e/third-party.spec.ts › APP-12 | unit+e2e | 9 | ✅ |
 | APP-13 | 16.7 | Sentry scrubber removes every 16.7 field | web/sentry.test.ts + relay/unit/sentry.test.ts + relay/unit/scrub.test.ts | unit | 9 | ✅ |
-| APP-14 | 21.3 | The whole frontend Part D walkthrough against the real backend | e2e/walkthrough.spec.ts + journeys (Lab and Guard steps against the relay: Phase 7) | e2e | 5 | ⏳ |
+| APP-14 | 21.3 | The whole frontend Part D walkthrough against the real backend | e2e/walkthrough.spec.ts › APP-14 + journeys (Lab: lab.spec.ts › J-12, Guard: guard.spec.ts › J-13) | e2e | 5 | ✅ |
 | C-5.4a | 5.4 | "Delete my key" calls signalUnknownCredential where supported | web/real-key-extra.test.ts › deleteKey and signalUnknownCredential | unit | 5 | ✅ |
 | C-8.9a | 8.9 | Reconnect immediately on online, visibility visible, notification click; reconnect{afterMs} honoured | web/socket.test.ts › reconnect triggers (online, visible, reconnect{afterMs}) | unit | 5 | ✅ |
 | C-8.9b | 8.9 | After auth.ok: grant.set + push.subscribe, then outbox flush | web/real-relay-extra.test.ts › after a login, grant.set and push.subscribe go out before the outbox is flushed | unit | 5 | ✅ |
@@ -174,7 +174,7 @@ Paths: `crypto` = `packages/crypto/test`, `protocol` = `packages/protocol/test`,
 | J-11 | 6.4 | Arjun removes Maa (+ reset) → "isn't accepting checks"; new person with old card refused | e2e/failures.spec.ts › J-11 | e2e | 5 | ✅ |
 | J-12 | 14.3 | 50 Lab attacks (change, replay, forge, forge with copied credId) → all INVALID, 0 false greens | e2e/lab.spec.ts › J-12 (50 attacks through the real relay; log in docs/lab-log-phase7.json) | e2e | 7 | ✅ |
 | J-13 | 13.2 | Call Guard scripted call → prompt → D2 prefilled | e2e/guard.spec.ts › J-13 (pairing by card, scripted call, B2 banner, real check) | e2e | 7 | ✅ |
-| J-14 | 18.9 | relay-a killed while a request is pending (through Caddy) → relay-b takes over | ops/failover.spec.ts › J-14 | e2e | 10 | ⏳ |
+| J-14 | 18.9 | relay-a killed while a request is pending (through Caddy) → relay-b takes over | ops/stack.test.ts › J-14 (answerer's relay killed before it answers → VERIFIED; asker's relay killed → answer via inbox on relay-b, DENIED) | e2e | 10 | ✅ |
 | J-15 | 8.6 | Double tap on NOT ME → one answer, no duplicate verdict | e2e/journeys.spec.ts › J-15 | e2e | 5 | ✅ |
 | J-16 | 9 | Every journey with E2E_REQUIRED=true; captured frames hold no personal data | E2E_REQUIRED=true: all 33 real-backend journeys + e2e/privacy.spec.ts › J-16 (relay frame capture: no name, label, phone, amount, reason, nonce or signature) + relay/frame-capture.int.test.ts | e2e | 8 | ✅ |
 | J-17 | 7.1 | Arjun open in two tabs; answering in one closes the other | e2e/failures.spec.ts › J-17 | e2e | 5 | ✅ |
@@ -183,19 +183,19 @@ Paths: `crypto` = `packages/crypto/test`, `protocol` = `packages/protocol/test`,
 
 | ID | Spec § | Rule | Test | Type | Phase | Status |
 |---|---|---|---|---|---|---|
-| OPS-01 | 18.6 | compose config valid for production and staging example env; profiles right | ops/compose.test.ts | ops | 10 | ⏳ |
-| OPS-02 | 18.6 | Full production stack runs locally behind Caddy (internal CA) | ops/stack.test.ts | ops | 10 | ⏳ |
-| OPS-03 | 18.8 | Rolling deploy.sh under load: zero failed checks | ops/rolling.test.ts | ops | 10 | ⏳ |
-| OPS-04 | 15.2, 18.8 | Migrations run during a deploy; rollback to previous tag works | ops/rolling.test.ts › rollback | ops | 10 | ⏳ |
-| OPS-05 | 18.10 | Backup → restore → identical counts incl. revoked bindings; unreadable without the age key | ops/backup.test.ts | ops | 10 | ⏳ |
-| OPS-06 | 18.10 | Whole-stack restart healthy within 60 s | ops/stack.test.ts › restart | ops | 10 | ⏳ |
+| OPS-01 | 18.6 | compose config valid for production and staging example env; profiles right | ops/compose.test.ts › OPS-01 (production and staging .env, profile ha, refuses without tag or passwords, pinned digests, restart policy, Caddy address outside the dynamic range) | ops | 10 | ✅ |
+| OPS-02 | 18.6 | Full production stack runs locally behind Caddy (internal CA) | ops/stack.test.ts › OPS-02 (HTTPS with Caddy's internal CA, HTTP redirect, untrusted certificate refused, admin stats/retention, all services) | ops | 10 | ✅ |
+| OPS-03 | 18.8 | Rolling deploy.sh under load: zero failed checks | ops/stack.test.ts › OPS-03 / OPS-04 (two rolling deploys under 1,000 sockets and 2 checks/s: zero failed checks) | ops | 10 | ✅ |
+| OPS-04 | 15.2, 18.8 | Migrations run during a deploy; rollback to previous tag works | ops/stack.test.ts › OPS-03 / OPS-04 (ops-b adds a migration during the deploy; rollback to ops-a from deploy.log) | ops | 10 | ✅ |
+| OPS-05 | 18.10 | Backup → restore → identical counts incl. revoked bindings; unreadable without the age key | ops/stack.test.ts › OPS-05 (backup.sh → restore.sh into an empty Postgres: identical counts incl. revoked bindings; age file, no plain dump, wrong key refused) | ops | 10 | ✅ |
+| OPS-06 | 18.10 | Whole-stack restart healthy within 60 s | ops/stack.test.ts › OPS-06 (whole-stack stop/start healthy < 60 s, then a VERIFIED check) + compose.test.ts › restart policy | ops | 10 | ✅ |
 | OPS-07 | 18.5 | Image manifest has arm64 and amd64; arm64 boots | ops/image.test.ts | ops | 10 | ⏳ |
-| OPS-08 | 18 | shellcheck, hadolint, actionlint, cloud-init schema clean | ops/lint.test.ts | ops | 10 | ⏳ |
-| OPS-09 | 18.6 | Only ports 80 and 443 published | ops/compose.test.ts › ports | ops | 10 | ⏳ |
-| OPS-10 | 19.6 | The canary passes against the local stack | ops/canary.test.ts | ops | 10 | ⏳ |
-| OPS-11 | 19.3–19.5 | Dashboards and alert rules valid | ops/grafana.test.ts | ops | 10 | ⏳ |
-| C-18.7a | 18.7 | env.example lists names only, no values that look like secrets | ops/compose.test.ts › env.example | ops | 10 | ⏳ |
-| C-18.6a | 18.6 | Valkey runs with a password, no persistence, 768mb, noeviction | ops/compose.test.ts › valkey | ops | 10 | ⏳ |
+| OPS-08 | 18 | shellcheck, hadolint, actionlint, cloud-init schema clean | ops/lint.test.ts › OPS-08 (shellcheck 0.11, hadolint 2.14 --failure-threshold warning, actionlint 1.7.12, cloud-init schema on Ubuntu 24.04) | ops | 10 | ✅ |
+| OPS-09 | 18.6 | Only ports 80 and 443 published | ops/compose.test.ts › OPS-09 (config) + stack.test.ts › OPS-09 (running stack) | ops | 10 | ✅ |
+| OPS-10 | 19.6 | The canary passes against the local stack | ops/stack.test.ts › OPS-10 (apps/canary smoke through Caddy) | ops | 10 | ✅ |
+| OPS-11 | 19.3–19.5 | Dashboards and alert rules valid | ops/grafana.test.ts › OPS-11 (infra/grafana/import.mjs into Grafana 12 with an Editor token: every rule and dashboard saved) | ops | 10 | ✅ |
+| C-18.7a | 18.7 | env.example lists names only, no values that look like secrets | ops/compose.test.ts › C-18.7a · env.example | ops | 10 | ✅ |
+| C-18.6a | 18.6 | Valkey runs with a password, no persistence, 768mb, noeviction | ops/compose.test.ts › C-18.6a · Valkey | ops | 10 | ✅ |
 
 ## LOAD, CHAOS, SEC
 
@@ -243,8 +243,8 @@ Paths: `crypto` = `packages/crypto/test`, `protocol` = `packages/protocol/test`,
 | F-05 | Maa offline → relay_unreachable | J-05 | 5 | ✅ |
 | F-06 | Network flicker while waiting → reconnect + drain | CHAOS-05 | 11 | ⏳ |
 | F-07 | Maa backgrounded when answer arrives → push to Maa | REL-06 + PSH-02 + web/sw.test.ts (answer notification) | 6 | ✅ |
-| F-08 | Relay container crash / deploy mid-check | J-14, OPS-03 | 10 | ⏳ |
-| F-09 | Whole VM down → Not confirmed yet; restart | OPS-06 | 10 | ⏳ |
+| F-08 | Relay container crash / deploy mid-check | J-14, OPS-03 (ops/stack.test.ts) | 10 | ✅ |
+| F-09 | Whole VM down → Not confirmed yet; restart | OPS-06 (ops/stack.test.ts) + CHAOS-01 › reboot | 10 | ✅ |
 | F-10 | Redis unavailable → fail closed | REL-19 | relay/health.int.test.ts › REL-19 (Valkey down → unavailable) | ✅ |
 | F-11 | Redis restarted → routes self-heal | REL-05, CON-11 | relay/delivery.int.test.ts › REL-05 (Valkey wipe) + data.int.test.ts › CON-11 | ✅ |
 | F-12 | Postgres unavailable → warm caches keep working | REL-19, CON-08 | relay/health.int.test.ts › REL-19 (warm caches keep working) | ✅ |
@@ -262,7 +262,7 @@ Paths: `crypto` = `packages/crypto/test`, `protocol` = `packages/protocol/test`,
 | F-24 | Family link leaks → rate limits, Remove, Reset my code | REL-16, J-11 | 5 | ✅ |
 | F-25 | Scammer's "new phone" link → red warning | J-10 | 5 | ✅ |
 | F-26 | Relay compromised → never a false green | J-12 (0 false greens) + CRY-09 | 7 | ✅ |
-| F-27 | Vercel down → installed app opens from cache | web e2e offline start | 5 | ⏳ |
+| F-27 | Vercel down → installed app opens from cache | tests/e2e/offline-check.mjs (production build: offline, / and a deep link open from the service worker, no failed request) | 11 | ✅ |
 | F-28 | App too old → "Update Pehchaan" (4426) | states.spec.ts › FC-23 | 5 | ✅ |
 | F-29 | Lab left on → only opted-in phones, banner; TTLs | C-14.1a, SEC-09 | 7 | ✅ |
 

@@ -1,0 +1,90 @@
+// Grafana Alloy on each VM (spec 18.6, 19.1–19.2): metrics and logs to Grafana Cloud.
+// It reads container log FILES; it never mounts the Docker socket, which would give it root-level control.
+// Settings (the VM's .env): GRAFANA_CLOUD_PROM_URL, GRAFANA_CLOUD_PROM_USER, GRAFANA_CLOUD_LOKI_URL,
+// GRAFANA_CLOUD_LOKI_USER, GRAFANA_CLOUD_TOKEN, RELAY_HOST.
+
+// ─── Metrics ────────────────────────────────────────────────────────────────
+
+// Both relay containers' /metrics (19.1).
+prometheus.scrape "relay" {
+	job_name        = "relay"
+	scrape_interval = "15s"
+	targets         = [
+		{"__address__" = "relay-a:9091", "instance" = "relay-a"},
+		{"__address__" = "relay-b:9091", "instance" = "relay-b"},
+	]
+	forward_to = [prometheus.remote_write.cloud.receiver]
+}
+
+// The VM's CPU, memory and disk, plus the backup heartbeat written by the backup container (19.5).
+prometheus.exporter.unix "vm" {
+	procfs_path = "/host/proc"
+	sysfs_path  = "/host/sys"
+
+	textfile {
+		directory = "/backup-metrics"
+	}
+}
+
+prometheus.scrape "vm" {
+	job_name   = "node"
+	targets    = prometheus.exporter.unix.vm.targets
+	forward_to = [prometheus.remote_write.cloud.receiver]
+}
+
+// The relay's public HTTPS endpoint: up, and when its certificate expires (the 20-day notice, 19.5).
+prometheus.exporter.blackbox "tls" {
+	config = "{ modules: { https_2xx: { prober: http, timeout: 5s } } }"
+
+	target {
+		name    = "relay"
+		address = "https://" + sys.env("RELAY_HOST") + "/healthz"
+		module  = "https_2xx"
+	}
+}
+
+prometheus.scrape "tls" {
+	job_name        = "blackbox"
+	scrape_interval = "5m"
+	targets         = prometheus.exporter.blackbox.tls.targets
+	forward_to      = [prometheus.remote_write.cloud.receiver]
+}
+
+prometheus.remote_write "cloud" {
+	endpoint {
+		url = sys.env("GRAFANA_CLOUD_PROM_URL")
+
+		basic_auth {
+			username = sys.env("GRAFANA_CLOUD_PROM_USER")
+			password = sys.env("GRAFANA_CLOUD_TOKEN")
+		}
+	}
+}
+
+// ─── Logs (19.2: JSON from pino, 14 days in Loki; no personal data, 16.7) ───
+
+local.file_match "containers" {
+	path_targets = [{"__path__" = "/var/lib/docker/containers/*/*-json.log"}]
+}
+
+loki.source.file "containers" {
+	targets    = local.file_match.containers.targets
+	forward_to = [loki.process.docker.receiver]
+}
+
+loki.process "docker" {
+	stage.docker { }
+
+	forward_to = [loki.write.cloud.receiver]
+}
+
+loki.write "cloud" {
+	endpoint {
+		url = sys.env("GRAFANA_CLOUD_LOKI_URL")
+
+		basic_auth {
+			username = sys.env("GRAFANA_CLOUD_LOKI_USER")
+			password = sys.env("GRAFANA_CLOUD_TOKEN")
+		}
+	}
+}

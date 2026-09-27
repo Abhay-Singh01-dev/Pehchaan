@@ -269,7 +269,7 @@
     },
     {
       "id": 8,
-      "title": "Container restarts",
+      "title": "Relay restarts (per hour)",
       "type": "timeseries",
       "datasource": {
         "type": "prometheus",
@@ -288,8 +288,8 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum by (name) (increase(container_restart_count[1h]))",
-          "legendFormat": "{{name}}"
+          "expr": "changes(process_start_time_seconds{job=\"relay\"}[1h])",
+          "legendFormat": "{{instance}}"
         }
       ],
       "fieldConfig": {

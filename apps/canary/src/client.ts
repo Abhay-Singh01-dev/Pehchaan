@@ -14,6 +14,8 @@ export interface Endpoint {
   origin: string;
   /** The host the relay signs logins for. */
   relayHost: string;
+  /** Extra trusted root certificate (PEM), e.g. Caddy's internal CA on a local test stack. */
+  ca?: string;
 }
 
 export class RelayClient {
@@ -35,7 +37,11 @@ export class RelayClient {
   }
 
   static open(ep: Endpoint): Promise<RelayClient> {
-    const ws = new WebSocket(ep.url, SUBPROTOCOL, { origin: ep.origin, perMessageDeflate: false });
+    const ws = new WebSocket(ep.url, SUBPROTOCOL, {
+      origin: ep.origin,
+      perMessageDeflate: false,
+      ...(ep.ca ? { ca: ep.ca } : {}),
+    });
     return new Promise((resolve, reject) => {
       const c = new RelayClient(ws);
       ws.once("open", () => resolve(c));

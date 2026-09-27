@@ -87,12 +87,18 @@ importers:
 
   apps/loadgen:
     dependencies:
+      '@pehchaan/canary':
+        specifier: workspace:*
+        version: link:../canary
       '@pehchaan/crypto':
         specifier: workspace:*
         version: link:../../packages/crypto
       '@pehchaan/protocol':
         specifier: workspace:*
         version: link:../../packages/protocol
+      tsx:
+        specifier: 4.23.15
+        version: 4.23.15
       ws:
         specifier: 8.21.3
         version: 8.21.3
@@ -103,9 +109,6 @@ importers:
       '@types/ws':
         specifier: 8.18.1
         version: 8.18.1
-      tsx:
-        specifier: 4.23.15
-        version: 4.23.15
       typescript:
         specifier: 7.0.2
         version: 7.0.2
@@ -367,9 +370,15 @@ importers:
 
   tests:
     devDependencies:
+      '@pehchaan/canary':
+        specifier: workspace:*
+        version: link:../apps/canary
       '@pehchaan/crypto':
         specifier: workspace:*
         version: link:../packages/crypto
+      '@pehchaan/loadgen':
+        specifier: workspace:*
+        version: link:../apps/loadgen
       '@pehchaan/protocol':
         specifier: workspace:*
         version: link:../packages/protocol

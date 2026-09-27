@@ -4,6 +4,11 @@
   "private": true,
   "type": "module",
   "description": "Synthetic check (spec 19.6): two software-key devices log in, ask, answer and check receipts and timings.",
+  "exports": {
+    "./device": "./src/device.ts",
+    "./client": "./src/client.ts",
+    "./canary": "./src/canary.ts"
+  },
   "scripts": {
     "lint": "eslint . --max-warnings 0 && prettier --check . --ignore-path ../../.prettierignore",
     "typecheck": "tsc -p tsconfig.json",

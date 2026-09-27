@@ -3,6 +3,8 @@ node_modules
 dist
 dev-dist
 build
+# …but apps/web/build is source: the Vite plugin that writes the production CSP (apps/web/vite.config.ts).
+!apps/web/build/
 coverage
 .turbo
 .vite

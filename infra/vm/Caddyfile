@@ -1,0 +1,17 @@
+# Caddy (spec 18.6): HTTPS for the relay, WebSocket upgrades, and load balancing between the two relay containers.
+# CADDY_LOCAL_CERTS=local_certs on a local test stack (Caddy's internal certificate authority); empty on the VMs.
+{
+	email {$CADDY_EMAIL:ops@yourdomain.in}
+	acme_ca https://acme-v02.api.letsencrypt.org/directory
+	{$CADDY_LOCAL_CERTS}
+}
+
+{$RELAY_HOST} {
+	reverse_proxy {$RELAY_UPSTREAMS} {
+		lb_policy least_conn # WebSockets are long-lived: balance by open connections
+		lb_try_duration 5s # if a relay can't be reached (container stopping), try the other
+		health_uri /readyz
+		health_interval 5s
+		health_timeout 2s
+	}
+}

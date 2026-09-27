@@ -1,0 +1,94 @@
+# The server (spec 18.6): the same file on both VMs; each VM's .env decides the rest. Only Caddy publishes ports
+# (80 and 443); Valkey and Postgres are on the internal network only and are never published.
+name: pehchaan
+
+x-relay: &relay
+  image: ${IMAGE_REGISTRY:?set IMAGE_REGISTRY, e.g. ghcr.io/<org>}/pehchaan-relay:${RELAY_TAG:?set by deploy.sh}
+  restart: unless-stopped
+  env_file: .env
+  stop_grace_period: 40s # time to drain (18.9)
+  depends_on:
+    postgres: { condition: service_healthy }
+    valkey: { condition: service_started }
+  healthcheck:
+    test:
+      ["CMD", "node", "-e", "fetch('http://127.0.0.1:8080/readyz').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"]
+    interval: 5s
+    timeout: 3s
+    retries: 3
+    start_period: 20s
+  logging: { driver: json-file, options: { max-size: "20m", max-file: "5" } }
+  networks: [internal]
+
+services:
+  caddy:
+    image: caddy:2@sha256:0c994536bddb66445885237f1a5dcc1916bccea922661c76b4e9fc24061f9b52
+    restart: unless-stopped
+    env_file: .env # RELAY_HOST, RELAY_UPSTREAMS, CADDY_LOCAL_CERTS
+    ports: ["80:80", "443:443"] # the only published ports
+    volumes: ["./Caddyfile:/etc/caddy/Caddyfile:ro", "caddy_data:/data", "caddy_config:/config"]
+    networks: { internal: { ipv4_address: 172.30.0.2 } } # fixed, so the relay can trust only Caddy (TRUST_PROXY)
+
+  relay-a:
+    <<: *relay
+    environment: { GATEWAY_NAME: relay-a }
+
+  relay-b:
+    <<: *relay
+    environment: { GATEWAY_NAME: relay-b }
+    profiles: ["ha"] # both VMs set COMPOSE_PROFILES=ha; a laptop may leave it off
+
+  valkey:
+    image: valkey/valkey:8@sha256:640c5e62cea04b6d6f2084232651d0cc70362d31f4f805e7be94dbed6855e8f2
+    restart: unless-stopped
+    command:
+      [
+        "valkey-server",
+        "--requirepass",
+        "${VALKEY_PASSWORD:?}",
+        "--save",
+        "",
+        "--appendonly",
+        "no",
+        "--maxmemory",
+        "768mb",
+        "--maxmemory-policy",
+        "noeviction",
+      ]
+    networks: [internal] # never publish 6379
+
+  postgres:
+    image: postgres:16@sha256:1a6ab3f5345eb6dbe04a1349529caabdb0ab09293a09590fad07b2246bfa4b54
+    restart: unless-stopped
+    environment: { POSTGRES_DB: pehchaan, POSTGRES_USER: pehchaan, POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?}" }
+    volumes: ["pgdata:/var/lib/postgresql/data"]
+    healthcheck:
+      { test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-U", "pehchaan", "-d", "pehchaan"], interval: 5s, retries: 10 }
+    networks: [internal] # never publish 5432
+
+  backup: # nightly encrypted dump → off-provider bucket, then retention (18.10, 15.3)
+    image: ${IMAGE_REGISTRY:?}/pehchaan-backup:${RELAY_TAG:?}
+    restart: unless-stopped
+    env_file: .env
+    volumes: ["backup_metrics:/metrics"] # the heartbeat Alloy reads (backup-missing notice, 19.5)
+    networks: [internal]
+
+  alloy: # metrics and logs → Grafana Cloud (19)
+    image: grafana/alloy:v1.10.2@sha256:bcf27f18c4402869af112fb39e35e1db3804a404686f4caa20bdf77814219223
+    restart: unless-stopped
+    env_file: .env
+    command: ["run", "/etc/alloy/config.alloy"]
+    volumes:
+      - "./config.alloy:/etc/alloy/config.alloy:ro"
+      - "/var/lib/docker/containers:/var/lib/docker/containers:ro" # log files, never the Docker socket
+      - "/proc:/host/proc:ro"
+      - "/sys:/host/sys:ro"
+      - "backup_metrics:/backup-metrics:ro"
+    networks: [internal]
+
+networks:
+  internal:
+    # Other containers get addresses from .128–.255 only, so none can take Caddy's fixed 172.30.0.2 first.
+    ipam: { config: [{ subnet: 172.30.0.0/24, ip_range: 172.30.0.128/25 }] }
+
+volumes: { caddy_data: {}, caddy_config: {}, pgdata: {}, backup_metrics: {} }

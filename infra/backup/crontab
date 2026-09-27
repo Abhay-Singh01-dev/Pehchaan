@@ -1,0 +1,2 @@
+# The backup container's schedule (supercronic, UTC). 20:45 UTC is 02:15 in India: after the evening's use.
+45 20 * * * /opt/backup/backup.sh

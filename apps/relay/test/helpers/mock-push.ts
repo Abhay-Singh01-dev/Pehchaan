@@ -116,6 +116,8 @@ export interface MockPush {
   pushes: CapturedPush[];
   /** Scripted responses for an endpoint, used in order; afterwards 201. */
   respond(endpoint: string, ...r: Array<{ status: number; retryAfter?: number; delayMs?: number }>): void;
+  /** Drops the scripted responses left for an endpoint: from now on it gets 201. */
+  clear(endpoint: string): void;
   register(sub: TestSubscription): void;
   waitFor(pred: (p: CapturedPush) => boolean, timeoutMs?: number): Promise<CapturedPush>;
   close(): Promise<void>;
@@ -164,6 +166,9 @@ export async function startMockPush(port = 0): Promise<MockPush> {
     pushes,
     respond(endpoint, ...r) {
       scripts.set(endpoint, [...(scripts.get(endpoint) ?? []), ...r]);
+    },
+    clear(endpoint) {
+      scripts.delete(endpoint);
     },
     register(sub) {
       subs.set(sub.endpoint, sub);
